@@ -1,0 +1,6 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##ALT=<ID=DEL,Description="Deletion">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	160	test-ins	A	GGGGGG	.	.	.
+chr1	161	test-del	AA	<DEL>	.	.	.

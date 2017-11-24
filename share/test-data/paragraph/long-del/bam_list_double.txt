@@ -1,0 +1,2 @@
+SAMPLE1	chr4_graph_typing.bam
+SAMPLE2	chr4_graph_typing.bam

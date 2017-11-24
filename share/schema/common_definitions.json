@@ -1,0 +1,100 @@
+{
+    "$schema": "http://json-schema.org/draft-04/hyper-schema#",
+    "title": "Common definitions for paragraph / grmpy input and output",
+    "definitions": {
+        "node": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "sequences": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minItems": 1,
+                        "uniqueItems": true
+                    }
+                },
+                "oneOf":
+                {
+                    "reference": { "$ref": "#/definitions/reference_node" },
+                    "sequence": { "$ref": "#/definitions/sequence_node" }
+                }
+            },            
+            "required": ["name"]
+        },
+        "reference_node": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": ".+:[0-9]+-[0-9]+",
+                "uniqueItems": true,
+                "minItems": 1
+            }
+        },
+        "sequence_node": {
+            "type": "string",
+            "pattern": "^N+$|^[ACGT]+$"
+        },
+        "edge": {
+            "type": "object",
+            "properties": {
+                "from": {
+                    "type": "string",
+                    "comment": "This must be a node name"
+                },
+                "to": {
+                    "type": "string",
+                    "comment": "Same as from, must be a node name"
+                },
+                "sequences":  {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "comment": "Optional, but if specified, should be related back to a sequence name"
+                    }
+                }
+            },
+            "required": ["from", "to"]
+        },
+        "path": {
+            "type": "object",
+            "properties": {
+                "nodes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minItems": 1,
+                        "uniqueItems": false,
+                        "comment": "We currently haven't evaluated how repeated nodes"
+                    }
+                },
+                "nucleotide_length": {
+                    "$ref": "#/definitions/positive_int",
+                    "comment": "the case for this property isn't consistent with the camelCase of alignment currently used"
+                },
+                "path_id": {"type": "string"},
+                "sequence": {
+                    "type": "string",
+                    "comment": "Is it intended that a path covers only one sequence?"
+                }
+
+            },
+            "required": ["nodes", "nucleotide_length", "path_id", "sequence"],
+            "additionalProperties": false
+        },
+        "positive_int": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "positive_num": {
+            "type": "number",
+            "minimum": 0
+        },
+        "min_1_unique_list": {
+            "minItems": 1,
+            "uniqueItems": true
+        }
+    }
+}

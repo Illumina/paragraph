@@ -1,0 +1,9 @@
+##fileformat=VCFv4.1
+##FILTER=<ID=PASS,Description="All filters passed">
+##source=IlluminaPlatinumGenomesHybridTruthset,v2017-1.0
+##reference=hg38
+##contig=<ID=chr1,length=248956422>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##INFO=<ID=SOURCE,Number=1,Type=String,Description="Truthset call originated from, either Platinum Genomes v2016.1 (PG) or Genome in a Bottle v3.3.2 (GIAB)">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	ALT
+chr1	939570	.	T	TCCCTGGAGGACC	0	PASS	SOURCE=PG	GT	1

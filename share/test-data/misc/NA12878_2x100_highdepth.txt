@@ -1,0 +1,1 @@
+NA12878_2x100_isas	/illumina/build/platinumgenomes/builds/hg19/isas-2.6.53.18_200x/NA12878.isis2016426_20219/IsisAnalysis/NA12878_S1.bam

@@ -1,0 +1,70 @@
+The main paragraph-sv code (in the src subfolder), documentation, and other
+example data in this repository are distributed under the simplified BSD license.
+
+The full text can be found here:
+
+https://github.com/Illumina/licenses/blob/master/Simplified-BSD-License.txt
+
+-------------------------------------------------------------------------------
+
+Copyright (c) 2017 Illumina, Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-------------------------------------------------------------------------------
+
+The dependencies supplied in the external subfolder are covered by their own
+respective licenses as follows (original license text included in the
+respective source files / tarballs):
+
+*   Htslib 1.5 (MIT license copyright (C) 2012-2014 Genome Research Ltd. -
+    https://github.com/samtools/htslib/blob/develop/LICENSE)
+*   Klib/ksw (from https://github.com/attractivechaos/klib -- MIT license)
+*   Gssw (from https://github.com/vgteam/gssw -- MIT license)
+*   JsonCPP (Copyright (c) 2007-2010 Baptiste Lepilleur and The JsonCpp Authors, MIT license --
+    https://github.com/open-source-parsers/jsoncpp/blob/master/LICENSE)
+*   GetGitRevisionDescription.cmake from
+    https://github.com/rpavlik/cmake-modules/blob/master/GetGitRevisionDescription.cmake
+    Copyright Iowa State University 2009-2014
+    Distributed under the Boost Software License, Version 1.0.
+    (See http://www.boost.org/LICENSE_1_0.txt)
+*   Protobuf is copyright 2014, Google Inc.
+    See https://github.com/google/protobuf/blob/master/LICENSE and the LICENSE file inside external/protobuf-cpp-3.3.0.tar.gz.
+*   Google Test and Google Mock are copyright 2008, Google Inc., see https://github.com/google/googletest/blob/master/googletest/LICENSE
+    and https://github.com/google/googletest/blob/master/googlemock/LICENSE.
+    See also the LICENSE files contained in external/googletest-release-1.8.0.tar.gz.
+*   VG stream.hpp from https://github.com/vgteam/vg/blob/master/src/stream.hpp -- MIT license, see
+    https://github.com/vgteam/vg/blob/master/LICENSE
+*   Intervaltree by Erik Garrison from https://github.com/ekg/intervaltree -- MIT license,
+    see https://github.com/ekg/intervaltree/blob/master/LICENSE and external/intervaltree/LICENSE.
+*   Spdlog from https://github.com/gabime/spdlog (MIT license, Copyright (c) 2016 Gabi Melman.),
+    see https://github.com/gabime/spdlog/blob/master/LICENSE and the LICENSE file in
+    external/spdlog.tar.gz
+
+Further dependencies (to be installed by the user of this software):
+
+*   Python/Pandas: BSD-compatible
+    (http://pandas.pydata.org/pandas-docs/stable/overview.html#license)
+*   Python/PySAM: MIT license (https://github.com/pysam-developers/pysam)
+*   Boost C++ library: Boost software license
+    (http://www.boost.org/users/license.html)

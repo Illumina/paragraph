@@ -1,0 +1,97 @@
+{
+    "edges": [
+        {
+            "from": "ref-chr5:70244029-70244111",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:70244112-70245000"
+        },
+        {
+            "from": "ref-chr5:70244029-70244111",
+            "sequences": [
+                "ALT"
+            ],
+            "to": "ref-chr5:70245001-70245082"
+        },
+        {
+            "from": "ref-chr5:70244112-70245000",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:70245001-70245082"
+        },
+        {
+            "from": "ref-chr5:70245001-70245082",
+            "to": "sink"
+        },
+        {
+            "from": "source",
+            "to": "ref-chr5:70244029-70244111"
+        }
+    ],
+    "model_name": "Graph from /Users/pkrusche/workspace/grm.py/data/paragraph/simple/del-example-3.vcf",
+    "nodes": [
+        {
+            "name": "source",
+            "sequence": "NNNNNNNNNN"
+        },
+        {
+            "name": "ref-chr5:70244029-70244111",
+            "reference": "chr5:70244029-70244111",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "name": "ref-chr5:70244112-70245000",
+            "reference": "chr5:70244112-70245000",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "name": "ref-chr5:70245001-70245082",
+            "reference": "chr5:70245001-70245082",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "name": "sink",
+            "sequence": "NNNNNNNNNN"
+        }
+    ],
+    "paths": [
+        {
+            "nodes": [
+                "source",
+                "ref-chr5:70244029-70244111",
+                "ref-chr5:70245001-70245082",
+                "sink"
+            ],
+            "nucleotide_length": 165,
+            "path_id": "ALT|1",
+            "sequence": "ALT"
+        },
+        {
+            "nodes": [
+                "source",
+                "ref-chr5:70244029-70244111",
+                "ref-chr5:70244112-70245000",
+                "ref-chr5:70245001-70245082",
+                "sink"
+            ],
+            "nucleotide_length": 1054,
+            "path_id": "REF|1",
+            "sequence": "REF"
+        }
+    ],
+    "sequencenames": [
+        "ALT",
+        "REF"
+    ],
+    "target_regions": [
+        "chr5:70244029-70245082"
+    ]
+}

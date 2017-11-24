@@ -1,0 +1,3 @@
+NA12878	/illumina/build/stripes/reference_data/analysis/jan-2016/bwamem_hg19/NA12878_AH72T3CCXX_L2_NA12878_3_Normal/NA12878_AH72T3CCXX_L2_NA12878_3_Normal.bam
+NA12878_2x100	/illumina/build/platinumgenomes/builds/hg19/bwa_inhouse/NA12878/NA12878.bam
+NA12878_2x100_isas	/illumina/build/platinumgenomes/builds/hg19/isas-2.6.53.18_200x/NA12878.isis2016426_20219/IsisAnalysis/NA12878_S1.bam

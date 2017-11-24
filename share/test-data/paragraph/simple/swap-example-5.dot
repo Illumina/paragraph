@@ -1,0 +1,21 @@
+digraph paragraph_export {
+node_0 [label="0: NNNNNNNNNN" shape=box];
+node_1 [label="1: chr5:70248916-70248998" shape=ellipse];
+node_2 [label="2: chr5:70248999-70248999 (['REF'])" shape=ellipse];
+node_3 [label="3: chr5:70243961-70244112 (['REF'])" shape=ellipse];
+node_4 [label="4: chr5:70244113-70244411 (['REF'])" shape=ellipse];
+node_5 [label="5: chr5:70244412-70244494" shape=ellipse];
+node_6 [label="6: ACACAC (['ALT'])" shape=box];
+node_7 [label="7: chr5:70249000-70249000 (['REF'])" shape=ellipse];
+node_8 [label="8: NNNNNNNNNN" shape=box];
+node_6 -> node_7  [label="['ALT']"];
+node_3 -> node_6  [label="['ALT']"];
+node_3 -> node_4  [label="['REF']"];
+node_4 -> node_5  [label="['REF']"];
+node_5 -> node_8  [label=""];
+node_1 -> node_2  [label="['REF']"];
+node_2 -> node_7  [label="['REF']"];
+node_7 -> node_8  [label=""];
+node_0 -> node_3  [label=""];
+node_0 -> node_1  [label=""];
+}

@@ -1,0 +1,129 @@
+{
+    "edges": [
+        {
+            "from": "ALT-1-1500-1506",
+            "sequences": [
+                "S1"
+            ],
+            "to": "REF-3-1507-1659"
+        },
+        {
+            "from": "REF-1-1350-1500",
+            "sequences": [
+                "S1"
+            ],
+            "to": "ALT-1-1500-1506"
+        },
+        {
+            "from": "REF-1-1350-1500",
+            "sequences": [
+                "REF"
+            ],
+            "to": "REF-2-1500-1507"
+        },
+        {
+            "from": "REF-2-1500-1507",
+            "sequences": [
+                "REF"
+            ],
+            "to": "REF-3-1507-1659"
+        },
+        {
+            "from": "REF-3-1507-1659",
+            "to": "sink"
+        },
+        {
+            "from": "source",
+            "to": "REF-1-1350-1500"
+        }
+    ],
+    "model_name": "Allele graph from /Users/pkrusche/workspace/grm.py/share/test-data/genotyping_test_2/chrA.vcf",
+    "nodes": [
+        {
+            "name": "source",
+            "sequence": "NNNNNNNNNN"
+        },
+        {
+            "name": "REF-1-1350-1500",
+            "reference": "chrA:1350-1499",
+            "reference_sequence": "GAGCGTCAAAGGCCCGTCCTATAGACCTGAAGAGTGTTGAGAGTTCTATGGAAAAATTTATAGAGTACTTCCCAGTGTTTTAACTGTAACTGACTTCCATGATCATTTCAGTAATGCAGCCCACATGCATGTTCAAGACTAACACACCGT",
+            "sequences": [
+                "REF",
+                "S1"
+            ]
+        },
+        {
+            "name": "REF-2-1500-1507",
+            "reference": "chrA:1500-1506",
+            "reference_sequence": "GCTGCCC",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "name": "ALT-1-1500-1506",
+            "sequence": "CTAGTAA",
+            "sequences": [
+                "S1"
+            ]
+        },
+        {
+            "name": "REF-3-1507-1659",
+            "reference": "chrA:1507-1658",
+            "reference_sequence": "CTTCGTTGACCCTGGTAGAAGTTAGCGGGGCTTGTTTAAGGTCGCGTCGGAATATATGATTTACATAACTGTCACTTTGGGACGCACCCGGCCTTATGGCCATGTGTATTGATAGACTGTCAACCTAACAAGAAAAATTAACGCTTTCCCGA",
+            "sequences": [
+                "REF",
+                "S1"
+            ]
+        },
+        {
+            "name": "sink",
+            "sequence": "NNNNNNNNNN"
+        }
+    ],
+    "paths": [
+        {
+            "nodes": [
+                "source",
+                "REF-1-1350-1500",
+                "REF-2-1500-1507",
+                "REF-3-1507-1659",
+                "sink"
+            ],
+            "nucleotide_length": 309,
+            "path_id": "REF|1",
+            "sequence": "REF"
+        },
+        {
+            "nodes": [
+                "source",
+                "REF-1-1350-1500",
+                "ALT-1-1500-1506",
+                "REF-3-1507-1659",
+                "sink"
+            ],
+            "nucleotide_length": 309,
+            "path_id": "S1|1",
+            "sequence": "S1"
+        }
+    ],
+    "sequencenames": [
+        "REF",
+        "S1"
+    ],
+    "target_regions": [
+        "chrA:1350-1658"
+    ],
+    "vcf_records": [
+        {
+            "alts": [
+                "CTAGTAACTT"
+            ],
+            "chrom": "chrA",
+            "end": 1509,
+            "id": "swap1",
+            "pos": 1500,
+            "ref": "GCTGCCCCTT"
+        }
+    ]
+}

@@ -1,0 +1,12 @@
+*.swp
+*.swo
+.idea
+*.pyc
+tags
+compile_commands.json
+cmake-build-debug
+.idea
+build
+.vscode
+.DS_Store
+/src/python/test/test_failed.json

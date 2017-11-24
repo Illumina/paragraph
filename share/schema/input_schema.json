@@ -1,0 +1,49 @@
+{
+    "$schema": "http://json-schema.org/draft-04/hyper-schema#",
+    "description": "JSON schema for paragraph / pam inputs",
+    "type": "object",
+    "required": ["model_name", "nodes", "sequencenames", "target_regions"],
+    "dependencies": {
+        "paths": ["edges"]
+    },
+    "additionalProperties": false,
+    "properties": {
+        "model_name": {"type": "string"},
+        "edges": {
+            "type": "array",
+            "items": {
+                "$ref": "common_definitions.json#/definitions/edge",
+                "$ref": "common_definitions.json#/definitions/min_1_unique_list"
+            }
+        },
+        "nodes": {
+            "type": "array",
+            "items": {
+                "$ref": "common_definitions.json#/definitions/node",
+                "$ref": "common_definitions.json#/definitions/min_1_unique_list"
+            }
+        },
+        "paths": {
+            "type": "array",
+            "items": {
+                "$ref": "common_definitions.json#/definitions/path",
+                "$ref": "common_definitions.json#/definitions/min_1_unique_list"
+            }
+        },
+        "sequencenames": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "$ref": "common_definitions.json#/definitions/min_1_unique_list"
+            }
+        },
+        "target_regions": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": "^.+:[0-9]+-[0-9]+$",
+                "$ref": "common_definitions.json#/definitions/min_1_unique_list"
+            }
+        }
+    }
+}

@@ -1,0 +1,32 @@
+{
+  "model_name": "Sample graph with two nodes that have the same ID (fatal)",
+  "nodes": [
+    {
+      "name": "ref-SimpleDeletion:1-40",
+      "references": "SimpleDeletion:1-40",
+      "sequences": [
+        "REF"
+      ]
+    },
+    {
+      "name": "ref-SimpleDeletion:1-40",
+      "references": "SimpleDeletion:41-60",
+      "sequences": [
+        "REF"
+      ]
+    },
+    {
+      "name": "ref-SimpleDeletion:61-100",
+      "references": "SimpleDeletion:61-100",
+      "sequences": [
+        "REF"
+      ]
+    }
+  ],
+  "sequencenames": [
+    "REF"
+  ],
+  "target_regions": [
+    "SimpleDeletion:1-100"
+  ]
+}

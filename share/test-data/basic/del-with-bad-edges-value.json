@@ -1,0 +1,70 @@
+{
+  "model_name": "Sample graph an edge dictionary instead of an array (fatal)",
+  "edges": {
+      "from": "ref-SimpleDeletion:61-100",
+      "to": "sink"
+    },
+  "nodes": [
+    {
+      "name": "source",
+      "sequence": "NNNNN"
+    },
+    {
+      "name": "sink",
+      "sequence": "NNNNN"
+    },
+    {
+      "name": "ref-SimpleDeletion:1-40",
+      "references": "SimpleDeletion:1-40",
+      "sequences": [
+        "REF"
+      ]
+    },
+    {
+      "name": "ref-SimpleDeletion:41-60",
+      "references": "SimpleDeletion:41-60",
+      "sequences": [
+        "REF"
+      ]
+    },
+    {
+      "name": "ref-SimpleDeletion:61-100",
+      "references": "SimpleDeletion:61-100",
+      "sequences": [
+        "REF"
+      ]
+    }
+  ],
+  "paths": [
+    {
+      "nodes": [
+        "source",
+        "ref-SimpleDeletion:1-40",
+        "ref-SimpleDeletion:41-60",
+        "ref-SimpleDeletion:61-100",
+        "sink"
+      ],
+      "nucleotide_length": 100,
+      "path_id": "REF|1",
+      "sequence": "REF"
+    },
+    {
+      "nodes": [
+        "source",
+        "ref-SimpleDeletion:1-40",
+        "ref-SimpleDeletion:61-100",
+        "sink"
+      ],
+      "nucleotide_length": 80,
+      "path_id": "ALT|1",
+      "sequence": "ALT"
+    }
+  ],
+  "sequencenames": [
+    "REF",
+    "ALT"
+  ],
+  "target_regions": [
+    "SimpleDeletion:1-100"
+  ]
+}

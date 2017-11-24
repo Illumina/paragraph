@@ -1,0 +1,211 @@
+{
+    "$schema": "http://json-schema.org/draft-04/hyper-schema#",
+    "description": "JSON schema for paragraph / pam outputs",
+    "type": "object",
+    "required": ["model_name", "nodes", "sequencenames", "target_regions", "sample_id", "bam", "reference", "alignments", "node_coverage", "read_counts_by_node"],
+    "dependencies": {
+        "paths": ["edges", "read_counts_by_path"],
+        "read_counts_by_path": ["edges", "paths"],
+        "variants_by_path": ["paths"]
+    },
+    "additionalProperties": false,
+    "properties": {
+        "model_name": {"type": "string"},
+        "sample_id": {"type": "string"},
+        "bam": {"type": "string"},
+        "reference": {"type": "string"},
+        "alignments": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/alignment",
+                "minItems": 1,
+                "uniqueItems": true
+            }
+        },
+        "edges": {
+            "type": "array",
+            "items": {
+                "$ref": "common_definitions.json#/definitions/edge",
+                "$ref": "common_definitions.json#/definitions/min_1_unique_list"
+            }
+        },
+        "nodes": {
+            "type": "array",
+            "items": {
+                "$ref": "common_definitions.json#/definitions/node",
+                "$ref": "common_definitions.json#/definitions/min_1_unique_list"
+            }
+        },
+        "paths": {
+            "type": "array",
+            "items": {
+                "$ref": "common_definitions.json#/definitions/path",
+                "$ref": "common_definitions.json#/definitions/min_1_unique_list"
+            }
+        },
+        "sequencenames": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "$ref": "common_definitions.json#/definitions/min_1_unique_list"
+            }
+        },
+        "target_regions": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": "^.+:[0-9]+-[0-9]+$",
+                "$ref": "common_definitions.json#/definitions/min_1_unique_list"
+            }
+        },
+        "node_coverage": {
+            "type": "object",
+            "properties": {
+                "ref": { "$ref": "#/definitions/coverage_list" },
+                "other": { "$ref": "#/definitions/coverage_list" },
+                "ref_fwd": { "$ref": "#/definitions/coverage_list" },
+                "ref_rev": { "$ref": "#/definitions/coverage_list" },
+                "other_fwd": { "$ref": "#/definitions/coverage_list" },
+                "other_rev": { "$ref": "#/definitions/coverage_list" }
+            },
+            "comment": "The number of elements in each coverage list should match the node length, there should be one node_coverage instance per node"
+        },
+        "read_counts_by_node": {
+            "required": ["total"],
+            "$ref": "#/definitions/read_counts",
+            "additionalProperties": {
+                "$ref": "common_definitions.json#/definitions/positive_int"
+            },
+            "comment": "This dictionary should contain the total, forward, and reverse coverage each node"
+        },
+        "read_counts_by_path": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "object",
+                "required": ["total"],
+                "$ref": "#/definitions/read_counts",
+                "additionalProperties": false
+            }
+        },
+        "variants_by_node": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "array",
+                "items": { "$ref": "#/definitions/variant_description" }
+            }
+        },
+        "variants_by_path": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "array",
+                "items": { "$ref": "#/definitions/variant_description" }
+            }
+        }
+    },
+    "definitions": {
+        "alignment": {
+            "type": "object",
+            "properties": {
+                "bases": {
+                    "type": "string",
+                    "pattern": "^[ACGTN]+$"
+                },
+                "fragmentId": {
+                    "type": "string",
+                    "comment": "Is there any benefit to making this a key and the rest of alignment an associated object?"
+                },
+                "isFirstMate": {"type": "boolean"},
+                "isMapped": {"type": "boolean"},
+                "isMateMapped": {"type": "boolean"},
+                "isMateReverseStrand": {"type": "boolean", "comment": "What about isReverseStrand?"},
+                "mapq": {
+                    "$ref": "common_definitions.json#/definitions/positive_int",
+                    "maximum": 60
+                },
+                "matePos": { "$ref": "common_definitions.json#/definitions/positive_int" },
+                "pos": { "$ref": "common_definitions.json#/definitions/positive_int" },
+                "quals": {
+                    "type": "string",
+                    "comment": "We'd want to check to make sure that the lengths of quals and bases match. We may also want to limit the character set allowed in quals with pattern"
+                },
+                "graphMappingStatus": {
+                    "type": "string",
+                    "enum": ["MAPPED", "UNMAPPED"],
+                    "comment": "Why isn't this a boolean?"
+                },
+                "graphAlignmentScore": {"type": "integer"},
+                "isGraphAlignmentUnique": {"type": "boolean"},
+                "graphCigar": {"type": "string"},
+                "graphMapq": {
+                    "$ref": "common_definitions.json#/definitions/positive_int",
+                    "maximum": 60
+                },
+                "graphPos": { "$ref": "common_definitions.json#/definitions/positive_int" },
+                "graphNodesTraversed": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "$ref": "common_definitions.json#/definitions/min_1_unique_list",
+                        "comment": "In JSON schema 5, we should be able to relate this back to node IDs"
+                    }
+                },
+                "graphSequencesSupported": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "$ref": "common_definitions.json#/definitions/min_1_unique_list",
+                        "comment": "As with graphNodesTraversed, we should be able to relate this back to sequence IDs in JSON schema 5"
+                    }
+                }
+            },
+            "required": ["bases", "fragmentId", "isFirstMate", "isMapped", "isMateMapped", "isMateReverseStrand", "mapq", "matePos", "pos", "quals"],
+            "dependencies": {
+                "graphMappingStatus": ["graphAlignmentScore", "isGraphAlignmentUnique", "graphCigar", "graphMapq", "graphPos", "graphNodesTraversed", "graphSequencesSupported"],
+                "graphAlignmentScore": ["graphMappingStatus", "isGraphAlignmentUnique", "graphCigar", "graphMapq", "graphPos", "graphNodesTraversed", "graphSequencesSupported"],
+                "isGraphAlignmentUnique": ["graphMappingStatus", "graphAlignmentScore", "graphCigar", "graphMapq", "graphPos", "graphNodesTraversed", "graphSequencesSupported"],
+                "graphCigar": ["graphMappingStatus", "graphAlignmentScore", "isGraphAlignmentUnique", "graphMapq", "graphPos", "graphNodesTraversed", "graphSequencesSupported"],
+                "graphMapq": ["graphMappingStatus", "graphAlignmentScore", "isGraphAlignmentUnique", "graphCigar", "graphPos", "graphNodesTraversed", "graphSequencesSupported"],
+                "graphPos": ["graphMappingStatus", "graphAlignmentScore", "isGraphAlignmentUnique", "graphCigar", "graphMapq", "graphNodesTraversed", "graphSequencesSupported"],
+                "graphNodesTraversed": ["graphMappingStatus", "graphAlignmentScore", "isGraphAlignmentUnique", "graphCigar", "graphMapq", "graphPos", "graphSequencesSupported"],
+                "graphSequencesSupported": ["graphMappingStatus", "graphAlignmentScore", "isGraphAlignmentUnique", "graphCigar", "graphMapq", "graphPos", "graphNodesTraversed"]
+            },
+            "additionalProperties": false
+        },
+        "coverage_list": {
+            "type": "array",
+            "items": {
+                "type": "integer",
+                "minimum": 0,
+                "minItems": 1
+            }
+        },
+        "read_counts": {
+            "type": "object",
+            "properties": {
+                "total": { "$ref": "common_definitions.json#/definitions/positive_int" },
+                "total:FWD": { "$ref": "common_definitions.json#/definitions/positive_int" },
+                "total:REV": { "$ref": "common_definitions.json#/definitions/positive_int" }
+            }
+        },
+        "variant_description": {
+            "type": "object",
+            "properties": {
+                "adaBackward": { "$ref": "common_definitions.json#/definitions/positive_int" },
+                "adrBackward": { "$ref": "common_definitions.json#/definitions/positive_int" },
+                "adrForward": { "$ref": "common_definitions.json#/definitions/positive_int" },
+                "adaForward": { "$ref": "common_definitions.json#/definitions/positive_int" },
+                "alt": { "type": "string", "pattern": "^ACGT*$" },
+                "end": { "$ref": "common_definitions.json#/definitions/positive_int"},
+                "leftmost": { "$ref": "common_definitions.json#/definitions/positive_int" },
+                "rightmost": { "$ref": "common_definitions.json#/definitions/positive_int" },
+                "start": { "$ref": "common_definitions.json#/definitions/positive_int" },
+                "wadaBackward": { "$ref": "common_definitions.json#/definitions/positive_num" },
+                "wadrBackward": { "$ref": "common_definitions.json#/definitions/positive_num" },
+                "wadaForward": { "$ref": "common_definitions.json#/definitions/positive_num" },
+                "wadrForward": { "$ref": "common_definitions.json#/definitions/positive_num" }
+            },
+                "required": ["alt", "end", "start"],
+                "comment": "adaBackward / adrBackward / adaForward / etc. are not required, but at least one of them should be specified"
+        }
+    }
+}

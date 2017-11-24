@@ -1,0 +1,44 @@
+{
+  "model_name": "Deletion graph with a node specifying multiple reference locations with identical sequence",
+  "nodes": [
+    {
+      "name": "ref-MultipleRefLocations:1-40",
+      "reference": "MultipleRefLocations:1-40",
+      "sequences": [
+        "REF"
+      ]
+    },
+    {
+      "name": "ref-MultipleRefLocations:41-60",
+      "reference": [
+        "MultipleRefLocations:41-60",
+        "MultipleRefLocations:81-100",
+        "MultipleRefLocations:101-120"
+      ],
+      "sequences": [
+        "DUP"
+      ]
+    },
+    {
+      "name": "ref-MultipleRefLocations:61-80",
+      "reference": "MultipleRefLocations:61-80",
+      "sequences": [
+        "REF"
+      ]
+    },
+    {
+      "name": "ref-MultipleRefLocations:121-140",
+      "reference": "MultipleRefLocations:121-140",
+      "sequences": [
+        "REF"
+      ]
+    }
+  ],
+  "sequencenames": [
+    "REF",
+    "DUP"
+  ],
+  "target_regions": [
+    "SimpleDeletion:1-100"
+  ]
+}

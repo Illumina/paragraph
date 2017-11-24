@@ -1,0 +1,1675 @@
+[
+    {
+        "chrom": "chr",
+        "commandline": "/Users/pkrusche/workspace/grm.py-build/bin/paragraph -r ../grm.py/data/multiparagraph/dummy.fa -b ../grm.py/data/multiparagraph/reads.bam -g /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpzvanvgp6.json -o /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpzvanvgp6.json.output.json --log-file /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpzvanvgp6.json.output.log --threads 1",
+        "del_len": 40,
+        "desc": "short deletion",
+        "end": 80,
+        "graph": {
+            "bam": "../grm.py/data/multiparagraph/reads.bam",
+            "edges": [
+                {
+                    "from": "LF",
+                    "sequences": [
+                        "DEL"
+                    ],
+                    "to": "RF"
+                },
+                {
+                    "from": "LF",
+                    "sequences": [
+                        "REF"
+                    ],
+                    "to": "MID"
+                },
+                {
+                    "from": "MID",
+                    "sequences": [
+                        "REF"
+                    ],
+                    "to": "RF"
+                }
+            ],
+            "fragment_statistics": {
+                "graph_histogram": [
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    }
+                ],
+                "linear_histogram": [
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    }
+                ],
+                "mean_graph": null,
+                "mean_linear": null,
+                "median_graph": 0,
+                "median_linear": 0,
+                "multi_read": 0,
+                "paired_read": 0,
+                "problematic_graph": 0,
+                "problematic_linear": 4,
+                "single_read": 4,
+                "variance_graph": 0,
+                "variance_linear": 0
+            },
+            "nodes": [
+                {
+                    "name": "LF",
+                    "reference": "chr:1-40"
+                },
+                {
+                    "name": "MID",
+                    "reference": "chr:41-80"
+                },
+                {
+                    "name": "RF",
+                    "reference": "chr:81-231"
+                }
+            ],
+            "paths": [
+                {
+                    "nodes": [
+                        "LF",
+                        "MID",
+                        "RF"
+                    ],
+                    "nucleotide_length": 340,
+                    "path_id": "REF|1",
+                    "sequence": "REF"
+                },
+                {
+                    "nodes": [
+                        "LF",
+                        "RF"
+                    ],
+                    "nucleotide_length": 300,
+                    "path_id": "DEL|1",
+                    "sequence": "DEL"
+                }
+            ],
+            "read_counts_by_edge": {
+                "LF_MID": 2,
+                "LF_MID:FWD": 2,
+                "LF_MID:READS": 2,
+                "LF_MID:REV": 0,
+                "LF_RF": 2,
+                "LF_RF:FWD": 2,
+                "LF_RF:READS": 2,
+                "LF_RF:REV": 0,
+                "total": 4,
+                "total:FWD": 4,
+                "total:READS": 4,
+                "total:REV": 0
+            },
+            "read_counts_by_node": {
+                "LF": 4,
+                "LF:FWD": 4,
+                "LF:READS": 4,
+                "LF:REV": 0,
+                "MID": 2,
+                "MID:FWD": 2,
+                "MID:READS": 2,
+                "MID:REV": 0,
+                "RF": 2,
+                "RF:FWD": 2,
+                "RF:READS": 2,
+                "RF:REV": 0,
+                "total": 4,
+                "total:FWD": 4,
+                "total:READS": 4,
+                "total:REV": 0
+            },
+            "read_counts_by_sequence": {
+                "DEL": {
+                    "total": 2,
+                    "total:FWD": 2,
+                    "total:READS": 2,
+                    "total:REV": 0
+                },
+                "REF": {
+                    "total": 2,
+                    "total:FWD": 2,
+                    "total:READS": 2,
+                    "total:REV": 0
+                }
+            },
+            "reference": "../grm.py/data/multiparagraph/dummy.fa",
+            "sequencenames": [
+                "REF",
+                "DEL"
+            ],
+            "target_regions": [
+                "chr:1-231"
+            ]
+        },
+        "ins_len": 0,
+        "len": 40,
+        "n_ev": 0,
+        "start": 41,
+        "type": "del"
+    },
+    {
+        "chrom": "chr",
+        "commandline": "/Users/pkrusche/workspace/grm.py-build/bin/paragraph -r ../grm.py/data/multiparagraph/dummy.fa -b ../grm.py/data/multiparagraph/reads.bam -g /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmp3bk5qiia.json -o /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmp3bk5qiia.json.output.json --log-file /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmp3bk5qiia.json.output.log --threads 1",
+        "del_len": 40,
+        "desc": "short swap",
+        "end": 80,
+        "graph": {
+            "bam": "../grm.py/data/multiparagraph/reads.bam",
+            "edges": [
+                {
+                    "from": "LF",
+                    "sequences": [
+                        "DEL"
+                    ],
+                    "to": "RF"
+                },
+                {
+                    "from": "LF",
+                    "sequences": [
+                        "REF"
+                    ],
+                    "to": "MID"
+                },
+                {
+                    "from": "LF",
+                    "sequences": [
+                        "INS"
+                    ],
+                    "to": "INS"
+                },
+                {
+                    "from": "INS",
+                    "sequences": [
+                        "INS"
+                    ],
+                    "to": "RF"
+                },
+                {
+                    "from": "MID",
+                    "sequences": [
+                        "REF"
+                    ],
+                    "to": "RF"
+                }
+            ],
+            "fragment_statistics": {
+                "graph_histogram": [
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    }
+                ],
+                "linear_histogram": [
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    }
+                ],
+                "mean_graph": null,
+                "mean_linear": null,
+                "median_graph": 0,
+                "median_linear": 0,
+                "multi_read": 0,
+                "paired_read": 0,
+                "problematic_graph": 0,
+                "problematic_linear": 6,
+                "single_read": 6,
+                "variance_graph": 0,
+                "variance_linear": 0
+            },
+            "nodes": [
+                {
+                    "name": "LF",
+                    "reference": "chr:1-40"
+                },
+                {
+                    "name": "MID",
+                    "reference": "chr:41-80"
+                },
+                {
+                    "name": "INS",
+                    "sequence": "TTTTTTTT"
+                },
+                {
+                    "name": "RF",
+                    "reference": "chr:81-231"
+                }
+            ],
+            "paths": [
+                {
+                    "nodes": [
+                        "LF",
+                        "MID",
+                        "RF"
+                    ],
+                    "nucleotide_length": 340,
+                    "path_id": "REF|1",
+                    "sequence": "REF"
+                },
+                {
+                    "nodes": [
+                        "LF",
+                        "RF"
+                    ],
+                    "nucleotide_length": 300,
+                    "path_id": "DEL|1",
+                    "sequence": "DEL"
+                },
+                {
+                    "nodes": [
+                        "LF",
+                        "INS",
+                        "RF"
+                    ],
+                    "nucleotide_length": 308,
+                    "path_id": "INS|1",
+                    "sequence": "INS"
+                }
+            ],
+            "read_counts_by_edge": {
+                "INS_RF": 1,
+                "INS_RF:FWD": 1,
+                "INS_RF:READS": 1,
+                "INS_RF:REV": 0,
+                "LF_INS": 2,
+                "LF_INS:FWD": 2,
+                "LF_INS:READS": 2,
+                "LF_INS:REV": 0,
+                "LF_MID": 2,
+                "LF_MID:FWD": 2,
+                "LF_MID:READS": 2,
+                "LF_MID:REV": 0,
+                "LF_RF": 2,
+                "LF_RF:FWD": 2,
+                "LF_RF:READS": 2,
+                "LF_RF:REV": 0,
+                "total": 6,
+                "total:FWD": 6,
+                "total:READS": 6,
+                "total:REV": 0
+            },
+            "read_counts_by_node": {
+                "INS": 1,
+                "INS:FWD": 1,
+                "INS:READS": 1,
+                "INS:REV": 0,
+                "LF": 6,
+                "LF:FWD": 6,
+                "LF:READS": 6,
+                "LF:REV": 0,
+                "MID": 2,
+                "MID:FWD": 2,
+                "MID:READS": 2,
+                "MID:REV": 0,
+                "RF": 3,
+                "RF:FWD": 3,
+                "RF:READS": 3,
+                "RF:REV": 0,
+                "total": 6,
+                "total:FWD": 6,
+                "total:READS": 6,
+                "total:REV": 0
+            },
+            "read_counts_by_sequence": {
+                "DEL": {
+                    "total": 2,
+                    "total:FWD": 2,
+                    "total:READS": 2,
+                    "total:REV": 0
+                },
+                "INS": {
+                    "total": 2,
+                    "total:FWD": 2,
+                    "total:READS": 2,
+                    "total:REV": 0
+                },
+                "REF": {
+                    "total": 2,
+                    "total:FWD": 2,
+                    "total:READS": 2,
+                    "total:REV": 0
+                }
+            },
+            "reference": "../grm.py/data/multiparagraph/dummy.fa",
+            "sequencenames": [
+                "REF",
+                "DEL",
+                "INS"
+            ],
+            "target_regions": [
+                "chr:1-231"
+            ]
+        },
+        "ins": "TTTTTTTT",
+        "ins_len": 8,
+        "len": 40,
+        "n_ev": 1,
+        "start": 41,
+        "type": "swap"
+    },
+    {
+        "chrom": "chr",
+        "commandline": "/Users/pkrusche/workspace/grm.py-build/bin/paragraph -r ../grm.py/data/multiparagraph/dummy.fa -b ../grm.py/data/multiparagraph/reads.bam -g /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpoabbwmuu.json -o /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpoabbwmuu.json.output.json --log-file /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpoabbwmuu.json.output.log --threads 1",
+        "del_len": 70,
+        "desc": "long deletion",
+        "end": 110,
+        "flank": 30,
+        "graph": {
+            "bam": "../grm.py/data/multiparagraph/reads.bam",
+            "edges": [
+                {
+                    "from": "source",
+                    "to": "LF"
+                },
+                {
+                    "from": "source",
+                    "to": "MID_R"
+                },
+                {
+                    "from": "LF",
+                    "sequences": [
+                        "DEL"
+                    ],
+                    "to": "RF"
+                },
+                {
+                    "from": "LF",
+                    "sequences": [
+                        "REF"
+                    ],
+                    "to": "MID_L"
+                },
+                {
+                    "from": "MID_R",
+                    "sequences": [
+                        "REF"
+                    ],
+                    "to": "RF"
+                },
+                {
+                    "from": "MID_R",
+                    "to": "sink"
+                },
+                {
+                    "from": "RF",
+                    "to": "sink"
+                }
+            ],
+            "fragment_statistics": {
+                "graph_histogram": [
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    }
+                ],
+                "linear_histogram": [
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    }
+                ],
+                "mean_graph": null,
+                "mean_linear": null,
+                "median_graph": 0,
+                "median_linear": 0,
+                "multi_read": 0,
+                "paired_read": 0,
+                "problematic_graph": 0,
+                "problematic_linear": 0,
+                "single_read": 0,
+                "variance_graph": 0,
+                "variance_linear": 0
+            },
+            "nodes": [
+                {
+                    "name": "source",
+                    "sequence": "NNNNN"
+                },
+                {
+                    "name": "LF",
+                    "reference": "chr:10-40"
+                },
+                {
+                    "name": "MID_L",
+                    "reference": "chr:41-70"
+                },
+                {
+                    "name": "MID_R",
+                    "reference": "chr:80-109"
+                },
+                {
+                    "name": "RF",
+                    "reference": "chr:111-141"
+                },
+                {
+                    "name": "sink",
+                    "sequence": "NNNNN"
+                }
+            ],
+            "paths": [
+                {
+                    "nodes": [
+                        "LF",
+                        "MID_L"
+                    ],
+                    "nucleotide_length": 60,
+                    "path_id": "REF|1",
+                    "sequence": "REF"
+                },
+                {
+                    "nodes": [
+                        "MID_R",
+                        "RF"
+                    ],
+                    "nucleotide_length": 60,
+                    "path_id": "REF|2",
+                    "sequence": "REF"
+                },
+                {
+                    "nodes": [
+                        "LF",
+                        "RF"
+                    ],
+                    "nucleotide_length": 60,
+                    "path_id": "DEL|1",
+                    "sequence": "DEL"
+                }
+            ],
+            "read_counts_by_edge": {},
+            "read_counts_by_node": {},
+            "read_counts_by_sequence": {},
+            "reference": "../grm.py/data/multiparagraph/dummy.fa",
+            "sequencenames": [
+                "REF",
+                "DEL"
+            ],
+            "target_regions": [
+                "chr:10-72",
+                "chr:79-141"
+            ]
+        },
+        "ins_len": 0,
+        "len": 70,
+        "n_ev": 2,
+        "start": 41,
+        "type": "longdel"
+    },
+    {
+        "chrom": "chr",
+        "commandline": "/Users/pkrusche/workspace/grm.py-build/bin/paragraph -r ../grm.py/data/multiparagraph/dummy.fa -b ../grm.py/data/multiparagraph/reads.bam -g /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpao7fs61s.json -o /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpao7fs61s.json.output.json --log-file /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpao7fs61s.json.output.log --threads 1",
+        "del_len": 70,
+        "desc": "long swap",
+        "end": 110,
+        "flank": 30,
+        "graph": {
+            "bam": "../grm.py/data/multiparagraph/reads.bam",
+            "edges": [
+                {
+                    "from": "source",
+                    "to": "LF"
+                },
+                {
+                    "from": "source",
+                    "to": "MID_R"
+                },
+                {
+                    "from": "LF",
+                    "sequences": [
+                        "DEL"
+                    ],
+                    "to": "RF"
+                },
+                {
+                    "from": "LF",
+                    "sequences": [
+                        "INS"
+                    ],
+                    "to": "INS"
+                },
+                {
+                    "from": "INS",
+                    "sequences": [
+                        "INS"
+                    ],
+                    "to": "RF"
+                },
+                {
+                    "from": "LF",
+                    "sequences": [
+                        "REF"
+                    ],
+                    "to": "MID_L"
+                },
+                {
+                    "from": "MID_R",
+                    "sequences": [
+                        "REF"
+                    ],
+                    "to": "RF"
+                },
+                {
+                    "from": "MID_R",
+                    "to": "sink"
+                },
+                {
+                    "from": "RF",
+                    "to": "sink"
+                }
+            ],
+            "fragment_statistics": {
+                "graph_histogram": [
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    }
+                ],
+                "linear_histogram": [
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    }
+                ],
+                "mean_graph": null,
+                "mean_linear": null,
+                "median_graph": 0,
+                "median_linear": 0,
+                "multi_read": 0,
+                "paired_read": 0,
+                "problematic_graph": 0,
+                "problematic_linear": 0,
+                "single_read": 0,
+                "variance_graph": 0,
+                "variance_linear": 0
+            },
+            "nodes": [
+                {
+                    "name": "source",
+                    "sequence": "NNNNN"
+                },
+                {
+                    "name": "LF",
+                    "reference": "chr:10-40"
+                },
+                {
+                    "name": "MID_L",
+                    "reference": "chr:41-70"
+                },
+                {
+                    "name": "INS",
+                    "sequence": "TTTTTTTT"
+                },
+                {
+                    "name": "MID_R",
+                    "reference": "chr:1-1"
+                },
+                {
+                    "name": "RF",
+                    "reference": "chr:111-141"
+                },
+                {
+                    "name": "sink",
+                    "sequence": "NNNNN"
+                }
+            ],
+            "paths": [
+                {
+                    "nodes": [
+                        "LF",
+                        "MID_L"
+                    ],
+                    "nucleotide_length": 60,
+                    "path_id": "REF|1",
+                    "sequence": "REF"
+                },
+                {
+                    "nodes": [
+                        "MID_R",
+                        "RF"
+                    ],
+                    "nucleotide_length": 60,
+                    "path_id": "REF|2",
+                    "sequence": "REF"
+                },
+                {
+                    "nodes": [
+                        "LF",
+                        "RF"
+                    ],
+                    "nucleotide_length": 60,
+                    "path_id": "DEL|1",
+                    "sequence": "DEL"
+                },
+                {
+                    "nodes": [
+                        "LF",
+                        "INS",
+                        "RF"
+                    ],
+                    "nucleotide_length": 68,
+                    "path_id": "INS|1",
+                    "sequence": "INS"
+                }
+            ],
+            "read_counts_by_edge": {},
+            "read_counts_by_node": {},
+            "read_counts_by_sequence": {},
+            "reference": "../grm.py/data/multiparagraph/dummy.fa",
+            "sequencenames": [
+                "REF",
+                "DEL",
+                "INS"
+            ],
+            "target_regions": [
+                "chr:10-72",
+                "chr:79-141"
+            ]
+        },
+        "ins": "TTTTTTTT",
+        "ins_len": 8,
+        "len": 70,
+        "n_ev": 3,
+        "start": 41,
+        "type": "longswap"
+    },
+    {
+        "chrom": "chr",
+        "commandline": "/Users/pkrusche/workspace/grm.py-build/bin/paragraph -r ../grm.py/data/multiparagraph/dummy.fa -b ../grm.py/data/multiparagraph/reads.bam -g /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpdd7gzhk0.json -o /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpdd7gzhk0.json.output.json --log-file /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpdd7gzhk0.json.output.log --threads 1",
+        "del_len": 0,
+        "desc": "ins",
+        "end": 40,
+        "graph": {
+            "bam": "../grm.py/data/multiparagraph/reads.bam",
+            "edges": [
+                {
+                    "from": "LF",
+                    "sequences": [
+                        "REF"
+                    ],
+                    "to": "RF"
+                },
+                {
+                    "from": "LF",
+                    "sequences": [
+                        "INS"
+                    ],
+                    "to": "INS"
+                },
+                {
+                    "from": "INS",
+                    "sequences": [
+                        "INS"
+                    ],
+                    "to": "RF"
+                }
+            ],
+            "fragment_statistics": {
+                "graph_histogram": [
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    }
+                ],
+                "linear_histogram": [
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    },
+                    {
+                        "lb": 0,
+                        "value": null
+                    }
+                ],
+                "mean_graph": null,
+                "mean_linear": null,
+                "median_graph": 0,
+                "median_linear": 0,
+                "multi_read": 0,
+                "paired_read": 0,
+                "problematic_graph": 0,
+                "problematic_linear": 4,
+                "single_read": 4,
+                "variance_graph": 0,
+                "variance_linear": 0
+            },
+            "nodes": [
+                {
+                    "name": "LF",
+                    "reference": "chr:1-39"
+                },
+                {
+                    "name": "INS",
+                    "sequence": "TTTTTTTT"
+                },
+                {
+                    "name": "RF",
+                    "reference": "chr:41-191"
+                }
+            ],
+            "paths": [
+                {
+                    "nodes": [
+                        "LF",
+                        "INS",
+                        "RF"
+                    ],
+                    "nucleotide_length": 308,
+                    "path_id": "INS|1",
+                    "sequence": "INS"
+                },
+                {
+                    "nodes": [
+                        "LF",
+                        "RF"
+                    ],
+                    "nucleotide_length": 300,
+                    "path_id": "REF|1",
+                    "sequence": "REF"
+                }
+            ],
+            "read_counts_by_edge": {
+                "INS_RF": 1,
+                "INS_RF:FWD": 1,
+                "INS_RF:READS": 1,
+                "INS_RF:REV": 0,
+                "LF_INS": 2,
+                "LF_INS:FWD": 2,
+                "LF_INS:READS": 2,
+                "LF_INS:REV": 0,
+                "LF_RF": 2,
+                "LF_RF:FWD": 2,
+                "LF_RF:READS": 2,
+                "LF_RF:REV": 0,
+                "total": 4,
+                "total:FWD": 4,
+                "total:READS": 4,
+                "total:REV": 0
+            },
+            "read_counts_by_node": {
+                "INS": 1,
+                "INS:FWD": 1,
+                "INS:READS": 1,
+                "INS:REV": 0,
+                "LF": 4,
+                "LF:FWD": 4,
+                "LF:READS": 4,
+                "LF:REV": 0,
+                "RF": 3,
+                "RF:FWD": 3,
+                "RF:READS": 3,
+                "RF:REV": 0,
+                "total": 4,
+                "total:FWD": 4,
+                "total:READS": 4,
+                "total:REV": 0
+            },
+            "read_counts_by_sequence": {
+                "INS": {
+                    "total": 2,
+                    "total:FWD": 2,
+                    "total:READS": 2,
+                    "total:REV": 0
+                },
+                "REF": {
+                    "total": 2,
+                    "total:FWD": 2,
+                    "total:READS": 2,
+                    "total:REV": 0
+                }
+            },
+            "reference": "../grm.py/data/multiparagraph/dummy.fa",
+            "sequencenames": [
+                "REF",
+                "INS"
+            ],
+            "target_regions": [
+                "chr:1-191"
+            ]
+        },
+        "ins": "TTTTTTTT",
+        "ins_len": 8,
+        "len": 8,
+        "n_ev": 4,
+        "start": 41,
+        "type": "ins"
+    }
+]

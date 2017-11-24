@@ -1,0 +1,65 @@
+{
+  "region-1": {
+    "chrom": "chrX",
+    "start": 70137257,
+    "end": 70139991,
+    "ins": "GTCTCGGCTCACCACAACCTCTGCCTCCCGGGTTCAAGCGATTCTCCCTCCTGCCTCAACCTCCCAAGTAGCTGGCATTATAGGCATGCACCACCACGCCCA",
+    "type": "swap",
+    "flank": 250,
+    "description": "Del-ins assembled case from Manta/Cascadia"
+  },
+  "region-2": {
+    "chrom": "chr1",
+    "start": 109025835,
+    "end": 109026295,
+    "ins": "TCATAGATCCCTATGTTATCTTCAGTCAGATGCTTTGCCTTGAACAAAACAACTATAAAAGATATATATATATATAATCTTTTATAG",
+    "type": "swap",
+    "flank": 250,
+    "description": "Del-ins assembled case from Manta/Cascadia"
+  },
+  "region-3": {
+    "chrom": "chr1",
+    "start": 210722460,
+    "end": 210724880,
+    "ins": "CTAGGG",
+    "type": "swap",
+    "flank": 150,
+    "description": "Del-ins assembled case from Manta/Cascadia"
+  },
+  "region-4": {
+    "chrom": "chr3",
+    "start": 51360382,
+    "end": 51360382,
+    "ins": "GAGGAATAT",
+    "type": "swap",
+    "flank": 150,
+    "description": "Del-ins assembled case from Manta/Cascadia"
+  },
+  "region-5": {
+    "chrom": "chr1",
+    "start": 37544051,
+    "end": 37544057,
+    "ins": ["C", "CGTGTGT"],
+    "type": "swap",
+    "flank": 150,
+    "description": "PG het-alt complex variant"
+  },
+  "region-6": {
+    "chrom": "chr6",
+    "start": 62832617,
+    "end": 62832842,
+    "ins": "ACGTGTCTTATATTATAAAACTGCACGTTATACCT",
+    "type": "swap",
+    "flank": 150,
+    "description": "Del-ins assembled case from Manta/Cascadia"
+  },
+  "region-7": {
+    "chrom": "chr10",
+    "start": 3284908,
+    "end": 3284907,
+    "ins": "GTGCGTGTGTCTATGTATGTGTTGGGGTGTGTGTGGTATGTGTATGTATGTGTGAGGGGGTGTGTATGTGTGAGGGTGTGTGTGGGGGTGTGTATGTATAAATGTGTGCATCTCTGTGTGTATGTGTGTGGTATGAATTGTGTGTGTGCATGTGTGCCATGTGAGTGTGTGGGTCTGTGTGTGGGGGGGTGTGTCTGT",
+    "type": "swap",
+    "flank": 250,
+    "description": "Long insertion example that is present in NA12878"
+  }
+}

@@ -1,0 +1,24 @@
+digraph paragraph_export {
+node_0 [label="0: NNNNNNNNNN" shape=box];
+node_1 [label="1: chr1:239404557-239404706 (['REF', 'S1'])" shape=ellipse];
+node_2 [label="2: chr1:239404707-239404707 (['REF'])" shape=ellipse];
+node_3 [label="3: G (['S1'])" shape=box];
+node_4 [label="4: chr1:239404708-239404719 (['REF', 'S1'])" shape=ellipse];
+node_5 [label="5: ATAT (['S1'])" shape=box];
+node_6 [label="6: chr1:239404720-239404728 (['REF', 'S1'])" shape=ellipse];
+node_7 [label="7: chr1:239404729-239404731 (['REF'])" shape=ellipse];
+node_8 [label="8: chr1:239404732-239404880 (['REF', 'S1'])" shape=ellipse];
+node_9 [label="9: NNNNNNNNNN" shape=box];
+node_3 -> node_4  [label="['S1']"];
+node_5 -> node_6  [label="['S1']"];
+node_1 -> node_3  [label="['S1']"];
+node_1 -> node_2  [label="['REF']"];
+node_2 -> node_4  [label="['REF']"];
+node_6 -> node_7  [label="['REF']"];
+node_6 -> node_8  [label="['S1']"];
+node_7 -> node_8  [label="['REF']"];
+node_8 -> node_9  [label=""];
+node_4 -> node_5  [label="['S1']"];
+node_4 -> node_6  [label="['REF']"];
+node_0 -> node_1  [label=""];
+}

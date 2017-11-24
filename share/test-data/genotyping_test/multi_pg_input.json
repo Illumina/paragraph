@@ -1,0 +1,20 @@
+[
+{
+	"ID" : "D1",
+	"chrom" : "chr4",
+	"end" : 8816,
+	"flank" : 150,
+	"origin" : "popins",
+	"start" : 1000,
+	"type" : "del"
+},
+{
+	"ID" : "D2",
+	"chrom" : "chr4",
+	"end" : 8815,
+	"flank" : 150,
+	"origin" : "popins",
+	"start" : 999,
+	"type" : "del"
+}
+]

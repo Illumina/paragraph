@@ -1,0 +1,149 @@
+{
+    "bam": "/illumina/scratch/popdata/users/schen/grm.py-build/share/data/paragraph/long-del/chr4_graph_typing.bam",
+    "sequencenames": [
+        "ALT",
+        "REF"
+    ],
+    "edges": [
+        {
+            "from": "ref-chr4:1000-1149-1",
+            "to": "sink"
+        },
+        {
+            "from": "ref-chr4:850-999",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr4:1000-1149-1"
+        },
+        {
+            "from": "ref-chr4:850-999",
+            "sequences": [
+                "ALT"
+            ],
+            "to": "ref-chr4:8817-8965"
+        },
+        {
+            "from": "ref-chr4:8667-8816-1",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr4:8817-8965"
+        },
+        {
+            "from": "ref-chr4:8817-8965",
+            "to": "sink"
+        },
+        {
+            "from": "source",
+            "to": "ref-chr4:850-999"
+        },
+        {
+            "from": "source",
+            "to": "ref-chr4:8667-8816-1"
+        }
+    ],
+    "model_name": "chr4_graph_typing",
+    "nodes": [
+        {
+            "name": "source",
+            "sequence": "NNNNNNNNNN"
+        },
+        {
+            "end": 8816,
+            "name": "ref-chr4:8667-8816-1",
+            "reference": "chr4:8667-8816",
+            "start": 8667
+        },
+        {
+            "name": "ref-chr4:850-999",
+            "reference": "chr4:850-999",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "name": "ref-chr4:8817-8965",
+            "reference": "chr4:8817-8965",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "end": 1149,
+            "name": "ref-chr4:1000-1149-1",
+            "reference": "chr4:1000-1149",
+            "start": 1000
+        },
+        {
+            "name": "sink",
+            "sequence": "NNNNNNNNNN"
+        }
+    ],
+    "paths": [
+        {
+            "nodes": [
+                "source",
+                "ref-chr4:850-999",
+                "ref-chr4:8817-8965",
+                "sink"
+            ],
+            "nucleotide_length": 299,
+            "path_id": "ALT|1",
+            "sequence": "ALT"
+        },
+        {
+            "nodes": [
+                "source",
+                "ref-chr4:8667-8816-1",
+                "ref-chr4:8817-8965",
+                "sink"
+            ],
+            "nucleotide_length": 299,
+            "path_id": "REF|1",
+            "sequence": "REF"
+        },
+        {
+            "nodes": [
+                "source",
+                "ref-chr4:850-999",
+                "ref-chr4:1000-1149-1",
+                "sink"
+            ],
+            "nucleotide_length": 300,
+            "path_id": "REF|2",
+            "sequence": "REF"
+        }
+    ],
+    "samples": {
+    "SAMPLE1":{
+    "read_counts_by_edge": {
+        "ref-chr4:850-999_ref-chr4:1000-1149-1": 47,
+        "ref-chr4:850-999_ref-chr4:1000-1149-1:FWD": 28,
+        "ref-chr4:850-999_ref-chr4:1000-1149-1:REV": 19,
+        "ref-chr4:8667-8816-1_ref-chr4:8817-8965": 55,
+        "ref-chr4:8667-8816-1_ref-chr4:8817-8965:FWD": 20,
+        "ref-chr4:8667-8816-1_ref-chr4:8817-8965:REV": 35,
+        "total": 210,
+        "total:FWD": 104,
+        "total:REV": 106
+    }},
+    "SAMPLE2":{
+    "read_counts_by_edge": {
+        "ref-chr4:850-999_ref-chr4:1000-1149-1": 47,
+        "ref-chr4:850-999_ref-chr4:1000-1149-1:FWD": 28,
+        "ref-chr4:850-999_ref-chr4:1000-1149-1:REV": 19,
+        "ref-chr4:8667-8816-1_ref-chr4:8817-8965": 55,
+        "ref-chr4:8667-8816-1_ref-chr4:8817-8965:FWD": 20,
+        "ref-chr4:8667-8816-1_ref-chr4:8817-8965:REV": 35,
+        "total": 210,
+        "total:FWD": 104,
+        "total:REV": 106
+    }},
+    },
+    "reference": "/illumina/scratch/popdata/users/schen/grm.py-build/share/data/paragraph/long-del/chr4_graph_typing.fa",
+    "target_regions": [
+        "chr4:850-1149",
+        "chr4:8667-8965"
+    ]
+}

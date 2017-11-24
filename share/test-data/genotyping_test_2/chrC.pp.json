@@ -1,0 +1,129 @@
+{
+    "edges": [
+        {
+            "from": "ALT-1-1501-1697",
+            "sequences": [
+                "S1"
+            ],
+            "to": "REF-3-1698-1849"
+        },
+        {
+            "from": "REF-1-1350-1501",
+            "sequences": [
+                "S1"
+            ],
+            "to": "ALT-1-1501-1697"
+        },
+        {
+            "from": "REF-1-1350-1501",
+            "sequences": [
+                "REF"
+            ],
+            "to": "REF-2-1501-1698"
+        },
+        {
+            "from": "REF-2-1501-1698",
+            "sequences": [
+                "REF"
+            ],
+            "to": "REF-3-1698-1849"
+        },
+        {
+            "from": "REF-3-1698-1849",
+            "to": "sink"
+        },
+        {
+            "from": "source",
+            "to": "REF-1-1350-1501"
+        }
+    ],
+    "model_name": "Allele graph from /Users/pkrusche/workspace/grm.py/share/test-data/genotyping_test_2/chrC.vcf",
+    "nodes": [
+        {
+            "name": "source",
+            "sequence": "NNNNNNNNNN"
+        },
+        {
+            "name": "REF-1-1350-1501",
+            "reference": "chrC:1350-1500",
+            "reference_sequence": "CTAACATACGGAAACGGTCCGCCTGGTCCACCATCATGCCTCCCGCCCATCGGTCAAAATGAATTTCCTCCTTTTAACCGGCAGGGTTGATAAGGTGCTCATAGAGAGCGTACCCTCTTAGTAGAGAACCAGGCACCGTTACCACTTTGTC",
+            "sequences": [
+                "REF",
+                "S1"
+            ]
+        },
+        {
+            "name": "REF-2-1501-1698",
+            "reference": "chrC:1501-1697",
+            "reference_sequence": "GCGTTGTAAGCTACCATATTCAATCTGTGCCAGGGATCGAGCCACAGGCACCGCTCAATCTCGCGGGAGATTGTGCAAAGAGTCTTACCTTTCGTCGACCTCCGCCTCGCTCGTGAATCTTGCGATCGATTGAAAGTCACGGGTAGAGTGATGTTCGGGCGAATCAGACAGGCAGATGCAATGGAGGTTCCCGGATA",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "name": "ALT-1-1501-1697",
+            "sequence": "CGGAGATACCCTCTGTCTCCGCTAACATTTCCCCGCGGACAAAATTTGTCGGCTGGGAGGAATAGGTGCAAACGCATAATATACCCCTCTTACTTTTTGTTAGGGTCTAGTCCGAATCTAAAAAATGACTAAGGACTCTCAGAGTGATGGATATATGCCTCGCGACGCCGATCTGTGCTTATGTCGCAGCTTTGGCATCAAACCAGTTTCACATACCCTGCCTAAAAGATTCCCATACTGCGAAATCGCAAGATTGTACAAGTTGTAGTCTGTGCGCCAGCGTGAGCACGGCACTCG",
+            "sequences": [
+                "S1"
+            ]
+        },
+        {
+            "name": "REF-3-1698-1849",
+            "reference": "chrC:1698-1848",
+            "reference_sequence": "GTGTCAGCTATCTTTCTTTGAGCGCCTGGAATCGATCTTGGCTCCGTATGTACGGAAGGACGTGGGGAGCCCAGTCCGTTCCCTCAACGGATCAGATCGCTCTCGAAATTATCGCAGATGGGCGTGAGGAATTTGGGCCCCAACGTTTACC",
+            "sequences": [
+                "REF",
+                "S1"
+            ]
+        },
+        {
+            "name": "sink",
+            "sequence": "NNNNNNNNNN"
+        }
+    ],
+    "paths": [
+        {
+            "nodes": [
+                "source",
+                "REF-1-1350-1501",
+                "REF-2-1501-1698",
+                "REF-3-1698-1849",
+                "sink"
+            ],
+            "nucleotide_length": 499,
+            "path_id": "REF|1",
+            "sequence": "REF"
+        },
+        {
+            "nodes": [
+                "source",
+                "REF-1-1350-1501",
+                "ALT-1-1501-1697",
+                "REF-3-1698-1849",
+                "sink"
+            ],
+            "nucleotide_length": 599,
+            "path_id": "S1|1",
+            "sequence": "S1"
+        }
+    ],
+    "sequencenames": [
+        "REF",
+        "S1"
+    ],
+    "target_regions": [
+        "chrC:1350-1848"
+    ],
+    "vcf_records": [
+        {
+            "alts": [
+                "CCGGAGATACCCTCTGTCTCCGCTAACATTTCCCCGCGGACAAAATTTGTCGGCTGGGAGGAATAGGTGCAAACGCATAATATACCCCTCTTACTTTTTGTTAGGGTCTAGTCCGAATCTAAAAAATGACTAAGGACTCTCAGAGTGATGGATATATGCCTCGCGACGCCGATCTGTGCTTATGTCGCAGCTTTGGCATCAAACCAGTTTCACATACCCTGCCTAAAAGATTCCCATACTGCGAAATCGCAAGATTGTACAAGTTGTAGTCTGTGCGCCAGCGTGAGCACGGCACTCGGT"
+            ],
+            "chrom": "chrC",
+            "end": 1699,
+            "id": "swap3",
+            "pos": 1500,
+            "ref": "CGCGTTGTAAGCTACCATATTCAATCTGTGCCAGGGATCGAGCCACAGGCACCGCTCAATCTCGCGGGAGATTGTGCAAAGAGTCTTACCTTTCGTCGACCTCCGCCTCGCTCGTGAATCTTGCGATCGATTGAAAGTCACGGGTAGAGTGATGTTCGGGCGAATCAGACAGGCAGATGCAATGGAGGTTCCCGGATAGT"
+        }
+    ]
+}

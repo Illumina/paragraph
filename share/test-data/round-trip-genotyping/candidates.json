@@ -1,0 +1,16 @@
+[
+  {
+    "ID": "test-ins",
+    "chrom": "chr1",
+    "start": 11,
+    "end": 11,
+    "ins": "GGGGGG"
+  },
+  {
+    "ID": "test-del",
+    "chrom": "chr1",
+    "start": 12,
+    "end": 12,
+    "ins": ""
+  }
+]

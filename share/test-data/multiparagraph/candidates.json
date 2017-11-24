@@ -1,0 +1,37 @@
+[
+  {
+    "desc": "short deletion",
+    "chrom": "chr",
+    "start": 41,
+    "end": 80
+  },
+  {
+    "desc": "short swap",
+    "chrom": "chr",
+    "start": 41,
+    "end": 80,
+    "ins": "TTTTTTTT"
+  },
+  {
+    "desc": "long deletion",
+    "chrom": "chr",
+    "start": 41,
+    "end": 110,
+    "flank": 30
+  },
+  {
+    "desc": "long swap",
+    "chrom": "chr",
+    "start": 41,
+    "end": 110,
+    "ins": "TTTTTTTT",
+    "flank": 30
+  },
+  {
+    "desc": "ins",
+    "chrom": "chr",
+    "start": 41,
+    "end": 40,
+    "ins": "TTTTTTTT"
+  }
+]

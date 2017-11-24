@@ -1,0 +1,79 @@
+{
+ "nodes": [
+  {
+   "name": "LF", 
+   "reference": "chr22:16083902-16084051", 
+   "sequences": [
+    "REF", 
+    "ALT"
+   ]
+  }, 
+  {
+   "sequences": [
+    "REF"
+   ], 
+   "name": "DEL", 
+   "sequence": "GTGTTAATGGGAGAAATTTGAAAT"
+  }, 
+  {
+   "sequences": [
+    "ALT"
+   ], 
+   "name": "INS", 
+   "sequence": "G"
+  }, 
+  {
+   "name": "RF", 
+   "reference": "chr22:16084076-16084226", 
+   "sequences": [
+    "REF", 
+    "ALT"
+   ]
+  }
+ ], 
+ "edges": [
+  {
+   "to": "DEL", 
+   "from": "LF"
+  }, 
+  {
+   "to": "INS", 
+   "from": "LF"
+  }, 
+  {
+   "to": "RF", 
+   "from": "DEL"
+  }, 
+  {
+   "to": "RF", 
+   "from": "INS"
+  }
+ ], 
+ "model_name": "MantaDEL:509199:0:0:0:0:0", 
+ "samples": {
+  "TestSample": {
+   "total:FWD": 57, 
+   "total:REV": 51, 
+   "DEL_RF:REV": 20, 
+   "LF_INS": 15, 
+   "LF_DEL:FWD": 33, 
+   "LF_INS:REV": 6, 
+   "LF_DEL": 56, 
+   "LF_DEL:REV": 23, 
+   "INS_RF:FWD": 9, 
+   "INS_RF": 15, 
+   "LF_INS:FWD": 9, 
+   "DEL_RF": 52, 
+   "total": 108, 
+   "INS_RF:REV": 6, 
+   "DEL_RF:FWD": 32
+  }
+ },
+ "sequencenames": [
+     "REF",
+     "ALT"
+ ], 
+ "target_regions": [
+  "chr22:16083702-16084426"
+ ]
+}

@@ -1,0 +1,32 @@
+{
+  "model_name": "Sample graph with only nodes specified for a deletion",
+  "nodes": [
+    {
+      "name": "ref-SimpleDeletion:1-40",
+      "reference": "SimpleDeletion:1-40",
+      "sequences": [
+        "REF"
+      ]
+    },
+    {
+      "name": "ref-SimpleDeletion:41-60",
+      "reference": "SimpleDeletion:41-60",
+      "sequences": [
+        "REF"
+      ]
+    },
+    {
+      "name": "ref-SimpleDeletion:61-100",
+      "reference": "SimpleDeletion:61-100",
+      "sequences": [
+        "REF"
+      ]
+    }
+  ],
+  "sequencenames": [
+    "REF"
+  ],
+  "target_regions": [
+    "SimpleDeletion:1-100"
+  ]
+}

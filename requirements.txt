@@ -1,0 +1,7 @@
+nose
+mock
+intervaltree
+pysam
+jsonschema
+pylint
+pep8

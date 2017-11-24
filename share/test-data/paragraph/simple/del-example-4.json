@@ -1,0 +1,121 @@
+{
+    "edges": [
+        {
+            "from": "ref-chr5:70244029-70244111",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:70244112-70244194-1"
+        },
+        {
+            "from": "ref-chr5:70244029-70244111",
+            "sequences": [
+                "ALT"
+            ],
+            "to": "ref-chr5:70249001-70249082"
+        },
+        {
+            "from": "ref-chr5:70244112-70244194-1",
+            "to": "sink"
+        },
+        {
+            "from": "ref-chr5:70248918-70249000-1",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:70249001-70249082"
+        },
+        {
+            "from": "ref-chr5:70249001-70249082",
+            "to": "sink"
+        },
+        {
+            "from": "source",
+            "to": "ref-chr5:70244029-70244111"
+        },
+        {
+            "from": "source",
+            "to": "ref-chr5:70248918-70249000-1"
+        }
+    ],
+    "model_name": "Graph from /Users/pkrusche/workspace/grm.py/data/paragraph/simple/del-example-4.vcf",
+    "nodes": [
+        {
+            "name": "source",
+            "sequence": "NNNNNNNNNN"
+        },
+        {
+            "end": 70249000,
+            "name": "ref-chr5:70248918-70249000-1",
+            "reference": "chr5:70248918-70249000",
+            "start": 70248918
+        },
+        {
+            "name": "ref-chr5:70244029-70244111",
+            "reference": "chr5:70244029-70244111",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "name": "ref-chr5:70249001-70249082",
+            "reference": "chr5:70249001-70249082",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "end": 70244194,
+            "name": "ref-chr5:70244112-70244194-1",
+            "reference": "chr5:70244112-70244194",
+            "start": 70244112
+        },
+        {
+            "name": "sink",
+            "sequence": "NNNNNNNNNN"
+        }
+    ],
+    "paths": [
+        {
+            "nodes": [
+                "source",
+                "ref-chr5:70244029-70244111",
+                "ref-chr5:70249001-70249082",
+                "sink"
+            ],
+            "nucleotide_length": 165,
+            "path_id": "ALT|1",
+            "sequence": "ALT"
+        },
+        {
+            "nodes": [
+                "source",
+                "ref-chr5:70248918-70249000-1",
+                "ref-chr5:70249001-70249082",
+                "sink"
+            ],
+            "nucleotide_length": 165,
+            "path_id": "REF|1",
+            "sequence": "REF"
+        },
+        {
+            "nodes": [
+                "source",
+                "ref-chr5:70244029-70244111",
+                "ref-chr5:70244112-70244194-1",
+                "sink"
+            ],
+            "nucleotide_length": 166,
+            "path_id": "REF|2",
+            "sequence": "REF"
+        }
+    ],
+    "sequencenames": [
+        "ALT",
+        "REF"
+    ],
+    "target_regions": [
+        "chr5:70244029-70244194",
+        "chr5:70248918-70249082"
+    ]
+}

@@ -1,0 +1,2 @@
+#ID	Path	Depth	Read_len
+SWAPS	swaps.bam	150	150

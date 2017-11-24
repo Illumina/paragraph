@@ -1,0 +1,66 @@
+// -*- mode: c++; indent-tabs-mode: nil; -*-
+//
+// Copyright (c) 2017 Illumina, Inc.
+// All rights reserved.
+
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+
+// 1. Redistributions of source code must retain the above copyright notice, this
+//    list of conditions and the following disclaimer.
+
+// 2. Redistributions in binary form must reproduce the above copyright notice,
+//    this list of conditions and the following disclaimer in the documentation
+//    and/or other materials provided with the distribution.
+
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+syntax = "proto3";
+
+package variant;
+
+message Variant {
+    // Each node is tagged with a set of sequences
+    string contig = 1;
+    int32 start = 2;
+    int32 end = 3;
+
+    // STR shifting: left / rightmost positions
+    int32 leftmost = 102;
+    int32 rightmost = 103;
+
+    string alt = 4;
+
+    // allele depths for reference
+    int32 adr_forward = 5;
+    int32 adr_backward = 6;
+
+    // allele depths for alt
+    int32 ada_forward = 7;
+    int32 ada_backward = 8;
+
+    // allele depths for others
+    int32 ado_forward = 9;
+    int32 ado_backward = 10;
+
+    // qual-weighted allele depths for reference
+    float wadr_forward = 11;
+    float wadr_backward = 12;
+
+    // qual-weighted allele depths for alt
+    float wada_forward = 13;
+    float wada_backward = 14;
+
+    // qual-weighted allele depths for others
+    float wado_forward = 15;
+    float wado_backward = 16;
+}

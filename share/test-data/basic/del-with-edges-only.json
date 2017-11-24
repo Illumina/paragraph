@@ -1,0 +1,63 @@
+{
+  "model_name": "Sample graph with only edges specified for a deletion (fatal)",
+  "edges": [
+    {
+      "from": "source",
+      "to": "ref-SimpleDeletion:1-40"
+    },
+    {
+      "from": "ref-SimpleDeletion:61-100",
+      "to": "sink"
+    },
+    {
+      "from": "ref-SimpleDeletion:1-40",
+      "to": "ref-SimpleDeletion:41-60",
+      "sequences": [
+        "REF"
+      ]
+    },
+    {
+      "from": "ref-SimpleDeletion:1-40",
+      "to": "ref-SimpleDeletion:61-100",
+      "sequences": [
+        "ALT"
+      ]
+    },
+    {
+      "from": "ref-SimpleDeletion:41-60",
+      "to": "ref-SimpleDeletion:61-100"
+    }
+  ],
+  "paths": [
+    {
+      "nodes": [
+        "source",
+        "ref-SimpleDeletion:1-40",
+        "ref-SimpleDeletion:41-60",
+        "ref-SimpleDeletion:61-100",
+        "sink"
+      ],
+      "nucleotide_length": 100,
+      "path_id": "REF|1",
+      "sequence": "REF"
+    },
+    {
+      "nodes": [
+        "source",
+        "ref-SimpleDeletion:1-40",
+        "ref-SimpleDeletion:61-100",
+        "sink"
+      ],
+      "nucleotide_length": 80,
+      "path_id": "ALT|1",
+      "sequence": "ALT"
+    }
+  ],
+  "sequencenames": [
+    "REF",
+    "ALT"
+  ],
+  "target_regions": [
+    "SimpleDeletion:1-100"
+  ]
+}
