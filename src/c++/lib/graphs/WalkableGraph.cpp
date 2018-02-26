@@ -127,8 +127,30 @@ WalkableGraph& WalkableGraph::operator=(Graph const& g)
 }
 
 WalkableGraph::operator Graph&() const { return _impl->graph; }
+Graph const& WalkableGraph::graph() const { return _impl->graph; }
 
 graphs::GraphHeader const& WalkableGraph::header() const { return *_impl->graph.header; }
+
+void WalkableGraph::addSequence(const std::string& sequence_name, std::vector<uint64_t> nodes)
+{
+    assert(_impl->sequence_name_to_id.find(sequence_name) == _impl->sequence_name_to_id.end());
+    _impl->graph.header->add_sequencenames(sequence_name);
+    const uint64_t sequence_id = static_cast<uint64_t>(_impl->graph.header->sequencenames().size()) - 1;
+    _impl->sequence_name_to_id[sequence_name] = sequence_id;
+
+    bool has_previous = false;
+    uint64_t previous = 0;
+    for (const auto node_id : nodes)
+    {
+        node(node_id)->add_sequence_ids(sequence_id);
+        if (has_previous)
+        {
+            edge(previous, node_id)->add_sequence_ids(sequence_id);
+        }
+        previous = node_id;
+        has_previous = true;
+    }
+}
 
 uint64_t WalkableGraph::sequenceId(const std::string& sequence_name) const
 {

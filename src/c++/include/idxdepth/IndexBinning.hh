@@ -38,9 +38,9 @@ struct IndexBin
     std::string chrom;
     int64_t start = -1;
     int64_t end = -1;
-    size_t slices = 0;
-    size_t overlapping_bytes = 0;
-    double adjusted_bytes = 0;
+    size_t slices = 0; // number of times this index bin has been encountered (can be >1 for CRAM indices)
+    size_t overlapping_bytes = 0; // total byte count from overlapping index slices
+    double adjusted_bytes = 0; // adjusted byte count (after adjusting for slice vs bin size)
     double normalized_depth = 0;
 };
 

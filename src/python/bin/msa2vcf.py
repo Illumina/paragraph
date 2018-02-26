@@ -30,10 +30,9 @@ import argparse
 import subprocess
 import tempfile
 import shlex
+import pysam
 
 import findgrm  # pylint: disable=unused-import
-
-import pysam
 
 from grm.msa import *  # pylint: disable=wildcard-import,unused-wildcard-import
 

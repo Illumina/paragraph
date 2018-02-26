@@ -43,7 +43,7 @@ def read_msa_fasta(filename):
             elif current and "name" in current:
                 current["sequence"] += line
             elif line:
-                raise Exception("Error in line %i : no fasta sequence name", i)
+                raise Exception("Error in line %i : no fasta sequence name" % i)
 
     if current and "name" in current:
         sequences[current["name"]] = current["sequence"]

@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+# uses EAGLE simulator to generate reads from graph path sequences
+#
+# Author: Roman Petrovski <rpetrovski@illumina.com>
+
+EAGLE_PATH=@PARAGRAPH_EAGLE@
+JOBS=$(grep -c ^processor /proc/cpuinfo || echo 1)
+
+print_usage()
+{
+    cat <<EOF
+Usage: $0 --graph-genome PATH --reference-genome PATH [options]
+Options: [defaults in brackets after descriptions]
+Configuration:
+  -g, --graph-genome PATH      path to fasta file with path sequences. Use graph-to-fasta to produce one
+  --help                       print this message
+  -j,--jobs n                  number of parallel processes allowed to run [${JOBS}]
+  -r,--reference-genome PATH   path to fasta with entire reference genome. use the same reference with 
+                               paragraph --validate to produce the accuracy statistics
+  --with-eagle PATH            path to EAGLE installation. [@PARAGRAPH_EAGLE@]
+
+EOF
+    exit 10
+}
+
+while (( ${#@} )); do
+    if echo $1 | grep "^--graph-genome=" > /dev/null 2> /dev/null; then
+        GRAPH_FA=`echo $1 | sed "s/^--graph-genome=//"`
+    elif echo $1 | grep "^--help" > /dev/null 2> /dev/null; then
+        print_usage;
+    elif echo $1 | grep "^--reference-genome=" > /dev/null 2> /dev/null; then
+        REFERENCE_FA=`echo $1 | sed "s/^--reference-genome=//"`
+    elif echo $1 | grep "^--with-eagle=" > /dev/null 2> /dev/null; then
+        EAGLE_PATH=`echo $1 | sed "s/^--with-eagle=//"`
+    elif echo $1 | grep "^--jobs=" > /dev/null 2> /dev/null; then
+        JOBS=`echo $1 | sed "s/^--jobs=//"`
+    else
+        param=$1
+        shift
+        if [[ $param == "--graph-genome" || $param == "-g" ]]; then
+            GRAPH_FA=$1
+        elif [[ $param == "--reference-genome" || $param == "-r" ]]; then
+            REFERENCE_FA=$1
+        elif [[ $param == "--with-eagle" ]]; then
+            EAGLE_PATH=$1
+        elif [[ $param == "--jobs" || $param == "-j" ]]; then
+            JOBS=$1
+        else
+            echo "ERROR: unrecognized argument: $param" >&2
+            exit 2
+        fi
+    fi
+    shift
+done
+
+[ "x"$GRAPH_FA == "x" ] && echo "--graph-genome is a required parameter" && exit 2
+[ "x"$REFERENCE_FA == "x" ] && echo "--reference-genome is a required parameter" && exit 2
+
+GRAPH_FA=$(cd $(dirname "$GRAPH_FA") && pwd)/$(basename "$GRAPH_FA")
+REFERENCE_FA=$(cd $(dirname "$REFERENCE_FA") && pwd)/$(basename "$REFERENCE_FA")
+EAGLE_PATH=$(cd "$EAGLE_PATH" && pwd)
+
+export PATH=$PATH:${EAGLE_PATH}/bin
+export EAGLE_SHARE=$(realpath ${EAGLE_PATH}/share/EAGLE-*/)
+export EAGLE_LIBEXEC=$(realpath ${EAGLE_PATH}/libexec/EAGLE-*/)
+
+EXEC_PATH=$(dirname $0)
+
+make -j ${JOBS} -f ${EXEC_PATH}/SimulateReads.mk simulated.bam.bai \
+    EXEC_PATH:=${EXEC_PATH} GRAPH_FA:=${GRAPH_FA} REFERENCE_FA:=${REFERENCE_FA} EAGLE_SHARE:=${EAGLE_SHARE}

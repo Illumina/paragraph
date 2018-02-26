@@ -5,6 +5,18 @@
 cmake_minimum_required (VERSION 2.8.5)
 project (GRM)
 
+# Support for static linking.
+# Note that this implies that all libraries must be found with the
+# exact file name (libXXX.a or libXXX.so)
+if    (PARAGRAPH_FORCE_STATIC_LINK)
+    message(STATUS "All libraries will be statically linked")
+    set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-static")
+    set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "-static")
+    # ensure that even if cmake decides to allow for dynamic libs resolution,
+    # this gets overriden into static...
+    set(CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS ${CMAKE_EXE_LINK_STATIC_CXX_FLAGS})
+endif (PARAGRAPH_FORCE_STATIC_LINK)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src/cmake")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -13,53 +25,19 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include(cxx)
 include(configureFiles)
+
 include(FindZLIB)
-include(FindBZip2)
+include(GetHtslib)
+include(GetGoogleTest)
+include(GetProtobuf)
+include(GetSpdlog)
 
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/scratch)
-
-execute_process(
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/external/make_dependencies.sh
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/scratch
-    RESULT_VARIABLE DEPENDENCIES_BUILT)
-
-if(NOT (${DEPENDENCIES_BUILT} STREQUAL "0"))
-    message( FATAL_ERROR "Dependency build failed, CMake will exit." )
-endif(NOT (${DEPENDENCIES_BUILT} STREQUAL "0"))
-
-if (IS_DIRECTORY $ENV{PROTOBUF_INSTALL_PATH})
-    message( "Using pre-built protobuf from $ENV{PROTOBUF_INSTALL_PATH}")
-    set(CMAKE_PREFIX_PATH $ENV{PROTOBUF_INSTALL_PATH})
-    set(Protobuf_DIR $ENV{PROTOBUF_INSTALL_PATH})
-else()
-    message( "Using included protobuf from ${CMAKE_BINARY_DIR}/scratch/protobuf-install")
-    set(CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR}/scratch/protobuf-install)
-    set(Protobuf_DIR ${CMAKE_BINARY_DIR}/scratch/protobuf-install)
-endif ()
-
-find_package(Protobuf REQUIRED)
-
-include_directories(${PROTOBUF_INCLUDE_DIRS})
 include_directories(${CMAKE_BINARY_DIR}/src/protobuf)
-include_directories(${CMAKE_BINARY_DIR}/scratch/spdlog/include)
-include_directories(${GRM_SOURCE_DIR}/external/stream)
 include_directories(${GRM_SOURCE_DIR}/external/src/c++/include)
 include_directories(${GRM_SOURCE_DIR}/external/jsoncpp)
 include_directories(${GRM_SOURCE_DIR}/external/klib)
 include_directories(${GRM_SOURCE_DIR}/external/gssw)
-include_directories(${GRM_SOURCE_DIR}/external/intervaltree)
-
 include_directories(${GRM_SOURCE_DIR}/src/c++/include)
-
-include_directories(${CMAKE_BINARY_DIR}/scratch/googletest-release-1.8.0/googletest/include)
-include_directories(${CMAKE_BINARY_DIR}/scratch/googletest-release-1.8.0/googlemock/include)
-include_directories(${CMAKE_BINARY_DIR}/scratch/googletest-release-1.8.0/googletest)
-include_directories(${CMAKE_BINARY_DIR}/scratch/googletest-release-1.8.0/googlemock)
-add_library(gtest STATIC ${CMAKE_BINARY_DIR}/scratch/googletest-release-1.8.0/googletest/src/gtest-all.cc)
-add_library(gmock STATIC ${CMAKE_BINARY_DIR}/scratch/googletest-release-1.8.0/googlemock/src/gmock-all.cc)
-
-set(GTEST_LIBRARY gtest gmock)
-
 
 SET(DATA_SRC "${CMAKE_SOURCE_DIR}/share")
 SET(DATA_DST "${CMAKE_BINARY_DIR}/share")
@@ -69,9 +47,6 @@ add_custom_command(TARGET copy_data
                    COMMAND ${CMAKE_COMMAND} -E copy_directory ${DATA_SRC} ${DATA_DST}
 )
 
-find_library(HTSLIB_LIBRARY NAMES libhts.a
-             HINTS "${CMAKE_BINARY_DIR}/scratch/htslib" NO_DEFAULT_PATH)
-
 find_package (Threads REQUIRED)
 
 set(Boost_USE_STATIC_LIBS        ON)  # only find static libs
@@ -79,10 +54,9 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME     ON)
 find_package(Boost 1.5 COMPONENTS program_options filesystem system REQUIRED)
 
-include_directories(${CMAKE_BINARY_DIR}/include)
-include_directories(${CMAKE_BINARY_DIR}/scratch/htslib)
 include_directories(${ZLIB_INCLUDE_DIR})
 include_directories(${BZIP2_INCLUDE_DIR})
+
 # boost sometimes generates warnings; we won't patch them so let's disable them using SYSTEM
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
@@ -90,34 +64,65 @@ link_directories(${Boost_LIBRARY_DIRS})
 # make libraries first
 add_subdirectory (src/protobuf)
 add_subdirectory (src/c++/lib)
-
 add_subdirectory (external)
 
-set(GRM_ALL_LIBS ${COMMON_LIBRARY}
-                 ${HTSLIB_LIBRARY}
-                 ${EXT_LIBRARY}
-                 ${PROTO_LIBRARY}
-                 ${GTEST_LIBRARY}
-                 ${PROTOBUF_LIBRARIES}
-                 ${CMAKE_THREAD_LIBS_INIT}
-                 ${Boost_LIBRARIES}
-                 ${BZIP2_LIBRARIES}
-                 ${ZLIB_LIBRARIES}
+add_library(grm STATIC $<TARGET_OBJECTS:grmpy_common> $<TARGET_OBJECTS:proto> $<TARGET_OBJECTS:external>)
+set(GRM_LIBRARY grm)
+
+set(GRM_EXTERNAL_LIBS ${HTSLIB_LIBRARY}
+                      ${PROTOBUF_LIBRARIES}
+                      ${CMAKE_THREAD_LIBS_INIT}
+                      ${Boost_LIBRARIES}
+                      ${BZIP2_LIBRARIES}
+                      ${ZLIB_LIBRARIES}
         )
+
+set(PARAGRAPH_EXEC_PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_READ WORLD_EXECUTE)
 
 include(GetGitRevisionDescription)
 git_describe(GRM_VERSION)
+if ("${GRM_VERSION}" STREQUAL "HEAD-HASH-NOTFOUND")
+SET(PARAGRAPH_VERSION_MAJOR "MAJOR")
+SET(PARAGRAPH_VERSION_MINOR "MINOR")
+SET(PARAGRAPH_VERSION_PATCH "PATCH")
+else("${GRM_VERSION}" STREQUAL "HEAD-HASH-NOTFOUND")
+STRING(REGEX REPLACE "^paragraph-v([0-9]+)\\.[0-9]+\\-.+" "\\1" PARAGRAPH_VERSION_MAJOR "${GRM_VERSION}")
+STRING(REGEX REPLACE "^paragraph-v[0-9]+\\.([0-9])+\\-.+" "\\1" PARAGRAPH_VERSION_MINOR "${GRM_VERSION}")
+STRING(REGEX REPLACE "^paragraph-v[0-9]+\\.[0-9]+\\-(.+)" "\\1" PARAGRAPH_VERSION_PATCH "${GRM_VERSION}")
+endif ("${GRM_VERSION}" STREQUAL "HEAD-HASH-NOTFOUND")
+
+if (CPACK_GENERATOR)
+    message (STATUS "Configuring to produce the following package types: ${CPACK_GENERATOR}")
+    SET(CPACK_PACKAGE_VENDOR "Illumina")
+    SET(CPACK_PACKAGE_VERSION_MAJOR "${PARAGRAPH_VERSION_MAJOR}")
+    SET(CPACK_PACKAGE_VERSION_MINOR "${PARAGRAPH_VERSION_MINOR}")
+    SET(CPACK_PACKAGE_VERSION_PATCH "${PARAGRAPH_VERSION_PATCH}")
+    INCLUDE(CPack)
+endif (CPACK_GENERATOR)
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/c++/include/grm/Version.hh.in"
-               "${CMAKE_BINARY_DIR}/include/Version.hh")
-
+               "${CMAKE_BINARY_DIR}/include/grm/Version.hh")
+include_directories("${CMAKE_BINARY_DIR}/include")
 
 add_subdirectory (src/c++/main)
 add_subdirectory (src/c++/test)
 add_subdirectory (src/c++/test-blackbox)
 add_subdirectory (src/python)
+add_subdirectory (src/make/validation)
+add_subdirectory (src/sh/validation)
 
-# install
-install (DIRECTORY "${CMAKE_BINARY_DIR}/bin/" DESTINATION bin FILES_MATCHING PATTERN "*" PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_READ WORLD_EXECUTE)
-install (DIRECTORY "${CMAKE_BINARY_DIR}/lib/" DESTINATION lib)
+# install binaries + libraries
+install (DIRECTORY "${CMAKE_BINARY_DIR}/bin/" DESTINATION bin FILES_MATCHING PATTERN "*" PERMISSIONS ${PARAGRAPH_EXEC_PERMISSIONS})
+install (TARGETS grm DESTINATION lib)
+
+# install headers
+install (DIRECTORY "${CMAKE_SOURCE_DIR}/src/c++/include/" DESTINATION include)
+install (FILES "${CMAKE_BINARY_DIR}/include/grm/Version.hh" DESTINATION include/grm)
+install (DIRECTORY "${CMAKE_SOURCE_DIR}/external/gssw" DESTINATION include FILES_MATCHING PATTERN "*.h")
+install (DIRECTORY "${CMAKE_SOURCE_DIR}/external/jsoncpp/json" DESTINATION include)
+install (DIRECTORY "${CMAKE_BINARY_DIR}/src/protobuf/" DESTINATION include FILES_MATCHING PATTERN "*.h")
+
+# install docs
+install (DIRECTORY "${CMAKE_SOURCE_DIR}/doc/" DESTINATION doc)
 install (DIRECTORY "${CMAKE_BINARY_DIR}/share/" DESTINATION share)
+install (DIRECTORY "${CMAKE_BINARY_DIR}/lib/python3" DESTINATION lib)

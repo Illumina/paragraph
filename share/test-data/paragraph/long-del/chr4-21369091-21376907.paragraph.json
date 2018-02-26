@@ -1,1 +1,434 @@
-{"bam":"share/test-data/paragraph/long-del/chr4-21369091-21376907.bam","edges":[{"from":"ref-chr4:21368941-21369090","sequences":["REF"],"to":"ref-chr4:21369091-21369240-1"},{"from":"ref-chr4:21368941-21369090","sequences":["ALT"],"to":"ref-chr4:21376908-21377056"},{"from":"ref-chr4:21369091-21369240-1","to":"sink"},{"from":"ref-chr4:21376758-21376907-1","sequences":["REF"],"to":"ref-chr4:21376908-21377056"},{"from":"ref-chr4:21376908-21377056","to":"sink"},{"from":"source","to":"ref-chr4:21368941-21369090"},{"from":"source","to":"ref-chr4:21376758-21376907-1"}],"fragment_statistics":{"graph_histogram":[{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0}],"linear_histogram":[{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0},{"lb":0,"value":0}],"mean_graph":253.2222222222222,"mean_linear":232.2222222222222,"median_graph":255,"median_linear":246.4,"multi_read":0,"paired_read":9,"problematic_graph":0,"problematic_linear":0,"single_read":192,"variance_graph":402.3950617283951,"variance_linear":1717.950617283951},"model_name":"Graph from ../grm.py/data/paragraph/long-del/chr4-21369091-21376907.vcf","nodes":[{"name":"source","sequence":"NNNNNNNNNN"},{"end":21376907,"name":"ref-chr4:21376758-21376907-1","reference":"chr4:21376758-21376907","start":21376758},{"name":"ref-chr4:21368941-21369090","reference":"chr4:21368941-21369090","sequences":["REF"]},{"name":"ref-chr4:21376908-21377056","reference":"chr4:21376908-21377056","sequences":["REF"]},{"end":21369240,"name":"ref-chr4:21369091-21369240-1","reference":"chr4:21369091-21369240","start":21369091},{"name":"sink","sequence":"NNNNNNNNNN"}],"paths":[{"nodes":["source","ref-chr4:21368941-21369090","ref-chr4:21376908-21377056","sink"],"nucleotide_length":299,"path_id":"ALT|1","sequence":"ALT"},{"nodes":["source","ref-chr4:21376758-21376907-1","ref-chr4:21376908-21377056","sink"],"nucleotide_length":299,"path_id":"REF|1","sequence":"REF"},{"nodes":["source","ref-chr4:21368941-21369090","ref-chr4:21369091-21369240-1","sink"],"nucleotide_length":300,"path_id":"REF|2","sequence":"REF"}],"read_counts_by_edge":{"ref-chr4:21368941-21369090_ref-chr4:21369091-21369240-1":47,"ref-chr4:21368941-21369090_ref-chr4:21369091-21369240-1:FWD":29,"ref-chr4:21368941-21369090_ref-chr4:21369091-21369240-1:READS":49,"ref-chr4:21368941-21369090_ref-chr4:21369091-21369240-1:REV":20,"ref-chr4:21376758-21376907-1_ref-chr4:21376908-21377056":55,"ref-chr4:21376758-21376907-1_ref-chr4:21376908-21377056:FWD":22,"ref-chr4:21376758-21376907-1_ref-chr4:21376908-21377056:READS":57,"ref-chr4:21376758-21376907-1_ref-chr4:21376908-21377056:REV":35,"total":201,"total:FWD":104,"total:READS":210,"total:REV":106},"read_counts_by_node":{"ref-chr4:21368941-21369090":69,"ref-chr4:21368941-21369090:FWD":42,"ref-chr4:21368941-21369090:READS":73,"ref-chr4:21368941-21369090:REV":31,"ref-chr4:21369091-21369240-1":67,"ref-chr4:21369091-21369240-1:FWD":38,"ref-chr4:21369091-21369240-1:READS":71,"ref-chr4:21369091-21369240-1:REV":33,"ref-chr4:21376758-21376907-1":92,"ref-chr4:21376758-21376907-1:FWD":44,"ref-chr4:21376758-21376907-1:READS":97,"ref-chr4:21376758-21376907-1:REV":53,"ref-chr4:21376908-21377056":81,"ref-chr4:21376908-21377056:FWD":37,"ref-chr4:21376908-21377056:READS":86,"ref-chr4:21376908-21377056:REV":49,"total":201,"total:FWD":104,"total:READS":210,"total:REV":106},"read_counts_by_sequence":{"REF":{"total":149,"total:FWD":78,"total:READS":158,"total:REV":80}},"reference":"/Users/pkrusche/workspace/human_genome/hg19.fa","sequencenames":["ALT","REF"],"target_regions":["chr4:21368941-21369240","chr4:21376758-21377056"]}
+{
+    "alignment_statistics": {
+        "alleles": {
+            "REF": {
+                "avr_score": 99.73509933774834,
+                "clip_rate": 0,
+                "contig_length": 299,
+                "gap_rate": 0,
+                "match_base_depth": 50.47491638795987,
+                "mismatch_rate": 0.0005298013245033113,
+                "num_fwd_reads": 73,
+                "num_reads_for_broken_path": 2,
+                "num_rev_reads": 78
+            }
+        },
+        "bad_alignment_pct": 0,
+        "edges": {
+            "ref-chr4:21368941-21369090_ref-chr4:21369091-21369240-1": {
+                "clip_rate": 0.0008340283569641367,
+                "contig_length": 300,
+                "gap_rate": 0,
+                "match_base_depth": 15.96,
+                "mismatch_rate": 0.001668056713928273,
+                "num_fwd_reads": 29,
+                "num_rev_reads": 19
+            },
+            "ref-chr4:21376758-21376907-1_ref-chr4:21376908-21377056": {
+                "clip_rate": 0,
+                "contig_length": 299,
+                "gap_rate": 0,
+                "match_base_depth": 19.03678929765886,
+                "mismatch_rate": 0.001403508771929824,
+                "num_fwd_reads": 21,
+                "num_rev_reads": 36
+            }
+        },
+        "nodes": {
+            "ref-chr4:21368941-21369090": {
+                "clip_rate": 0.0008633714655730628,
+                "contig_length": 150,
+                "gap_rate": 0,
+                "match_base_depth": 30.86666666666667,
+                "mismatch_rate": 0.0006475285991797971,
+                "num_fwd_reads": 43,
+                "num_rev_reads": 28
+            },
+            "ref-chr4:21369091-21369240-1": {
+                "clip_rate": 0,
+                "contig_length": 150,
+                "gap_rate": 0,
+                "match_base_depth": 30.37333333333333,
+                "mismatch_rate": 0.00153407845715538,
+                "num_fwd_reads": 36,
+                "num_rev_reads": 33
+            },
+            "ref-chr4:21376758-21376907-1": {
+                "clip_rate": 0,
+                "contig_length": 150,
+                "gap_rate": 0,
+                "match_base_depth": 45.94666666666667,
+                "mismatch_rate": 0.0008698173383589446,
+                "num_fwd_reads": 44,
+                "num_rev_reads": 51
+            },
+            "ref-chr4:21376908-21377056": {
+                "clip_rate": 0,
+                "contig_length": 149,
+                "gap_rate": 0,
+                "match_base_depth": 34.20805369127517,
+                "mismatch_rate": 0.0009800078400627205,
+                "num_fwd_reads": 32,
+                "num_rev_reads": 50
+            }
+        }
+    },
+    "bam": "/Users/pkrusche/workspace/grm.py/cmake-build-debug/bin/../share/test-data/paragraph/long-del/chr4-21369091-21376907.bam",
+    "edges": [
+        {
+            "from": "ref-chr4:21368941-21369090",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr4:21369091-21369240-1"
+        },
+        {
+            "from": "ref-chr4:21368941-21369090",
+            "sequences": [
+                "ALT"
+            ],
+            "to": "ref-chr4:21376908-21377056"
+        },
+        {
+            "from": "ref-chr4:21369091-21369240-1",
+            "to": "sink"
+        },
+        {
+            "from": "ref-chr4:21376758-21376907-1",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr4:21376908-21377056"
+        },
+        {
+            "from": "ref-chr4:21376908-21377056",
+            "to": "sink"
+        },
+        {
+            "from": "source",
+            "to": "ref-chr4:21368941-21369090"
+        },
+        {
+            "from": "source",
+            "to": "ref-chr4:21376758-21376907-1"
+        }
+    ],
+    "fragment_statistics": {
+        "graph_histogram": [
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            }
+        ],
+        "linear_histogram": [
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            },
+            {
+                "lb": 0,
+                "value": 0
+            }
+        ],
+        "mean_graph": 253.2222222222222,
+        "mean_linear": 232.2222222222222,
+        "median_graph": 255,
+        "median_linear": 246.4,
+        "multi_read": 0,
+        "paired_read": 9,
+        "problematic_graph": 0,
+        "problematic_linear": 0,
+        "single_read": 194,
+        "variance_graph": 402.3950617283951,
+        "variance_linear": 1717.950617283951
+    },
+    "model_name": "Graph from ../grm.py/data/paragraph/long-del/chr4-21369091-21376907.vcf",
+    "nodes": [
+        {
+            "name": "source",
+            "sequence": "NNNNNNNNNN"
+        },
+        {
+            "end": 21376907,
+            "name": "ref-chr4:21376758-21376907-1",
+            "reference": "chr4:21376758-21376907",
+            "start": 21376758
+        },
+        {
+            "name": "ref-chr4:21368941-21369090",
+            "reference": "chr4:21368941-21369090",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "name": "ref-chr4:21376908-21377056",
+            "reference": "chr4:21376908-21377056",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "end": 21369240,
+            "name": "ref-chr4:21369091-21369240-1",
+            "reference": "chr4:21369091-21369240",
+            "start": 21369091
+        },
+        {
+            "name": "sink",
+            "sequence": "NNNNNNNNNN"
+        }
+    ],
+    "paths": [
+        {
+            "nodes": [
+                "source",
+                "ref-chr4:21368941-21369090",
+                "ref-chr4:21376908-21377056",
+                "sink"
+            ],
+            "nucleotide_length": 299,
+            "path_id": "ALT|1",
+            "sequence": "ALT"
+        },
+        {
+            "nodes": [
+                "source",
+                "ref-chr4:21376758-21376907-1",
+                "ref-chr4:21376908-21377056",
+                "sink"
+            ],
+            "nucleotide_length": 299,
+            "path_id": "REF|1",
+            "sequence": "REF"
+        },
+        {
+            "nodes": [
+                "source",
+                "ref-chr4:21368941-21369090",
+                "ref-chr4:21369091-21369240-1",
+                "sink"
+            ],
+            "nucleotide_length": 300,
+            "path_id": "REF|2",
+            "sequence": "REF"
+        }
+    ],
+    "read_counts_by_edge": {
+        "ref-chr4:21368941-21369090_ref-chr4:21369091-21369240-1": 47,
+        "ref-chr4:21368941-21369090_ref-chr4:21369091-21369240-1:FWD": 29,
+        "ref-chr4:21368941-21369090_ref-chr4:21369091-21369240-1:READS": 49,
+        "ref-chr4:21368941-21369090_ref-chr4:21369091-21369240-1:REV": 20,
+        "ref-chr4:21376758-21376907-1_ref-chr4:21376908-21377056": 56,
+        "ref-chr4:21376758-21376907-1_ref-chr4:21376908-21377056:FWD": 22,
+        "ref-chr4:21376758-21376907-1_ref-chr4:21376908-21377056:READS": 58,
+        "ref-chr4:21376758-21376907-1_ref-chr4:21376908-21377056:REV": 36,
+        "total": 203,
+        "total:FWD": 105,
+        "total:READS": 212,
+        "total:REV": 107
+    },
+    "read_counts_by_node": {
+        "ref-chr4:21368941-21369090": 70,
+        "ref-chr4:21368941-21369090:FWD": 43,
+        "ref-chr4:21368941-21369090:READS": 74,
+        "ref-chr4:21368941-21369090:REV": 31,
+        "ref-chr4:21369091-21369240-1": 68,
+        "ref-chr4:21369091-21369240-1:FWD": 39,
+        "ref-chr4:21369091-21369240-1:READS": 72,
+        "ref-chr4:21369091-21369240-1:REV": 33,
+        "ref-chr4:21376758-21376907-1": 93,
+        "ref-chr4:21376758-21376907-1:FWD": 44,
+        "ref-chr4:21376758-21376907-1:READS": 98,
+        "ref-chr4:21376758-21376907-1:REV": 54,
+        "ref-chr4:21376908-21377056": 82,
+        "ref-chr4:21376908-21377056:FWD": 37,
+        "ref-chr4:21376908-21377056:READS": 87,
+        "ref-chr4:21376908-21377056:REV": 50,
+        "total": 203,
+        "total:FWD": 105,
+        "total:READS": 212,
+        "total:REV": 107
+    },
+    "read_counts_by_sequence": {
+        "REF": {
+            "total": 150,
+            "total:FWD": 78,
+            "total:READS": 159,
+            "total:REV": 81
+        }
+    },
+    "reference": "/Users/pkrusche/workspace/human_genome/hg19.fa",
+    "sequencenames": [
+        "ALT",
+        "REF"
+    ],
+    "target_regions": [
+        "chr4:21368941-21369240",
+        "chr4:21376758-21377056"
+    ]
+}

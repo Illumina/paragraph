@@ -34,6 +34,8 @@
 
 #pragma once
 
+#include <utility>
+
 #include "common/Phred.hh"
 #include "json/json.h"
 
@@ -41,23 +43,29 @@ namespace genotyping
 {
 typedef std::vector<uint64_t> GenotypeVector;
 
+/**
+ * genotype vector from given string such as 0/1
+ */
+GenotypeVector genotypeVectorFromString(std::string& gt_str);
+
 struct Genotype
 {
+    Genotype() = default;
+    Genotype(Genotype const&) = default;
+    Genotype(Genotype&&) = default;
+    explicit Genotype(GenotypeVector rhs)
+        : gt(std::move(rhs))
+    {
+    }
+    virtual ~Genotype() = default;
+
+    Genotype& operator=(Genotype const&) = default;
+    Genotype& operator=(Genotype&&) = default;
+
     /**
      *  Most likely genotype.
      */
     GenotypeVector gt;
-
-    /**
-     *  output string of most likely genotype
-     */
-    std::string genotypeString() const;
-    std::string genotypeString(std::vector<std::string>& allele_names) const;
-
-    /**
-     * other most likely genotypes (with same GL)
-     */
-    std::vector<GenotypeVector> equivalent_gt;
 
     /**
      *  Log-probability for each possible genotype.
@@ -76,24 +84,30 @@ struct Genotype
     int num_reads = 0;
 
     /**
-     * filter flag (include PASS)
+     * filter description (include PASS)
      */
     std::string filter;
 
     /**
-     * get major information as a single string (simplified)
+     * relabel genotypes
      */
-    explicit operator std::string() const;
-
-    /**
-     * recode genotypes using external index
-     */
-    void recode(std::vector<std::vector<uint64_t>>& alternative_codes);
+    void relabel(std::vector<uint64_t> const& new_labels);
 
     /**
      * everything to json.
      * plus convert node index into node name
      */
-    Json::Value toJson(std::vector<std::string>& allele_names) const;
+    Json::Value toJson(std::vector<std::string> const& allele_names) const;
+
+    /**
+     *  output string of most likely genotype
+     */
+    std::string toString() const;
+    std::string toString(std::vector<std::string> const& allele_names) const;
+
+    /**
+     * get major information as a single string (simplified)
+     */
+    explicit operator std::string() const;
 };
 };

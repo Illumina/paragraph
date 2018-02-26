@@ -30,6 +30,7 @@
 
 #include "graphs/Graph.hh"
 #include "graphs/GraphBuilders.hh"
+#include "graphs/GraphMappingOperations.hh"
 
 using std::string;
 using std::vector;
@@ -118,7 +119,7 @@ TEST(Mapping, InitializesFromCigar)
             Operation('D', 2, "", "AA"),     Operation('M', 2, "TT", "TT"),       Operation('I', 3, "GGG", ""),
             Operation('M', 1, "T", "T"),     Operation('S', 10, "CCCCCCCCCC", "") };
 
-    Mapping expected_mapping(3, operations, query, reference);
+    Mapping expected_mapping(3, operations);
     ASSERT_EQ(expected_mapping, mapping);
 }
 
@@ -129,32 +130,11 @@ TEST(Mapping, CalculatesQueryAndReferenceSpans)
     EXPECT_EQ((int32_t)11, mapping.referenceSpan());
 }
 
-TEST(Mapping, StitchesQueryAndReferenceSequences)
+TEST(Mapping, OutputsQueryAndReferenceSequences)
 {
     Mapping mapping(3, "3M1X2M2D2M3I1M10S", "TTCGTTTTGGGTCCCCCCCCCC", "CCCTTCCTTAATTT");
     EXPECT_EQ("TTCGTTTTGGGT", mapping.query());
     EXPECT_EQ("TTCCTTAATTT", mapping.reference());
-}
-
-TEST(NodeMapping, InitializesFromString)
-{
-    Graph graph;
-    makeDeletionGraph("CCCC", "TTTAAAAGGGG", "TTTT", graph);
-    const string query = "AAAATTTTT";
-    NodeMapping node_mapping(3, "1[4M5S]", query, graph);
-    EXPECT_EQ(1ull, node_mapping.node_id());
-    EXPECT_EQ(Mapping(0, "4M5S", query, "AAAAGGGG"), node_mapping);
-}
-
-TEST(GraphMapping, InitializesFromString)
-{
-    Graph graph;
-    makeDeletionGraph("AAAA", "TTGG", "TTTT", graph);
-    const string query = "AAAATTCCC";
-    GraphMapping graph_mapping(0, "0[4M]1[2M3S]", query, graph);
-    ASSERT_EQ((size_t)2, graph_mapping.size());
-    EXPECT_EQ(NodeMapping(0, "0[4M]", "AAAA", graph), graph_mapping[0]);
-    EXPECT_EQ(NodeMapping(0, "1[2M3S]", "TTCCC", graph), graph_mapping[1]);
 }
 
 TEST(GraphMapping, StitchesQueryAndReferenceSequences)
@@ -162,7 +142,7 @@ TEST(GraphMapping, StitchesQueryAndReferenceSequences)
     Graph graph;
     makeDeletionGraph("AAAA", "TTGG", "TTTT", graph);
     const string query = "AAAATTCCC";
-    GraphMapping graph_mapping(0, "0[4M]1[2M3S]", query, graph);
+    GraphMapping graph_mapping = decodeFromString(0, "0[4M]1[2M3S]", query, graph);
     EXPECT_EQ("AAAATT", graph_mapping.query());
     EXPECT_EQ("AAAATT", graph_mapping.reference());
 }
@@ -172,7 +152,47 @@ TEST(GraphMapping, CalculatesQueryAndReferenceSpans)
     Graph graph;
     makeDeletionGraph("AAAA", "TTGG", "TTTT", graph);
     const string query = "AAAATTCCC";
-    GraphMapping graph_mapping(0, "0[4M]1[2M3S]", query, graph);
+    GraphMapping graph_mapping = decodeFromString(0, "0[4M]1[2M3S]", query, graph);
     EXPECT_EQ((int32_t)9, graph_mapping.querySpan());
     EXPECT_EQ((int32_t)6, graph_mapping.referenceSpan());
+}
+
+TEST(GraphMapping, CalculatesQueryClipped)
+{
+    Graph graph;
+    makeDeletionGraph("AAAA", "TTGG", "TTTT", graph);
+    {
+        const string query = "AAAATTCCC";
+        GraphMapping graph_mapping = decodeFromString(0, "0[4M]1[2M3S]", query, graph);
+        EXPECT_EQ((int32_t)3, graph_mapping.queryClipped());
+    }
+    {
+        const string query = "CCCAAAATT";
+        GraphMapping graph_mapping = decodeFromString(0, "0[3S4M]1[2M]", query, graph);
+        EXPECT_EQ((int32_t)3, graph_mapping.queryClipped());
+    }
+    {
+        const string query = "CCCAAAATTCC";
+        GraphMapping graph_mapping = decodeFromString(0, "0[3S4M]1[2M2S]", query, graph);
+        EXPECT_EQ((int32_t)5, graph_mapping.queryClipped());
+    }
+}
+
+TEST(GraphMapping, CalculatesNumberOfMatches)
+{
+    Graph graph;
+    makeDeletionGraph("AAAA", "TTGG", "TTTT", graph);
+    const string query = "AAAATTCCC";
+    GraphMapping graph_mapping = decodeFromString(0, "0[4M]1[2M3S]", query, graph);
+    EXPECT_EQ((int32_t)6, graph_mapping.numMatches());
+}
+
+TEST(GraphMapping, AllowsAccessingNodeMappingsByIndex)
+{
+    Graph graph;
+    makeDeletionGraph("AAAA", "TTGG", "TTTT", graph);
+    const string query = "AAAATTCCC";
+    GraphMapping graph_mapping = decodeFromString(0, "0[4M]1[2M3S]", query, graph);
+    EXPECT_EQ(Mapping(0, "4M", "AAAA", "AAAA"), graph_mapping[0].mapping);
+    EXPECT_EQ(Mapping(0, "2M3S", "TTCCC", "TTGG"), graph_mapping[1].mapping);
 }

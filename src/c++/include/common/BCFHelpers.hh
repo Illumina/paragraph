@@ -64,7 +64,7 @@ namespace bcfhelpers
 /** when things go wrong, this gets thrown */
 struct importexception : public std::runtime_error
 {
-    importexception(std::string const what)
+    explicit importexception(std::string const what)
         : std::runtime_error(what)
     {
     }

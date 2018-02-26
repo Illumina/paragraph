@@ -63,13 +63,12 @@ $ export PARAGRAPH=~/paragraph-install
 ```
 The directory will contain the following files (and a few more):
 ```
-├── bin                     # binaries   
-│   ├── runGraphTyping.py   # Graph genotyping wrappers
-│   ├── multigrmpy.py
+├── bin                     # binaries
+│   ├── multigrmpy.py   # Graph genotyping wrappers
 │   ├── multiparagraph.py
 │   ├── ...
 │   ├── paragraph           # graph aligner
-│   ├── grmpy               # genotyper (internal)
+│   ├── grmpy               # graph aligner and genotyper (single site)
 │   ├── idxdepth            # BAM/CRAM depth estimator
 │   ├── kmerstats           # kmer statistics tool for graphs
 │   ├── ...
@@ -89,52 +88,40 @@ The directory will contain the following files (and a few more):
     └── test-data
 ```
 
-For most applications, the entry point is the `runGraphTyping.py` script:
+For most small-scale applications, the entry point is the `multigrmpy.py` script:
 
 ```bash
-$ ${PARAGRAPH}/bin/runGraphTyping.py
-usage: runGraphTyping.py [-h] -i INPUT -o OUTPUT -m MANIFEST -r REFERENCE
-                         [--threads THREADS] [-l MAX_REF_NODE_LENGTH]
-                         [-p READ_LENGTH] [-E] [--relative-manifest-path]
-                         [--logfile LOGFILE] [--keep]
-                         [--graph-type {alleles,haplotypes}]
-                         [--vcf-split {lines,full,by_id}]
-                         [--retrieve-reference-sequence]
-                         [--grmpy-binary GRMPY_BINARY]
-                         [--paragraph-binary PARAGRAPH_BINARY]
-                         [--idxdepth-binary IDXDEPTH_BINARY]
-runGraphTyping.py: error: the following arguments are required: -i/--input, -o/--out, -m/--manifest, -r/--reference-sequence
+$ ${PARAGRAPH}/bin/multigrmpy.py
+usage: multigrmpy.py [-h] -i INPUT -o OUTPUT -m MANIFEST -r REFERENCE
+
+multigrmpy.py: error: the following arguments are required: -i/--input, -o/--out, -m/--manifest, -r/--reference-sequence
 ```
 
 This script implements a workflow to genotype variants on one or more
 samples. It minimally requires three inputs:
 
 * a reference FASTA file,
-* a candidate file, which can be in JSON or VCF format,
-* a manifest / list of BAM files.
+* a candidate file of variants, which can be in JSON or VCF format,
+* a manifest / list of BAM files and their statistics.
 
 The output is a directory, here we use `/tmp/paragraph-test` (before re-running with the same 
 output path you may want to delete this directory).
 
 ```bash
-$ ${PARAGRAPH}/bin/runGraphTyping.py \
+$ ${PARAGRAPH}/bin/multigrmpy.py \
     -r ${PARAGRAPH}/share/test-data/genotyping_test_2/swaps.fa \
-    -i ${PARAGRAPH}/share/test-data/genotyping_test_2/swaps.vcf \ 
+    -i ${PARAGRAPH}/share/test-data/genotyping_test_2/swaps.vcf \
     -m ${PARAGRAPH}/share/test-data/genotyping_test_2/samples.txt \
-    -o /tmp/paragraph-test
+    -o /tmp/paragraph-test \
+    --verbose
 $ tree /tmp/paragraph-test
 ```
 
 ```
 /tmp/paragraph-test
 ├── GraphTyping.log
-├── SWAPS.genotype.json.gz  # genotypes for our one sample
-├── paragraph
-│   ├── SWAPS
-│   │   ├── multiparagraph.log
-│   │   └── raw_pg.json
-│   └── paragraph.manifest
-└── variants.json  # full variant graphs
+├── genotype.json.gz  # genotypes for our one sample
+└── variants.json  # full variant graphs, converted from swaps.vcf
 ```
 
 The first file to look at is the file `GraphTyping.log`:
@@ -151,10 +138,8 @@ The first file to look at is the file `GraphTyping.log`:
 2017-11-24 16:08:12,145: Done. Graph Json stored at:
 /tmp/paragraph-test/variants.json
 2017-11-24 16:08:12,145: Running multi-paragraph for graph read counts...
-2017-11-24 16:08:12,162: Processing sample SWAPS...
-2017-11-24 16:08:27,398: Done running multi-paragraph.
-2017-11-24 16:08:27,399: Running multi-grmpy for genotyping...
-2017-11-24 16:08:27,629: Done running genotyping. Please check output at: /tmp/paragraph-test
+2017-11-24 16:08:27,399: Finished genotyping. Merging output...
+2017-11-24 16:08:27,629: ParaGRAPH completed on 3 sites.
 ```
 
 If everything worked well, the genotype JSON files will give the graph used
@@ -170,24 +155,17 @@ to give the following genotypes for each event:
 | swap2     |  chrB           | S1/S1 (homalt)        |
 | swap1     |  chrC           | REF/S1 (heterozygous) |
 
-We can extract these genotypes from the output file with this simple Python script:
+We can extract these genotypes from the output file using Python script at bin/paragraph-to-csv.py
 
-```python
-#!/usr/bin/env python3 
-
-import json
-import gzip
-
-with gzip.open('/tmp/paragraph-test/SWAPS.genotype.json.gz', 'rt') as f:
-    data = json.load(f)
-
-for event in data:
-    print("%s:%i-%i\t%s" % (event["eventinfo"]["chrom"], 
-                            event["eventinfo"]["start"], 
-                            event["eventinfo"]["end"], 
-                            event["samples"]["SWAPS"]["GT"]))  # the sample name is "SWAPS" -- see samples.txt
 ```
+bin/paragraph-to-csv.py /tmp/paragraph-test/genotype.json.gz --genotype-only
 ```
+
+The output will be:
+
+```
+#FORMAT=GT
+#ID SWAPS
 chrA:1500-1509  REF/REF
 chrB:1500-1509  S1/S1
 chrC:1500-1699  REF/S1
@@ -197,8 +175,7 @@ The output JSON file contains more information which can be used to link
 events back to the original VCF file, genotype likelihoods, and also to get the
 genotypes of the individual breakpoints.
 
-In [doc/multiple-samples.md](doc/multiple-samples.md) we show an example
-how the pipeline can be run on multiple samples.
+In [doc/multiple-samples.md](doc/multiple-samples.md), we show how ParaGRAPH can be run on multiple samples with snakemake.
 
 ## <a name='SystemRequirements'></a>System Requirements
 
@@ -309,7 +286,7 @@ The complete list of requrements can be found in [requirements.txt](requirements
 - **Native Build**. First, checkout the repository like so:
 
   ```bash
-  git clone https://github.com/Illumina/paragraph-tools.git
+  git clone https://github.com/Illumina/paragraph.git
   cd paragraph-tools
   ```
 
@@ -347,14 +324,13 @@ The complete list of requrements can be found in [requirements.txt](requirements
   <none>                                 <none>              259aa8c0c920        10 minutes ago      2.18 GB
   ```
 
-  The default entry point is the `runGraphTyping` script:
+  The default entry point is the `multigrmpy.py` script:
 
   ```bash
   sudo docker run -v `pwd`:/data 259aa8c0c920
-  usage: runGraphTyping.py [-h] -i INPUT -o OUTPUT -b BAM -r REF [-p READ_LEN]
-                           [-l MAX_REF_NODE_LEN] [-E]
-                           [--extra-bam-path EXTRA_BAM_PATH] [--by-line]
-                           [--whole] [--log LOG] [--paragraph-only] [--keep]
+  usage: multigrmpy.py [-h] -i INPUT -o OUTPUT -b BAM -r REF [-p READ_LEN]
+                           [-l MAX_REF_NODE_LEN]
+                           [--log LOG]
   ```
 
   The current directory can be accessed as `/data` inside the Docker container, see also 
@@ -369,12 +345,11 @@ The complete list of requrements can be found in [requirements.txt](requirements
 
 ## <a name='UsinghelperscriptstorunparaGRAPH'></a>Using helper scripts to run paraGRAPH
 
-After this, you can run the `runGraphTyping.py` script from the build/bin directory on an example dataset as follows:
+After this, you can run the `multigrmpy.py` script from the build/bin directory on an example dataset as follows:
 
 ```bash
-python3 bin/runGraphTyping.py -i share/test-data/round-trip-genotyping/candidates.json \
+python3 bin/multigrmpy.py -i share/test-data/round-trip-genotyping/candidates.json \
                               -m share/test-data/round-trip-genotyping/samples.txt \
-                              --relative-manifest-path \
                               -r share/test-data/round-trip-genotyping/dummy.fa \
                               -o test \
 ```
@@ -387,15 +362,15 @@ This runs a simple genotyping example for two test samples. The input files are 
       {
         "ID": "test-ins",
         "chrom": "chr1",
-        "start": 11,
-        "end": 11,
-        "ins": "GGGGGG"
+        "start": 161,
+        "end": 162,
+        "ins": "TGGGGGG"
       },
       {
         "ID": "test-del",
         "chrom": "chr1",
-        "start": 12,
-        "end": 12,
+        "start": 161,
+        "end": 163,
         "ins": ""
       }
     ]
@@ -408,49 +383,29 @@ Alternatively, candidate SV events can be specified as vcf.
     ##FILTER=<ID=PASS,Description="All filters passed">
     ##ALT=<ID=DEL,Description="Deletion">
     #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
-    chr1	160	test-ins	A	GGGGGG	.	.	.
-    chr1	161	test-del	AA	<DEL>	.	.	.
+    chr1	161	test-ins	T	TGGGGGG	.	.	.
+    chr1	161	test-del	TC	T	.	.	.
    ```
 
 *  **samples.txt**: Manifest that specifies some test BAM files. Columns need to be: ID, path, depth, read length. Tab delimited.
     ```
-    #ID Path    Depth   Read_len
+    id path    depth   read length
     sample1	sample1.bam 1   50
     sample2	sample2.bam 1   50
     ```
 
-    With the option `--relative-manifest-path`, paragraph-tools will append the directory of the manifest to the paths of the BAM files. When the full path of BAM files are specified in the manifest, this option is unnecessary.
-
-    If the manifest only has 2 columns (ID and path), the depth estimation tool, idxdepth (see [graph-tools.md](doc/graph-tools.md)), will be executed for each sample and produces a renewed manifest in the output folder.
-
 *  **dummy.fa** a short dummy reference which only contains `chr1`
 
-The output folder `test` then contains intermediate results for depth estimation (if needed), read counts, and final genotypes:
+The output folder `test` then contains gzipped json for final genotypes:
 
 ```bash
 $ tree test
 ```
 ```
 test
-├── GraphTyping.log              #  main workflow log file
-├── variants.json                #  Json formatted candidate variants converted from input vcf. Does not exist if input is a Json file
-├── idx_updated.manifest         #  Updated manifest with bam stats         -│
-├── idxdepth                     #  Estimated bam stats for every sample.    │
-│   ├── sample1.idxdepth                                                     ├── Do not exist if bam stats are provided in manifest
-│   ├── sample1.idxdepth.log                                                 │    as "samples.txt" shown above.
-│   ├── sample2.idxdepth                                                    _│
-│   └── sample2.idxdepth.log
-├── multigrmpy.log               #  genotyping log file
-├── paragraph                    #  read counts
-│   ├── paragraph.manifest       #  manifest for grmpy which points to all json files
-│   ├── sample1
-│   │   ├── multiparagraph.log
-│   │   └── raw_pg.json          #  read count json for sample1 
-│   └── sample2
-│       ├── multiparagraph.log
-│       └── raw_pg.json          #  read count json for sample2
-├── sample1.genotype.json.gz     #  genotypes for sample1
-└── sample2.genotype.json.gz     #  genotypes for sample2
+├── GraphTyping.log      #  main workflow log file
+├── variants.json        #  Json formatted candidate variant graphs. Only exist if input is a VCF.
+└── genotype.json.gz     #  genotyping result
 ```
 
 ## <a name='Usingvcf2paragraph.pytorunparaGRAPH'></a>Using vcf2paragraph.py to run paraGRAPH
@@ -665,6 +620,9 @@ It is extracted and re-organized from [an expected output](share/test-data/multi
     
 *   [Doc/graphs-ashg-2017.pdf](doc/graphs-ashg-2017.pdf) contains the poster about this method we showed at 
     [ASHG 2017](http://www.ashg.org/2017meeting/)
+
+*    Some developer documentation about our code analysis and testing process can be found in 
+    [doc/linting-and-testing.md](doc/linting-and-testing.md).
 
 ### <a name='Links'></a>Links
 

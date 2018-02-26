@@ -1,0 +1,25 @@
+{
+    "min_overlap_bases": 16,
+    "allele_names": [
+        "REF",
+        "ALT"
+    ],
+    "allele_error_rates": [
+        0.04,
+        0.04
+    ],
+    "het_haplotype_fractions": [
+        0.5,
+        0.45
+    ],
+    "genotype_fractions": {
+        "0/0": 0.5,
+        "0/1": 0.3,
+        "1/1": 0.2
+    },
+    "reference_allele_error_rate": 0.05,
+    "other_allele_error_rate": 0.05,
+    "other_het_haplotype_fraction": 0.5,
+    "other_genotype_fraction": 0.33,
+    "ploidy": 2
+}

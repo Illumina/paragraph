@@ -39,6 +39,7 @@
 #include <string>
 #include <vector>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
@@ -55,23 +56,48 @@ using std::cerr;
 using std::endl;
 using std::string;
 
+void dumpOutput(const std::string& output, std::ostream& os, const std::string& file)
+{
+    os << output;
+    if (!os)
+    {
+        error("ERROR: Failed to write output to '%s' error: '%s'", file.c_str(), std::strerror(errno));
+    }
+}
+
 int main(int argc, char const* argv[])
 {
     po::options_description desc("Allowed options");
     desc.add_options()("help,h", "produce help message")(
-        "bam,b", po::value<string>(),
-        "Input BAM file for read extraction")("graph-spec,g", po::value<string>(), "JSON file describing the graph")(
-        "output,o", po::value<string>(), "Output file name. Will output to stdout if omitted.")(
+        "bam,b", po::value<std::vector<string>>()->multitoken(),
+        "Input BAM file(s) for read extraction. We align all reads to all graphs.")(
+        "graph-spec,g", po::value<std::vector<string>>()->multitoken(), "JSON file(s) describing the graph")(
+        "output-file,o", po::value<string>(),
+        "Output file name. Will output to stdout if '-' or neither of output-file or output-folder provided.")(
+        "output-folder,O", po::value<string>(),
+        "Output folder path. paragraph will attempt to create "
+        "the folder but not the entire path. Will output to stdout if neither of output-file or "
+        "output-folder provided. If specified, paragraph will produce one output file for each "
+        "input file bearing the same name.")(
         "target-regions,T", po::value<string>(),
         "Comma-separated list of target regions, e.g. chr1:1-20,chr2:2-40. "
         "This overrides the target regions in the graph spec.")(
-        "exact-sequence-matching", po::value<bool>()->default_value(true),
-        "Switch this off to always use Smith Waterman, don't try to find exact sequence matches first.")(
+        "exact-sequence-matching", po::value<bool>()->default_value(true)->implicit_value(true),
+        "Use exact sequence match to find the best candidate among all available paths")(
+        "graph-sequence-matching", po::value<bool>()->default_value(true)->implicit_value(true),
+        "Enables smith waterman graph alignment")(
+        "kmer-sequence-matching", po::value<bool>()->default_value(false)->implicit_value(true),
+        "Use k-mers to find the best candidate among all available paths")(
+        "validate-alignments", po::value<bool>()->default_value(false)->implicit_value(true),
+        "Use information in the input bam read names to collect statistics about the accuracy of alignments. "
+        "Requires bam file produced with simulate-reads.sh")(
         "output-detailed-read-counts", po::value<bool>()->default_value(false),
         "Output detailed read counts not just for paths but also for each node/edge on the paths.")(
         "output-variants,v", po::value<bool>()->default_value(false), "Output variants not present in the graph.")(
         "output-path-coverage", po::value<bool>()->default_value(false), "Output coverage for paths")(
         "output-node-coverage", po::value<bool>()->default_value(false), "Output coverage for nodes")(
+        "output-read-haplotypes", po::value<bool>()->default_value(false),
+        "Output graph haplotypes supported by reads.")(
         "output-alignments,a", po::value<bool>()->default_value(false), "Output alignments for every read (large).")(
         "output-filtered-alignments,A", po::value<bool>()->default_value(false),
         "Output alignments for every read even when it was filtered (larger).")(
@@ -83,8 +109,11 @@ int main(int argc, char const* argv[])
         "Minimum number of reads required to report a variant.")(
         "variant-min-frac", po::value<float>()->default_value(0.01f),
         "Minimum fraction of reads required to report a variant.")(
+        "bad-align-nonuniq", po::value<bool>()->default_value(true), "Remove reads that are not mapped uniquely.")(
         "bad-align-frac", po::value<float>()->default_value(0.8f),
         "Fraction of read that needs to be mapped in order for it to be used.")(
+        "bad-align-uniq-kmer-len", po::value<int>()->default_value(0),
+        "Kmer length for uniqueness check during read filtering.")(
         "reference,r", po::value<string>(), "FASTA with reference genome")(
         "threads", po::value<int>()->default_value(std::thread::hardware_concurrency()),
         "Number of threads to use for parallel alignment.")(
@@ -110,35 +139,71 @@ int main(int argc, char const* argv[])
             vm["log-level"].as<string>().c_str());
         logger = LOG();
 
-        string bam_path;
+        std::vector<string> bam_paths;
         if (vm.count("bam") != 0u)
         {
-            bam_path = vm["bam"].as<string>();
-            logger->info("Input BAM: {}", bam_path);
-            assertFileExists(bam_path);
+            bam_paths = vm["bam"].as<std::vector<string>>();
+            logger->info("Input BAM(s): {}", boost::join(bam_paths, ","));
+            assertFilesExist(bam_paths.begin(), bam_paths.end());
         }
         else
         {
             error("ERROR: BAM file is missing.");
         }
 
-        string graph_spec_path;
+        std::vector<string> graph_spec_paths;
         if (vm.count("graph-spec") != 0u)
         {
-            graph_spec_path = vm["graph-spec"].as<string>();
-            logger->info("Graph spec: {}", graph_spec_path);
-            assertFileExists(graph_spec_path);
+            graph_spec_paths = vm["graph-spec"].as<std::vector<string>>();
+            logger->info("Graph spec: {}", boost::join(graph_spec_paths, ","));
+            assertFilesExist(graph_spec_paths.begin(), graph_spec_paths.end());
+            if (vm.count("output-folder"))
+            {
+                // If we're to produce individual output files per input, the input file
+                // paths must have unique file names.
+                assertFileNamesUnique(graph_spec_paths.begin(), graph_spec_paths.end());
+            }
         }
         else
         {
             error("ERROR: File with variant specification is missing.");
         }
 
-        string output_path;
-        if (vm.count("output") != 0u)
+        std::ofstream outputFileStream;
+        string output_file_path;
+        if (vm.count("output-file") != 0u)
         {
-            output_path = vm["output"].as<string>();
-            logger->info("Output path: {}", output_path);
+            output_file_path = vm["output-file"].as<string>();
+        }
+        else if (!vm.count("output-folder"))
+        {
+            output_file_path = "-";
+        }
+        if (!output_file_path.empty())
+        {
+            if ("-" != output_file_path)
+            {
+                logger->info("Output file path: {}", output_file_path);
+                outputFileStream.open(output_file_path);
+                if (!outputFileStream)
+                {
+                    error(
+                        "ERROR: Failed to open output file '%s'. Error: '%s'", output_file_path.c_str(),
+                        std::strerror(errno));
+                }
+            }
+            else
+            {
+                logger->info("Output to stdout");
+            }
+        }
+
+        string output_folder_path;
+        if (vm.count("output-folder"))
+        {
+            output_folder_path = vm["output-folder"].as<string>();
+            logger->info("Output folder path: {}", output_folder_path);
+            boost::filesystem::create_directory(output_folder_path);
         }
 
         string reference_path;
@@ -186,30 +251,84 @@ int main(int argc, char const* argv[])
         {
             output_options |= Parameters::output_options::NODE_COVERAGE;
         }
+        if (vm["output-read-haplotypes"].as<bool>())
+        {
+            output_options |= Parameters::output_options::HAPLOTYPES;
+        }
         if (vm["output-everything"].as<bool>())
         {
             output_options |= Parameters::output_options::ALL;
         }
 
-        Parameters parameters(
-            vm["max-reads-per-event"].as<int>(), vm["variant-min-reads"].as<int>(), vm["variant-min-frac"].as<float>(),
-            vm["bad-align-frac"].as<float>(), output_options, vm["exact-sequence-matching"].as<bool>());
-
-        parameters.set_threads(vm["threads"].as<int>());
-
-        logger->info("Loading parameters");
-        parameters.load(bam_path, graph_spec_path, reference_path, target_regions);
-        logger->info("Done loading parameters");
-
-        common::ReadBuffer all_reads;
-        common::extractReads(
-            parameters.bam_path(), parameters.reference_path(), parameters.target_regions(),
-            (int)parameters.max_reads(), all_reads);
-        const auto output = alignAndDisambiguate(parameters, all_reads);
+        std::vector<common::BamReader> readers;
+        for (const auto& bam_path : bam_paths)
+        {
+            logger->info("Opening {} with {}", bam_path, reference_path);
+            readers.push_back(common::BamReader(bam_path, reference_path));
+        }
 
         Json::FastWriter fastWriter;
-        std::ofstream output_stream(output_path);
-        output_stream << fastWriter.write(output);
+        for (auto graph_spec_path : graph_spec_paths)
+        {
+            Parameters parameters(
+                vm["max-reads-per-event"].as<int>(), vm["variant-min-reads"].as<int>(),
+                vm["variant-min-frac"].as<float>(), vm["bad-align-frac"].as<float>(), output_options,
+                vm["exact-sequence-matching"].as<bool>(), vm["graph-sequence-matching"].as<bool>(),
+                vm["kmer-sequence-matching"].as<bool>(), vm["validate-alignments"].as<bool>());
+
+            parameters.set_threads(vm["threads"].as<int>());
+            parameters.set_kmer_len(vm["bad-align-uniq-kmer-len"].as<int>());
+            parameters.set_remove_nonuniq_reads(vm["bad-align-nonuniq"].as<bool>());
+
+            logger->info("Loading parameters {}", graph_spec_path);
+            parameters.load(graph_spec_path, reference_path, target_regions);
+            logger->info("Done loading parameters");
+
+            common::ReadBuffer all_reads;
+            for (common::BamReader& reader : readers)
+            {
+                common::extractReads(reader, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+            }
+
+            Json::Value output_json = alignAndDisambiguate(parameters, all_reads);
+            if (bam_paths.size() == 1)
+            {
+                output_json["bam"] = bam_paths.front();
+            }
+            else
+            {
+                output_json["bam"] = Json::arrayValue;
+                for (const auto& bam_path : bam_paths)
+                {
+                    output_json["bam"].append(bam_path);
+                }
+            }
+
+            const std::string output = fastWriter.write(output_json);
+
+            if ("-" == output_file_path)
+            {
+                dumpOutput(output, std::cout, "standard output");
+            }
+            else if (!output_file_path.empty())
+            {
+                dumpOutput(output, outputFileStream, output_file_path);
+            }
+
+            if (!output_folder_path.empty())
+            {
+                boost::filesystem::path inputPath(graph_spec_path);
+                boost::filesystem::path outputPath = boost::filesystem::path(output_folder_path) / inputPath.filename();
+                std::ofstream ofs(outputPath.string());
+                if (!ofs)
+                {
+                    error(
+                        "ERROR: Failed to open output file '%s'. Error: '%s'", outputPath.string().c_str(),
+                        std::strerror(errno));
+                }
+                dumpOutput(output, ofs, outputPath.string());
+            }
+        }
     }
     catch (const std::exception& e)
     {

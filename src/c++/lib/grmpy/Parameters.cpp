@@ -24,39 +24,20 @@
 // OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "grm/Parameters.hh"
-#include "common/Error.hh"
-#include "common/Region.hh"
+#include "grmpy/Parameters.hh"
 
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
-
-#include <boost/filesystem.hpp>
-
-extern "C" {
-
-// GCC warns us about some things in htslib here. We don't care.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wredundant-decls"
-
-#include "htslib/sam.h"
-
-#pragma GCC diagnostic pop
-}
-
-using common::Region;
-using std::string;
-
-namespace grm
+namespace grmpy
 {
 
-void Parameters::load(string& paragraph_path, string& reference_path, string& manifest_path, string& output_path)
+void Parameters::load(
+    std::string const& graph_path, std::string const& reference_path, std::string const& manifest_path,
+    std::string const& output_path, std::string const& genotyping_parameter_path)
 {
-    paragraph_path_ = paragraph_path;
+    graph_path_ = graph_path;
     reference_path_ = reference_path;
     manifest_path_ = manifest_path;
     output_path_ = output_path;
+    samples_ = genotyping::loadManifest(manifest_path);
+    genotyping_parameter_path_ = genotyping_parameter_path;
 }
 }

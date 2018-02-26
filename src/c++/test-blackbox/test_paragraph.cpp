@@ -64,29 +64,29 @@ TEST(Paragraph, AlignsPGHetIns)
         return;
     }
 
-    Parameters parameters(10000, 3, 0.01f, 0.8f, Parameters::output_options::ALL, true);
+    Parameters parameters(
+        10000, 3, 0.01f, 0.8f, Parameters::output_options::ALL & ~Parameters::output_options::HAPLOTYPES, true);
 
-    parameters.load(bam_path, graph_spec_path, reference_path);
+    parameters.load(graph_spec_path, reference_path);
 
     common::ReadBuffer all_reads;
-    common::extractReads(
-        parameters.bam_path(), reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    common::extractReads(bam_path, reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
     const auto output = alignAndDisambiguate(parameters, all_reads);
 
-    ASSERT_EQ(output["read_counts_by_edge"]["total"].asUInt64(), 29ull);
-    ASSERT_EQ(output["read_counts_by_edge"]["total:FWD"].asUInt64(), 14ull);
+    ASSERT_EQ(output["read_counts_by_edge"]["total"].asUInt64(), 30ull);
+    ASSERT_EQ(output["read_counts_by_edge"]["total:FWD"].asUInt64(), 15ull);
     ASSERT_EQ(output["read_counts_by_edge"]["total:REV"].asUInt64(), 15ull);
 
-    ASSERT_EQ(output["read_counts_by_node"]["total"].asUInt64(), 29ull);
-    ASSERT_EQ(output["read_counts_by_node"]["total:FWD"].asUInt64(), 14ull);
+    ASSERT_EQ(output["read_counts_by_node"]["total"].asUInt64(), 30ull);
+    ASSERT_EQ(output["read_counts_by_node"]["total:FWD"].asUInt64(), 15ull);
     ASSERT_EQ(output["read_counts_by_node"]["total:REV"].asUInt64(), 15ull);
 
     ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total"].asUInt64(), 15ull);
     ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:FWD"].asUInt64(), 8ull);
     ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:REV"].asUInt64(), 7ull);
 
-    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total"].asUInt64(), 14ull);
-    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total:FWD"].asUInt64(), 6ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total"].asUInt64(), 15ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total:FWD"].asUInt64(), 7ull);
     ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total:REV"].asUInt64(), 8ull);
 }
 
@@ -107,29 +107,29 @@ TEST(Paragraph, AlignsPGLongDel)
         return;
     }
 
-    Parameters parameters(10000, 3, 0.01f, 0.8f, Parameters::output_options::ALL, true);
+    Parameters parameters(
+        10000, 3, 0.01f, 0.8f, Parameters::output_options::ALL & ~Parameters::output_options::HAPLOTYPES, true);
 
-    parameters.load(bam_path, graph_spec_path, reference_path);
+    parameters.load(graph_spec_path, reference_path);
 
     common::ReadBuffer all_reads;
-    common::extractReads(
-        parameters.bam_path(), reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    common::extractReads(bam_path, reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
     const auto output = alignAndDisambiguate(parameters, all_reads);
 
-    ASSERT_EQ(output["read_counts_by_edge"]["total"].asUInt64(), 201ull);
-    ASSERT_EQ(output["read_counts_by_edge"]["total:READS"].asUInt64(), 210ull);
-    ASSERT_EQ(output["read_counts_by_edge"]["total:FWD"].asUInt64(), 104ull);
-    ASSERT_EQ(output["read_counts_by_edge"]["total:REV"].asUInt64(), 106ull);
+    ASSERT_EQ(output["read_counts_by_edge"]["total"].asUInt64(), 203ull);
+    ASSERT_EQ(output["read_counts_by_edge"]["total:READS"].asUInt64(), 212ull);
+    ASSERT_EQ(output["read_counts_by_edge"]["total:FWD"].asUInt64(), 105ull);
+    ASSERT_EQ(output["read_counts_by_edge"]["total:REV"].asUInt64(), 107ull);
 
-    ASSERT_EQ(output["read_counts_by_node"]["total"].asUInt64(), 201ull);
-    ASSERT_EQ(output["read_counts_by_node"]["total:READS"].asUInt64(), 210ull);
-    ASSERT_EQ(output["read_counts_by_node"]["total:FWD"].asUInt64(), 104ull);
-    ASSERT_EQ(output["read_counts_by_node"]["total:REV"].asUInt64(), 106ull);
+    ASSERT_EQ(output["read_counts_by_node"]["total"].asUInt64(), 203ull);
+    ASSERT_EQ(output["read_counts_by_node"]["total:READS"].asUInt64(), 212ull);
+    ASSERT_EQ(output["read_counts_by_node"]["total:FWD"].asUInt64(), 105ull);
+    ASSERT_EQ(output["read_counts_by_node"]["total:REV"].asUInt64(), 107ull);
 
-    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total"].asUInt64(), 149ull);
-    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:READS"].asUInt64(), 158ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total"].asUInt64(), 150ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:READS"].asUInt64(), 159ull);
     ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:FWD"].asUInt64(), 78ull);
-    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:REV"].asUInt64(), 80ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:REV"].asUInt64(), 81ull);
 
     ASSERT_FALSE(output["read_counts_by_sequence"].isMember("ALT"));
 }
@@ -150,13 +150,13 @@ TEST(Paragraph, CountsClippedReads)
         return;
     }
 
-    Parameters parameters(10000, 3, 0.01f, 0.8f, Parameters::output_options::ALL, true);
+    Parameters parameters(
+        10000, 3, 0.01f, 0.8f, Parameters::output_options::ALL & ~Parameters::output_options::HAPLOTYPES, true);
 
-    parameters.load(bam_path, graph_spec_path, reference_path);
+    parameters.load(graph_spec_path, reference_path);
 
     common::ReadBuffer all_reads;
-    common::extractReads(
-        parameters.bam_path(), reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    common::extractReads(bam_path, reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
     const auto output = alignAndDisambiguate(parameters, all_reads);
 
     ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total"].asUInt64(), 12ull);

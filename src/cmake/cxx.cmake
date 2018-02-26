@@ -46,7 +46,7 @@ set (GNU_COMPAT_COMPILER ( (CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR (CMAKE_CXX_
 
 # start with warning flags:
 if (GNU_COMPAT_COMPILER)
-    set (CXX_WARN_FLAGS "-Wall -Wextra -Wpointer-arith -Winit-self -Wredundant-decls -Wdisabled-optimization -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-local-typedefs -Wno-missing-braces -Wno-unknown-pragmas")
+    set (CXX_WARN_FLAGS "-Werror -Wall -Wextra -Wpointer-arith -Winit-self -Wredundant-decls -Wdisabled-optimization -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-local-typedefs -Wno-missing-braces -Wno-unknown-pragmas")
 
     if (NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
         set (CXX_WARN_FLAGS "${CXX_WARN_FLAGS} -Wuninitialized")

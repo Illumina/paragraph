@@ -32,7 +32,7 @@ namespace common
 {
 
 /**
- * Stores a genomic interval
+ * Stores a genomic interval as [start_, end_]. The positions are 0-based
  */
 struct Region
 {
@@ -82,5 +82,7 @@ struct Region
         extended_region.end = end + flank_len;
         return extended_region;
     }
+
+    int64_t length() const { return end + 1 - start; }
 };
 }

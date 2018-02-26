@@ -35,6 +35,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <list>
 #include <map>
 #include <string>
 #include <vector>
@@ -45,6 +46,7 @@
 
 #include "graphs/GraphSearch.hh"
 #include "graphs/KmerIndex.hh"
+#include "graphs/KmerIndexOperations.hh"
 
 #include "paragraph/Disambiguation.hh"
 #include "paragraph/Parameters.hh"
@@ -56,27 +58,30 @@ namespace po = boost::program_options;
 using namespace paragraph;
 using std::cerr;
 using std::endl;
+using std::list;
 using std::string;
 
 int main(int argc, char const* argv[])
 {
+
     po::options_description desc("Allowed options");
-    desc.add_options()("help,h", "produce help message")(
-        "graph-spec,g", po::value<string>(), "JSON file describing the graph")(
-        "output,o", po::value<string>(), "Output file name. Will output to stdout if omitted.")(
-        "output-alignments,a", po::value<string>()->default_value(""),
-        "Output kmer matches as alignments into this JSON file")(
-        "reference,r", po::value<string>(),
-        "FASTA with reference genome")("kmer-size,k", po::value<int>()->default_value(3), "Kmer length")(
-        "positions,p", po::value<bool>()->default_value(false), "Output positions as well as counts")(
-        "convert-reference-to-sequence,C", po::value<bool>()->default_value(false),
-        "Convert reference nodes to sequence nodes")(
-        "log-level", po::value<string>()->default_value("info"), "Set log level (error, warning, info).")(
-        "log-file", po::value<string>()->default_value(""), "Log to a file instead of stderr.")(
-        "log-async", po::value<bool>()->default_value(true), "Enable / disable async logging.");
+    // clang-format off
+    desc.add_options()
+    ("help,h", "produce help message")
+    ("graph-spec,g", po::value<string>()->required(), "JSON file describing the graph")
+    ("output,o", po::value<string>()->default_value(""), "Output file name. Will output to stdout if omitted.")
+    ("reference,r", po::value<string>()->required(), "FASTA with reference genome")
+    ("kmer-length,k", po::value<int>()->default_value(-1), "Kmer length (use negative value to autodetect kmer that covers nodes with minimum number of kmers).")
+    ("output-kmers,c", po::value<bool>()->default_value(false), "Output path counts for each kmer")
+    ("output-paths,p", po::value<bool>()->default_value(false), "Output paths for each kmer.")
+    ("log-level", po::value<string>()->default_value("info"), "Set log level (error, warning, info).")
+    ("log-file", po::value<string>()->default_value(""), "Log to a file instead of stderr.")
+    ("log-async", po::value<bool>()->default_value(true), "Enable / disable async logging.");
+    // clang-format on
 
     po::variables_map vm;
     std::shared_ptr<spdlog::logger> logger;
+
     try
     {
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -93,34 +98,18 @@ int main(int argc, char const* argv[])
             vm["log-level"].as<string>().c_str());
         logger = LOG();
 
-        string graph_spec_path;
-        if (vm.count("graph-spec") != 0u)
-        {
-            graph_spec_path = vm["graph-spec"].as<string>();
-            logger->info("Graph spec: {}", graph_spec_path);
-            assertFileExists(graph_spec_path);
-        }
-        else
-        {
-            error("ERROR: File with variant specification is missing.");
-        }
+        const string graph_spec_path = vm["graph-spec"].as<string>();
+        logger->info("Graph spec: {}", graph_spec_path);
+        assertFileExists(graph_spec_path);
 
-        string reference_path;
-        if (vm.count("reference") != 0u)
-        {
-            reference_path = vm["reference"].as<string>();
-            logger->info("Reference: {}", reference_path);
-            assertFileExists(reference_path);
-        }
-        else
-        {
-            error("ERROR: Reference genome is missing.");
-        }
+        const string reference_path = vm["reference"].as<string>();
+        logger->info("Reference: {}", reference_path);
+        assertFileExists(reference_path);
 
-        string output_path;
-        if (vm.count("output") != 0u)
+        const string output_path = vm["output"].as<string>();
+
+        if (!output_path.empty())
         {
-            output_path = vm["output"].as<string>();
             logger->info("Output path: {}", output_path);
         }
 
@@ -135,93 +124,75 @@ int main(int argc, char const* argv[])
             reader.parse(input_file, input);
         }
 
-        graphs::Graph g;
-        graphs::fromJson(input, reference_path, g);
-        graphs::WalkableGraph wg(g);
-        graphs::KmerIndex index(wg, vm["kmer-size"].as<int>());
+        int32_t kmer_len = vm["kmer-length"].as<int>();
+        const bool must_output_paths = vm["output-paths"].as<bool>();
+        const bool must_output_kmers = vm["output-kmers"].as<bool>();
+
+        graphs::Graph graph;
+        graphs::fromJson(input, reference_path, graph);
+        std::shared_ptr<graphs::WalkableGraph> wgraph_ptr = std::make_shared<graphs::WalkableGraph>(graph);
+
+        if (kmer_len < 0)
+        {
+            logger->info(
+                "Auto-detecting kmer length that covers all nodes + edges with at least {} unique kmers.", -kmer_len);
+            kmer_len = graphs::findMinCoveringKmerLength(
+                wgraph_ptr, static_cast<size_t>(-kmer_len), static_cast<size_t>(-kmer_len));
+            if (kmer_len <= 0)
+            {
+                error("Cannot detect kmer length!");
+            }
+            logger->info("Auto-detected kmer length is {}", kmer_len);
+        }
+
+        graphs::KmerIndex index(wgraph_ptr, kmer_len);
 
         Json::Value output;
+        output["graph"] = graph_spec_path;
+        output["kmer_length"] = kmer_len;
         output["kmers"] = Json::arrayValue;
+        output["total_kmers"] = 0;
+        output["unique_kmers"] = 0;
 
-        if (!input.isMember("alignments"))
+        for (const string& kmer : index.getKmersWithNonzeroCount())
         {
-            input["alignments"] = Json::arrayValue;
-        }
-
-        auto add_alignment = [&input, &index, &wg](std::string kmer, uint64_t node, int pos, bool unique) {
-            static int id = 0;
-
-            common::Read read;
-            read.setCoreInfo(std::string("k") + std::to_string(id++), kmer, std::string(kmer.size(), '#'));
-            const auto gcigar = graphs::prefixMatch(wg, node, pos, kmer);
-            read.set_graph_cigar(gcigar);
-            read.set_graph_pos(pos);
-            read.set_graph_mapping_status(reads::MAPPED);
-            read.set_graph_mapq(unique ? 60 : 0);
-            read.set_graph_alignment_score(static_cast<google::protobuf::int32>(kmer.size()));
-            read.set_is_graph_alignment_unique(unique);
-
-            string str;
-            google::protobuf::util::MessageToJsonString(*((google::protobuf::Message*)&read), &str);
-            Json::Reader reader;
-            Json::Value val;
-            reader.parse(str, val);
-            input["alignments"].append(val);
-        };
-
-        for (auto const& k : index.kmers())
-        {
+            output["total_kmers"] = output["total_kmers"].asUInt64() + 1;
             Json::Value kmerinfo;
-            kmerinfo["s"] = k;
-            kmerinfo["n"] = index.kmerCount(k);
+            kmerinfo["s"] = kmer;
+            kmerinfo["n"] = (uint)index.numPaths(kmer);
 
-            if (vm["positions"].as<bool>() || !vm["output-alignments"].as<string>().empty())
+            if (must_output_paths)
             {
-                if (vm["positions"].as<bool>())
+                kmerinfo["paths"] = Json::arrayValue;
+            }
+            const list<graphs::GraphPath> kmer_paths = index.getPaths(kmer);
+            for (const graphs::GraphPath& path : kmer_paths)
+            {
+                if (must_output_paths)
                 {
-                    kmerinfo["matches"] = Json::arrayValue;
+                    kmerinfo["paths"].append(path.encode());
                 }
-                index.search(k);
-                for (const auto& pos : index.matches())
+
+                if (kmer_paths.size() == 1)
                 {
-                    if (vm["positions"].as<bool>())
-                    {
-                        Json::Value json_pos;
-                        json_pos["node"] = (Json::UInt64)pos->node();
-                        json_pos["pos"] = pos->pos();
-                        kmerinfo["matches"].append(json_pos);
-                    }
-                    if (!vm["output-alignments"].as<string>().empty())
-                    {
-                        add_alignment(k, pos->node(), pos->pos(), index.count() > 1);
-                    }
+                    output["unique_kmers"] = output["unique_kmers"].asUInt64() + 1;
                 }
             }
 
-            output["kmers"].append(kmerinfo);
-        }
-        output["badkmers"] = Json::arrayValue;
-        for (auto const& k : index.badkmers())
-        {
-            Json::Value kmerinfo;
-            kmerinfo["s"] = k;
-            kmerinfo["n"] = index.kmerCount(k);
-            for (const auto& pos : index.matches())
+            if (must_output_paths || must_output_kmers)
             {
-                if (vm["positions"].as<bool>())
-                {
-                    Json::Value json_pos;
-                    json_pos["node"] = (Json::UInt64)pos->node();
-                    json_pos["pos"] = pos->pos();
-                    kmerinfo["matches"].append(json_pos);
-                }
-                if (!vm["output-alignments"].as<string>().empty())
-                {
-                    add_alignment(k, pos->node(), pos->pos(), false);
-                }
+                output["kmers"].append(kmerinfo);
             }
-            output["badkmers"].append(kmerinfo);
         }
+
+        output["kmers_by_node"] = Json::objectValue;
+
+        for (const auto& n : graph.nodes)
+        {
+            output["kmers_by_node"][n.second->name()]
+                = static_cast<Json::UInt64>(index.numUniqueKmersOverlappingNode((uint32_t)n.first));
+        }
+
         if (output_path.empty())
         {
             Json::StyledWriter fastWriter;
@@ -232,25 +203,6 @@ int main(int argc, char const* argv[])
             Json::FastWriter fastWriter;
             std::ofstream output_stream(output_path);
             output_stream << fastWriter.write(output);
-        }
-        if (!vm["output-alignments"].as<string>().empty())
-        {
-            if (vm["convert-reference-to-sequence"].as<bool>())
-            {
-                for (int n = 0; n < (int)input["nodes"].size(); ++n)
-                {
-                    // convert reference nodes into sequence nodes
-                    if (input["nodes"][n].isMember("reference"))
-                    {
-                        input["nodes"][n]["reference_location"] = input["nodes"][n]["reference"];
-                        input["nodes"][n].removeMember("reference");
-                        input["nodes"][n]["sequence"] = wg.node(static_cast<uint64_t>(n))->sequence();
-                    }
-                }
-            }
-            Json::FastWriter fastWriter;
-            std::ofstream output_stream(vm["output-alignments"].as<string>());
-            output_stream << fastWriter.write(input);
         }
     }
     catch (const std::exception& e)

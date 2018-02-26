@@ -51,7 +51,7 @@ typedef std::vector<IndexBin> PerChrBins;
 void getIndexBins(std::string const& bam_path, std::vector<IndexBin>& output)
 {
     auto logger = LOG();
-    // Open alignment file file for reading.
+    // Open alignment file for reading.
     auto hts_file_ptr
         = std::unique_ptr<htsFile, std::function<void(htsFile*)>>{ sam_open(bam_path.c_str(), "r"), hts_close };
 
@@ -90,6 +90,7 @@ void getIndexBins(std::string const& bam_path, std::vector<IndexBin>& output)
         bins[i].resize((header->target_len[i] >> 14) + 1);
     }
 
+    // gets bin index given a reference ID and start position
     auto CanonicalBin = [&bins](int rid, uint64_t start) -> PerChrBins::iterator {
         assert(rid < (int)bins.size());
         const uint64_t canonical_start = start >> 14;
@@ -99,31 +100,37 @@ void getIndexBins(std::string const& bam_path, std::vector<IndexBin>& output)
         return it;
     };
 
-    auto UpdateBin = [&header, &bins, &logger](
-                         int rid, PerChrBins::iterator bin_it, uint64_t start, uint64_t end, size_t bytes) -> bool {
+    auto UpdateBin
+        = [&bins](int rid, PerChrBins::iterator bin_it, uint64_t idx_start, uint64_t idx_end, size_t bytes) -> bool {
         assert(rid < (int)bins.size());
-        assert(start <= end);
+        assert(idx_start <= idx_end);
         if (bin_it == bins[rid].end())
         {
             return false;
         }
-        // calculate bin end
-        uint64_t start_pos = static_cast<size_t>(std::distance(bins[rid].begin(), bin_it));
-        start_pos <<= 14;
-        uint64_t end_pos = start_pos + 16383;
 
-        bin_it->start = start_pos;
-        bin_it->end = end_pos;
+        // calculate bin start / end
+        uint64_t bin_start = static_cast<size_t>(std::distance(bins[rid].begin(), bin_it));
+        bin_start <<= 14;
+        uint64_t bin_end = bin_start + 16383;
 
-        if (start > end_pos || end < start_pos)
+        bin_it->start = bin_start;
+        bin_it->end = bin_end;
+
+        // if the index ends before this bin starts or begins after this bin ends,
+        // its bytes do not contribute to this bin's bytes
+        if (idx_start > bin_end || idx_end < bin_start)
         {
             return false;
         }
 
         bin_it->slices++;
         bin_it->overlapping_bytes += bytes;
-        uint64_t overlap = std::min(end_pos, end) - std::max(start_pos, start) + 1;
-        bin_it->adjusted_bytes += ((double)bytes * overlap) / (end - start + 1) / 16384;
+        uint64_t overlap = std::min(bin_end, idx_end) - std::max(bin_start, idx_start) + 1;
+
+        // adjusted bytes is the adjusted by the percent the index entry overlaps by the bin and
+        // normalized to report the average number of bytes per position
+        bin_it->adjusted_bytes += ((double)bytes * overlap) / (idx_end - idx_start + 1) / 16384;
 
         return true;
     };
@@ -146,27 +153,31 @@ void getIndexBins(std::string const& bam_path, std::vector<IndexBin>& output)
         {
             std::vector<std::string> fields;
             common::stringutil::split(str.s, fields, "\t");
-            if (fields.size() >= 3)
-            {
-                const int i = std::stoi(fields[0]);
-                const size_t bytes = std::stoull(fields[5]);
-                if (i >= 0)
-                {
-                    const uint64_t start = std::stoull(fields[1]);
-                    const uint64_t end = start + std::stoull(fields[2]) - 1;
+            // CRAM index fields are:
+            // (0) sequence ID, i.e. contig ID; (1) alignment start; (2) alignment span;
+            // (3) container start byte offset in file; (4) slice byte offset in container; (5) bytes in slice
 
-                    auto start_slice = CanonicalBin(i, start);
-                    while (UpdateBin(i, start_slice, start, end, bytes))
-                    {
-                        ++start_slice;
-                    }
-                }
-                else
-                {
-                    unaligned_bytes += bytes;
-                }
+            assert(fields.size() == 6);
+
+            const int rid = std::stoi(fields[0]);
+            const size_t bytes = std::stoull(fields[5]);
+
+            if (rid < 0)
+            {
+                unaligned_bytes += bytes;
+                continue;
+            }
+
+            const uint64_t start = std::stoull(fields[1]);
+            const uint64_t end = start + std::stoull(fields[2]) - 1;
+
+            auto start_slice_it = CanonicalBin(rid, start);
+            while (UpdateBin(rid, start_slice_it, start, end, bytes))
+            {
+                ++start_slice_it;
             }
         }
+
         if (str.s != nullptr)
         {
             free(str.s);

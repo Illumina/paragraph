@@ -51,11 +51,13 @@ namespace intervals
 
 struct IntervalBuffer::IntervalBufferImpl
 {
-    IntervalBufferImpl() {}
-    IntervalBufferImpl(IntervalBufferImpl const& rhs)
-        : lanes(rhs.lanes)
-    {
-    }
+    IntervalBufferImpl() = default;
+    IntervalBufferImpl(IntervalBufferImpl const& rhs) = default;
+    IntervalBufferImpl& operator=(IntervalBufferImpl const& rhs) = default;
+    IntervalBufferImpl(IntervalBufferImpl&& rhs) = delete;
+    IntervalBufferImpl& operator=(IntervalBufferImpl&& rhs) = delete;
+    ~IntervalBufferImpl() = default;
+
     typedef IntervalList<interval> ivmap_t;
 
     std::vector<ivmap_t> lanes;

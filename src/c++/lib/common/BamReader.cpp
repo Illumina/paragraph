@@ -244,6 +244,7 @@ BamReader::BamReader(const std::string& path, const std::string& reference)
     assertFileExists(reference + ".fai");
     _impl->file_path = path;
     _impl->reference_path = reference;
+    _impl->open(_impl->file_path, _impl->reference_path);
 }
 
 BamReader::BamReader(BamReader&& rhs) noexcept
@@ -261,7 +262,11 @@ BamReader::~BamReader() = default;
 
 void BamReader::setRegion(const std::string& region_encoding)
 {
-    _impl->open(_impl->file_path, _impl->reference_path);
+    _impl->at_file_end_ = false;
+    if (_impl->hts_itr_ptr_ != nullptr)
+    {
+        hts_itr_destroy(_impl->hts_itr_ptr_);
+    }
     _impl->hts_itr_ptr_ = sam_itr_querys(_impl->hts_idx_ptr_, _impl->hts_bam_hdr_ptr_, region_encoding.c_str());
     if (_impl->hts_itr_ptr_ == nullptr)
     {
@@ -327,7 +332,6 @@ int BamReader::SkipToNextGoodAlign()
     return return_value;
 }
 
-// Try to get an aligned mate.
 bool BamReader::getAlignedMate(const Read& read, Read& mate)
 {
     int32_t tid = 0;
@@ -454,6 +458,9 @@ std::unique_ptr<DepthInfo> BamReader::estimateDepth(std::string const& region)
     int cycle = 0;
 
     auto check_convergence = [&]() {
+        // cppcheck doesn't quite get that this lambda gets
+        // called below
+        // cppcheck-suppress knownConditionTrueFalse
         if (cycle == 0)
         {
             // look at each segment

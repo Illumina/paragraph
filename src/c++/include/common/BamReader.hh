@@ -74,14 +74,27 @@ public:
 
     ~BamReader() override;
 
-    // Initialize BAM file for reading at a given region.
-    void setRegion(const std::string& region_encoding = "");
-    // Reads the next alignment from the region; returns false if the region
-    // is exhausted.
+    /**
+     * Initialize BAM file for reading at a given region.
+     * return true if find the region
+     */
+    void setRegion(const std::string& region_encoding = "") override;
+
+    /**
+     *  Reads the next alignment from the region
+     * return false if the region is exhausted.
+     */
     bool getAlign(Read& align) override;
 
+    /**
+     *  fetch information for the mate of this aligned read
+     * return true if found
+     */
     bool getAlignedMate(const Read& read, Read& mate) override;
 
+    /**
+     * estimate depth on a given region
+     */
     std::unique_ptr<DepthInfo> estimateDepth(std::string const& region) override;
 
 protected:

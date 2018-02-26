@@ -41,8 +41,6 @@
 #include "common/StringUtil.hh"
 #include "graphs/Graph.hh"
 
-#include "stream.hpp"
-
 #include "common/Error.hh"
 
 using std::string;
@@ -63,23 +61,6 @@ namespace graphs_internal
 
     volatile PB_Cleanup cleaner;
 }
-
-void serializeGraph(std::ostream& o, Graph const& g)
-{
-    std::vector<graphs::NodeOrEdge> nodes_and_edges;
-    for (auto& n : g.nodes)
-    {
-        graphs::NodeOrEdge noe;
-        noe.set_allocated_node(new graphs::Node);
-        noe.mutable_node()->CopyFrom(*n.second);
-        nodes_and_edges.push_back(noe);
-    }
-    std::function<graphs::NodeOrEdge(uint64_t)> get
-        = [&nodes_and_edges](uint64_t j) -> graphs::NodeOrEdge& { return nodes_and_edges[j]; };
-    stream::write(o, nodes_and_edges.size(), get);
-}
-
-void deserializeGraph(std::istream& i, Graph const& g) { error("This function is not implemented."); }
 
 static void setReferenceNode(
     p_Node& node_inst, string const& reference_location, bool store_ref_sequence, common::FastaFile const& ref)
@@ -114,30 +95,36 @@ void fromJson(Json::Value const& in, string const& reference, Graph& out, bool s
     out.nodes.clear();
     out.edges.clear();
 
-    std::map<string, size_t> sequencenames;
-    if (in.isMember("sequencenames"))
+    Json::Value const* in_graph = &in;
+    if (in.isMember("graph"))
     {
-        assert(in["sequencenames"].type() == Json::ValueType::arrayValue);
-        for (size_t i = 0; i < in["sequencenames"].size(); ++i)
+        in_graph = &in["graph"];
+    }
+
+    std::map<string, size_t> sequencenames;
+    if ((*in_graph).isMember("sequencenames"))
+    {
+        assert((*in_graph)["sequencenames"].type() == Json::ValueType::arrayValue);
+        for (size_t i = 0; i < (*in_graph)["sequencenames"].size(); ++i)
         {
-            auto const& sequencename = in["sequencenames"][(int)i].asString();
+            auto const& sequencename = (*in_graph)["sequencenames"][(int)i].asString();
             assert(sequencenames.count(sequencename) == 0);
             out.header->add_sequencenames(sequencename);
             sequencenames[sequencename] = i;
         }
     }
 
-    assert(in["nodes"].type() == Json::ValueType::arrayValue);
+    assert((*in_graph)["nodes"].type() == Json::ValueType::arrayValue);
 
-    if (in["edges"].type() != Json::ValueType::nullValue)
+    if ((*in_graph)["edges"].type() != Json::ValueType::nullValue)
     {
-        assert(in["edges"].type() == Json::ValueType::arrayValue);
+        assert((*in_graph)["edges"].type() == Json::ValueType::arrayValue);
     }
 
     std::map<string, uint64_t> node_map;
-    for (size_t i = 0; i < in["nodes"].size(); ++i)
+    for (size_t i = 0; i < (*in_graph)["nodes"].size(); ++i)
     {
-        auto const& in_n = in["nodes"][(int)i];
+        auto const& in_n = (*in_graph)["nodes"][(int)i];
         p_Node out_n{ new Node };
         for (auto& sequence : in_n["sequences"])
         {
@@ -191,9 +178,9 @@ void fromJson(Json::Value const& in, string const& reference, Graph& out, bool s
         node_map[name] = i;
     }
 
-    for (size_t i = 0; i < in["edges"].size(); ++i)
+    for (size_t i = 0; i < (*in_graph)["edges"].size(); ++i)
     {
-        auto const& in_e = in["edges"][(int)i];
+        auto const& in_e = (*in_graph)["edges"][(int)i];
         p_Edge out_e{ new Edge };
 
         assert(node_map.count(in_e["from"].asString()));

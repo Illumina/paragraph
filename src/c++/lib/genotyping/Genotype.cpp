@@ -34,14 +34,34 @@
  */
 
 #include "genotyping/Genotype.hh"
-#include "common/Error.hh"
+
+#include <algorithm>
+#include <cassert>
+#include <functional>
 
 using std::string;
 using std::vector;
 
 namespace genotyping
 {
-string Genotype::genotypeString() const
+
+GenotypeVector genotypeVectorFromString(std::string& gt_str)
+{
+    GenotypeVector gv;
+    size_t prev_pos = 0;
+    size_t current_pos = gt_str.find("/");
+    while (current_pos != std::string::npos)
+    {
+        string allele_str = gt_str.substr(prev_pos, current_pos - prev_pos);
+        assert(std::all_of(allele_str.begin(), allele_str.end(), ::isdigit));
+        gv.push_back(stoi(allele_str));
+        prev_pos = current_pos + 1;
+        current_pos = gt_str.find("/", prev_pos);
+    }
+    return gv;
+}
+
+string Genotype::toString() const
 {
     string gt_str;
     if (gt.empty())
@@ -55,7 +75,7 @@ string Genotype::genotypeString() const
     return gt_str;
 }
 
-string Genotype::genotypeString(vector<string>& allele_names) const
+string Genotype::toString(vector<string> const& allele_names) const
 {
     string gt_str;
     if (gt.empty())
@@ -69,90 +89,52 @@ string Genotype::genotypeString(vector<string>& allele_names) const
     return gt_str;
 }
 
-Genotype::operator std::string() const { return genotypeString(); }
+Genotype::operator std::string() const { return toString(); }
 
-void Genotype::recode(vector<vector<uint64_t>>& alternative_codes)
+/**
+ * relabel genotypes
+ */
+void Genotype::relabel(std::vector<uint64_t> const& new_labels)
 {
-    vector<uint64_t> hap1 = alternative_codes[gt[0]];
-    vector<uint64_t> hap2 = alternative_codes[gt[1]];
-
-    if (hap1[0] <= hap2[0])
+    // remap genotypes
+    uint64_t max_al = 0;
+    for (auto& g : gt)
     {
-        gt = { hap1[0], hap2[0] };
+        assert(new_labels.size() > g);
+        g = new_labels[g];
+        max_al = std::max(g, max_al);
     }
-    else
+    std::sort(gt.begin(), gt.end());
+    // remap labels for GL
+    for (auto& l : gl_name)
     {
-        gt = { hap2[0], hap1[0] };
-    }
-
-    // figure out other possibilities
-    for (auto& equal_gt : equivalent_gt)
-    {
-        hap1.insert(hap1.end(), alternative_codes[equal_gt[0]].begin(), alternative_codes[equal_gt[0]].end());
-        hap2.insert(hap2.end(), alternative_codes[equal_gt[1]].begin(), alternative_codes[equal_gt[1]].end());
-    }
-    std::map<GenotypeVector, bool> possible_gt_hash;
-    for (auto& h1 : hap1)
-    {
-        for (auto& h2 : hap2)
+        for (auto& g : l)
         {
-            GenotypeVector current_gt;
-            if (h1 <= h2)
-            {
-                current_gt = { h1, h2 };
-            }
-            else
-            {
-                current_gt = { h2, h1 };
-            }
-            if (possible_gt_hash.find(current_gt) == possible_gt_hash.end())
-            {
-                possible_gt_hash[current_gt] = true;
-            }
+
+            assert(new_labels.size() > g);
+            g = new_labels[g];
         }
+        std::sort(l.begin(), l.end());
     }
 
-    // implement equivalent gt
-    equivalent_gt.clear();
-    for (auto& possible_gt : possible_gt_hash)
+    // relabel allele fractions
+    std::vector<double> new_allele_fractions;
+    new_allele_fractions.resize(max_al + 1, 0ull);
+    for (size_t g = 0; g < allele_fractions.size(); ++g)
     {
-        if (possible_gt.first != gt)
-        {
-            equivalent_gt.push_back(possible_gt.first);
-        }
+        assert(new_labels.size() > g);
+        const uint64_t t = new_labels[g];
+        new_allele_fractions[t] = allele_fractions[g];
     }
 
-    // implement gl
-    for (auto& element : gl_name)
-    {
-        uint64_t gl0 = alternative_codes[element[0]][0];
-        uint64_t gl1 = alternative_codes[element[1]][0];
-        if (gl0 <= gl1)
-        {
-            element = { gl0, gl1 };
-        }
-        else
-        {
-            element = { gl1, gl0 };
-        }
-    }
+    allele_fractions = new_allele_fractions;
 }
 
 // output allele name instead of indexes
-Json::Value Genotype::toJson(vector<string>& allele_names) const
+Json::Value Genotype::toJson(vector<string> const& allele_names) const
 {
     Json::Value json_result;
-    json_result["GT"] = genotypeString(allele_names);
-
-    if (!equivalent_gt.empty())
-    {
-        json_result["equivalentGT"] = Json::arrayValue;
-        for (auto& equal_gt : equivalent_gt)
-        {
-            string equal_gt_str = allele_names[equal_gt[0]] + "/" + allele_names[equal_gt[1]];
-            json_result["equivalentGT"].append(equal_gt_str);
-        }
-    }
+    json_result["GT"] = toString(allele_names);
 
     if (!gl.empty())
     {

@@ -11,10 +11,12 @@
 #
 # https://github.com/Illumina/licenses/blob/master/Simplified-BSD-License.txt
 #
-# October 2017
+# January 2018
 #
-# Run grmpy genotyper on multiple paragraph output
-# Output will be one JSON for one sample with genotyping information
+# Run paragraph tools on multiple sites on multiple samples
+#   This script is suitable for a small list of sites and samples.
+#   To run ParaGRAPH on large-scale sites and samples, please refer to the Snakemake template at doc/multi-samples.md
+# Output will be one JSON for all samples with genotyping information
 #
 # Use multiparagraph.py as template
 #
@@ -38,71 +40,103 @@ import pipes
 import subprocess
 import tempfile
 import traceback
-import copy
+import re
 
 import findgrm  # pylint: disable=unused-import
 from grm.helpers import LoggingWriter
-from grm.graph_typing import sample_manifest
+from grm.vcf2paragraph import convert_vcf_to_json
+from grm.graph_templates import make_graph
 
 
-def run_single_sample_grmpy(event_and_args):
+def load_graph_description(args):
     """
-    Run grmpy for one single sample on all variants using multiple threads
+    load graph description from either vcf or json
+    """
+    event_list = []
+    extension = os.path.splitext(args.input)[1]
+    if extension == ".gz":
+        file_type = os.path.splitext(os.path.splitext(args.input)[0])[1]
+        extension = file_type + ".gz"
+    if extension == ".vcf" or extension == ".vcf.gz":
+        logging.info("Input is a vcf. Converting to JSON with graph description...")
+        try:
+            converted_json_path = os.path.join(args.output, "variants.json.gz")
+            event_list = convert_vcf_to_json(args.input, args.reference, read_length=args.read_length,
+                                             max_ref_node_length=args.max_ref_node_length,
+                                             graph_type=args.graph_type,
+                                             split_type=args.split_type,
+                                             retrieve_ref_sequence=args.retrieve_reference_sequence,
+                                             threads=args.threads)
+            with gzip.open(converted_json_path, "wt") as converted_json_file:
+                json.dump(event_list, converted_json_file, sort_keys=True, indent=4, separators=(',', ': '))
+        except Exception:  # pylint: disable=W0703
+            logging.error("VCF to JSON conversion failed.")
+            traceback.print_exc(file=LoggingWriter(logging.ERROR))
+            raise
+        logging.info("Done. Graph Json stored at %s", converted_json_path)
+        args.input = converted_json_path
+    elif extension == ".json" or extension == "json.gz":
+        if extension == ".json":
+            json_file = open(args.input, 'r')
+        else:
+            json_file = gzip.open(args.input, 'r')
+        event_list = json.load(json_file)
+        num_converted_event = 0
+        # if JSON has no graph description
+        for event in event_list:
+            if "graph" not in event:
+                if "nodes" not in event and "edges" not in event:
+                    try:
+                        event["type"], event["graph"] = make_graph(args.reference, event)
+                    except Exception:  # pylint: disable=W0703
+                        logging.error("Fail to make graph for JSON event.")
+                        traceback.print_exc(file=LoggingWriter(logging.ERROR))
+                        raise
+                    num_converted_event += 1
+        if num_converted_event:
+            logging.info("Constructed graph for %d events in JSON.", num_converted_event)
+        json_file.close()
+    else:
+        raise Exception("Unknown input file extension %s for %s. Only VCF or JSON is allowed!" %
+                        (extension, args.input))
+    return event_list
+
+
+def run_grmpy_single_variant(event_and_args):
+    """
+    Run grmpy for one single variant on all samples with multiple threads
+    return grmpy result as python dict object
     """
     event = event_and_args[0]
     args = event_and_args[1]
-    sample_name = args.sample_name
     tempfiles = []
     exception = ""
     error_log = ""
     error = False
     gt_result = {}
+
     try:
-        # construct grmpy input
-        current_json = {"ID": event[args.id_identifier],
-                        "nodes": event["graph"]["nodes"],
-                        "edges": event["graph"]["edges"],
-                        "target_regions": event["graph"]["target_regions"],
-                        "sequencenames": event["graph"]["sequencenames"],
-                        "samples": {},
-                        "eventinfo": {}}
-        current_json["samples"][sample_name] = {}
-        if "vcf_records" in event["graph"]:
-            current_json["eventinfo"]["vcf_records"] = event["graph"]["vcf_records"]
-        for e in ["chrom", "start", "end", "type", "n_ev"]:
-            try:
-                current_json["eventinfo"][e] = event[e]
-            except KeyError:
-                current_json["eventinfo"][e] = None
-
-        try:
-            current_json["samples"][sample_name]["read_counts_by_edge"] = event["graph"]["read_counts_by_edge"]
-        except KeyError:
-            current_json["samples"][sample_name]["read_counts_by_edge"] = {}
-
-        tf = tempfile.NamedTemporaryFile(dir=args.scratch_dir, mode="wt", suffix=".json", delete=False)
-        tempfiles.append(tf.name)
-        json.dump(current_json, tf)
-        tf.close()
-
-        # grmpy output
-        output_name = tf.name + ".output.json"
-        tempfiles.append(output_name)
-        error_log = tf.name + ".output.log"
+        input_json_file = tempfile.NamedTemporaryFile(dir=args.scratch_dir, mode="wt", suffix=".json", delete=False)
+        tempfiles.append(input_json_file.name)
+        if "graph" in event:
+            json.dump(event["graph"], input_json_file, indent=4, separators=(',', ': '))
+        else:
+            json.dump(event, input_json_file, indent=4, separators=(',', ': '))
+        input_json_file.close()
+        error_log = input_json_file.name + ".output.log"
         tempfiles.append(error_log)
 
+        grmpy_out_path = input_json_file.name + ".grmpy.json"
+        tempfiles.append(grmpy_out_path)
         commandline = args.grmpy
+
         commandline += " -r %s" % pipes.quote(args.reference)
         commandline += " -m %s" % pipes.quote(args.manifest)
-        commandline += " -p %s" % pipes.quote(tf.name)
-        commandline += " -o %s" % pipes.quote(output_name)
-        commandline += " --genotype-error-rate %f" % args.genotype_error_rate
-        commandline += " --min-overlap-bases %i" % args.min_overlap_bases
-        commandline += " --max-read-times %i" % args.max_read_times
+        commandline += " -g %s" % pipes.quote(input_json_file.name)
+        commandline += " -o %s" % pipes.quote(grmpy_out_path)
         if args.use_em:
             commandline += " --useEM"
         commandline += " --log-file %s" % pipes.quote(error_log)
-
         o = subprocess.check_output(commandline, shell=True, stderr=subprocess.STDOUT)
 
         try:
@@ -114,9 +148,8 @@ def run_single_sample_grmpy(event_and_args):
             if line:
                 logging.warning(line)
 
-        with open(output_name, "rt") as f:
-            gt_result = json.load(f)
-            f.close()
+        with open(grmpy_out_path, "rt") as grmpy_out_file:
+            gt_result = json.load(grmpy_out_file)
 
     except Exception:  # pylint: disable=broad-except
         logging.error("Exception when running grmpy on %s", str(event))
@@ -159,17 +192,16 @@ def make_argument_parser():
     """
     parser = argparse.ArgumentParser("Multigrmpy.py")
 
-    parser.add_argument("-m", "--manifest", help="paragraph output json manifest. Format: sample_name, json_path.",
+    parser.add_argument("-i", "--input", help="Input file of variants. Must be either JSON or VCF.",
+                        type=str, dest="input", required=True)
+
+    parser.add_argument("-m", "--manifest", help="Manifest of samples with path and bam stats.",
                         type=str, dest="manifest", required=True)
 
-    parser.add_argument("-o", "--output", help="Output directory name",
-                        type=str, dest="output", required=True)
+    parser.add_argument("-o", "--output", help="Output directory.", type=str, dest="output", required=True)
 
-    parser.add_argument("-r", "--reference-sequence", help="Reference FASTA",
+    parser.add_argument("-r", "--reference-sequence", help="Reference genome fasta file.",
                         type=str, dest="reference", required=True)
-
-    parser.add_argument("--id_identifier", help="ID key identifier in Json.",
-                        type=str, dest="id_identifier", default="ID")
 
     parser.add_argument("--event-threads", "-t", dest="threads", type=int, default=multiprocessing.cpu_count(),
                         help="Number of events to process in parallel.")
@@ -196,88 +228,94 @@ def make_argument_parser():
 
     stat_options = parser.add_mutually_exclusive_group(required=False)
 
-    stat_options.add_argument("--genotype-error-rate", dest="genotype_error_rate", default=0.01,
-                              type=float, help="Fixed genotype error rate for breakpoint genotyping.")
+    stat_options.add_argument("-G", "--genotyping-parameters", dest="genotyping-parameters", default="",
+                              type=str, help="JSON string or file with genotyping model parameters.")
 
-    stat_options.add_argument("--min-overlap-bases", dest="min_overlap_bases", default=16, type=int,
-                              help="Minimum overlap bases used in estimating poisson model parameters.")
+    stat_options.add_argument("--useEM", dest="use_em", default=False, action="store_true",
+                              help="Use Expectation-Maximization algorithm in genotyping. Slower but more accurate.")
 
-    stat_options.add_argument("--max-read-times", dest="max_read_times", default=40, type=int,
-                              help="Max times of total reads in one sample for a breakpoint. Multiplied by depth.")
-    stat_options.add_argument("--useEM", dest="use_em", default=False,
-                              action="store_true", help="Use EM for genotyping.")
+    vcf2json_options = parser.add_mutually_exclusive_group(required=False)
+
+    vcf2json_options.add_argument("--vcf-split", default="lines", dest="split_type", choices=["lines", "full", "by_id"],
+                                  help="Mode for splitting the input VCF: lines (default) -- one graph per record ;"
+                                  " full -- one graph for the whole VCF ;"
+                                  " by_id -- use the VCF id column to group adjacent records")
+    vcf2json_options.add_argument("-p", "--read-length", dest="read_length", default=150, type=int,
+                                  help="Read length -- this can be used to add reference padding for disambiguation.")
+
+    vcf2json_options.add_argument("-l", "--max-ref-node-length", dest="max_ref_node_length", type=int, default=1000,
+                                  help="Maximum length of reference nodes before they get padded and truncated.")
+
+    vcf2json_options.add_argument("--retrieve-reference-sequence", help="Retrieve reference sequence for REF nodes",
+                                  action="store_true", dest="retrieve_reference_sequence", default=False)
+
+    vcf2json_options.add_argument("--graph-type", choices=["alleles", "haplotypes"], default="alleles", dest="graph_type",
+                                  help="Type of complex graph to generate. Same as --graph-type in vcf2paragraph.")
 
     return parser
 
 
-def run(raw_args):
-    """ Run wrapper """
-    if raw_args.verbose:
+def run(args):
+    """
+    :run the wrapper
+    """
+    if args.verbose:
         loglevel = logging.INFO
-    elif raw_args.quiet:
+    elif args.quiet:
         loglevel = logging.ERROR
     else:
         loglevel = logging.WARNING
 
+    if not os.path.isdir(args.output):
+        os.makedirs(args.output, exist_ok=True)
+
+    # set default log file
+    if not args.logfile:
+        args.logfile = os.path.join(args.output, "GraphTyping.log")
+
     # reinitialize logging
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
-    logging.basicConfig(filename=raw_args.logfile, format='%(asctime)s %(levelname)-8s %(message)s', level=loglevel)
+    logging.basicConfig(filename=args.logfile, format='%(asctime)s %(levelname)-8s %(message)s', level=loglevel)
 
+    # check format of manifest
+    with open(args.manifest) as manifest_file:
+        headers = {"id": False, "path": False, "idxdepth": False, "depth": False, "read length": False}
+        for line in manifest_file:
+            if line.startswith("#"):
+                line = line[1:]
+            line = line.strip()
+            fields = re.split('\t|,', line)
+            for field in fields:
+                if field not in headers:
+                    header_str = ""
+                    for h in headers:
+                        header_str += h + ","
+                    raise Exception("Illegal header name %s. Allowed headers:\n%s" % (field, header_str))
+                headers[field] = True
+            if not headers["id"] or not headers["path"]:
+                raise Exception("Missing header \"id\" or \"path\" in manifest")
+            if not headers["idxdepth"]:
+                if not headers["depth"] or not headers["read length"]:
+                    raise Exception("Missing header \"idxdepth\", or \"depth\" and \"read length\" in manifest.")
+            break
+
+    # prepare input graph description
     try:
-        manifest = sample_manifest.load_manifest(raw_args.manifest)
-    except:  # pylint: disable=bare-except
-        logging.error("Error in loading paragraph manifest.")
+        event_list = load_graph_description(args)
+    except Exception:  # pylint: disable=W0703
         traceback.print_exc(file=LoggingWriter(logging.ERROR))
         raise
-    if not manifest:
-        raise Exception("Empty paragraph manifest.")
 
-    os.makedirs(raw_args.output, exist_ok=True)
-    for element in manifest:
-        args = copy.copy(raw_args)
+    # run grmpy
+    with multiprocessing.Pool(args.threads) as pool:
+        results = pool.map(run_grmpy_single_variant, zip(event_list, itertools.repeat(args)))
 
-        tmp_manifest = tempfile.NamedTemporaryFile(
-            dir=args.scratch_dir, mode="wt", suffix=".manifest", delete=False)
-        tmp_manifest.write(element.to_string() + "\n")
-        tmp_manifest.close()
-        args.manifest = tmp_manifest.name
-
-        paragraph_json_path = element.path
-
-        logging.info("Loading paragraph output for sample " + element.name)
-        if paragraph_json_path.endswith(".gz"):
-            paragraph_json_file = gzip.open(paragraph_json_path, "rt")
-        else:
-            paragraph_json_file = open(paragraph_json_path, "rt")
-        paragraph_variants = json.load(paragraph_json_file)
-        logging.info("Loaded paragraph output Json.")
-        paragraph_json_file.close()
-
-        args.sample_name = element.name
-        args.output = os.path.join(
-            raw_args.output, element.name + ".genotype.json.gz")
-        logging.info("Number of events: %i", len(paragraph_variants))
-
-        with multiprocessing.Pool(args.threads) as pool:
-            results = pool.map(run_single_sample_grmpy, zip(
-                paragraph_variants, itertools.repeat(args)))
-
-        logging.info("Finished genotyping. Merging output...")
-        if args.output.endswith(".gz"):
-            of = gzip.open(args.output, "wt")
-        else:
-            of = open(args.output, "wt")
-
-        json.dump(results, of, sort_keys=True,
-                  indent=4, separators=(',', ': '))
-        of.close()
-        if not args.keep_scratch:
-            try:
-                os.remove(tmp_manifest.name)
-            except:  # pylint: disable=bare-except
-                pass
-        logging.info("Done genotyping of " + element.name)
+    logging.info("Finished genotyping. Merging output...")
+    result_json_path = os.path.join(args.output, "genotypes.json.gz")
+    with gzip.open(result_json_path, "wt") as result_json_file:
+        json.dump(results, result_json_file, sort_keys=True, indent=4, separators=(',', ':'))
+        logging.info("ParaGRAPH completed on %d sites.", len(event_list))
 
 
 def main():

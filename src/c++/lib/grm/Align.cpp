@@ -25,14 +25,34 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "grm/Align.hh"
-#include <graphs/GraphMapping.hh>
-
-#include "grm/GraphAligner.hh"
-#include "grm/PathAligner.hh"
-
 #include "common/Error.hh"
+#include "graphs/GraphMappingOperations.hh"
+#include "grm/CompositeAligner.hh"
+#include "grm/ValidationAligner.hh"
 
 using namespace grm;
+
+void logAlignerStats(int filtered, const CompositeAligner& aligner)
+{
+    LOG()->info(
+        "[Done with alignment step {} total aligned (exact: {} / kmers: {} / sw: {}) ; {} were filtered]",
+        aligner.attempted(), aligner.mappedExactly(), aligner.mappedKmers(), aligner.mappedSw(), filtered);
+}
+
+template <typename AlignerT> void logAlignerStats(int filtered, const ValidationAligner<AlignerT>& aligner)
+{
+    logAlignerStats(filtered, aligner.base());
+
+    LOG()->info("[VALIDATION]\tMAPQ\tEmpMAPQ\tWrong\tTotal");
+    LOG()->info("[VALIDATION]\tunalgnd\t0\t0\t{}", (aligner.total() - aligner.aligned() - aligner.repeats()));
+    LOG()->info("[VALIDATION]\trepeat\t0\t0\t{}", aligner.repeats());
+    LOG()->info(
+        "[VALIDATION]\t60\t{}\t{}\t{}",
+        (!aligner.mismapped()
+             ? 60
+             : (aligner.aligned()) ? -10 * log10(double(aligner.mismapped()) / double(aligner.aligned())) : 0),
+        aligner.mismapped(), aligner.aligned());
+}
 
 /**
  * Sequential helper to produce read alignments
@@ -42,27 +62,16 @@ using namespace grm;
  * @param filter filter function to discard reads if alignment isn't good
  * @param exact_path_matching enable / disable exact matching step (=force Smith Waterman)
  */
+template <typename AlignerT>
 static void sequentialAlignReads(
     const graphs::Graph& graph, Json::Value const& paths, std::vector<common::p_Read>& reads, ReadFilter filter,
-    bool exact_path_matching)
+    AlignerT& aligner)
 {
     auto logger = LOG();
     logger->info("[Aligning {} reads]", reads.size());
 
-    grm::GraphAligner graph_aligner;
-    graph_aligner.setGraph(graph);
-
-    grm::PathAligner path_aligner;
-    if (exact_path_matching && !paths.empty())
-    {
-        path_aligner.setGraph(graph, paths);
-    }
-
-    int c = 0;
     int f = 0;
     std::vector<common::p_Read> filtered_reads;
-    int mapped_exactly = 0;
-    int mapped_sw = 0;
     for (auto& read : reads)
     {
         if (read->bases().empty())
@@ -70,30 +79,8 @@ static void sequentialAlignReads(
             continue;
         }
         read->set_graph_mapping_status(reads::UNMAPPED);
-        if (exact_path_matching)
-        {
-            path_aligner.alignRead(*read);
-            if (read->graph_mapping_status() == reads::MAPPED)
-            {
-#ifdef _DEBUG
-                // check a valid alignment was produced
-                graphs::GraphMapping mapping(read->graph_pos(), read->graph_cigar(), read->bases(), graph);
-#endif
-                ++mapped_exactly;
-            }
-        }
-        if (read->graph_mapping_status() != reads::MAPPED)
-        {
-            graph_aligner.alignRead(*read);
-            if (read->graph_mapping_status() == reads::MAPPED)
-            {
-#ifdef _DEBUG
-                // check a valid alignment was produced
-                graphs::GraphMapping mapping(read->graph_pos(), read->graph_cigar(), read->bases(), graph);
-#endif
-                ++mapped_sw;
-            }
-        }
+        aligner.alignRead(*read);
+
         if (filter != nullptr && filter(*read))
         {
             read->set_graph_mapping_status(reads::MappingStatus::BAD_ALIGN);
@@ -104,16 +91,34 @@ static void sequentialAlignReads(
             read->set_graph_mapping_status(reads::MappingStatus::MAPPED);
             filtered_reads.emplace_back(std::move(read));
         }
-        logger->debug("    [aligned {} reads]", ++c);
     }
     reads.clear();
     for (auto& read : filtered_reads)
     {
         reads.emplace_back(std::move(read));
     }
-    logger->info(
-        "[Done with alignment step {} total aligned (exact: {} / sw: {}) ; {} were filtered]", c, mapped_exactly,
-        mapped_sw, f);
+
+    logAlignerStats(f, aligner);
+}
+
+static void sequentialAlignReads(
+    const graphs::Graph& graph, Json::Value const& paths, std::vector<common::p_Read>& reads, ReadFilter filter,
+    bool exact_sequence_matching, bool graph_sequence_matching, bool kmer_sequence_matching, bool validate_alignments)
+{
+    if (validate_alignments)
+    {
+        grm::ValidationAligner<grm::CompositeAligner> aligner(
+            grm::CompositeAligner(exact_sequence_matching, graph_sequence_matching, kmer_sequence_matching), graph,
+            paths);
+        aligner.setGraph(graph, paths);
+        sequentialAlignReads(graph, paths, reads, filter, aligner);
+    }
+    else
+    {
+        grm::CompositeAligner aligner(exact_sequence_matching, graph_sequence_matching, kmer_sequence_matching);
+        aligner.setGraph(graph, paths);
+        sequentialAlignReads(graph, paths, reads, filter, aligner);
+    }
 }
 
 /**
@@ -127,7 +132,8 @@ static void sequentialAlignReads(
  */
 void grm::alignReads(
     const graphs::Graph& graph, Json::Value const& paths, std::vector<common::p_Read>& reads, ReadFilter const& filter,
-    bool exact_path_matching, int threads)
+    bool exact_sequence_matching, bool graph_sequence_matching, bool kmer_sequence_matching, bool validate_alignments,
+    int threads)
 {
     if (threads > 1)
     {
@@ -136,41 +142,43 @@ void grm::alignReads(
         std::vector<common::p_Read> output_reads;
         std::mutex sync1;
         std::mutex sync2;
-        auto worker = [&graph, &paths, &reads, &filter, exact_path_matching, &output_reads, &sync1, &sync2, &first_read,
-                       chunksize]() {
-            while (first_read < reads.size())
-            {
-                size_t my_first_read;
-                std::vector<common::p_Read> input_reads;
-                {
-                    std::lock_guard<std::mutex> lock(sync1);
-                    my_first_read = first_read;
-                    first_read += chunksize;
-                    input_reads.resize(chunksize);
-                    size_t reads_added = 0;
-                    for (size_t i = my_first_read; i < my_first_read + chunksize; ++i)
-                    {
-                        if (i >= reads.size())
-                        {
-                            break;
-                        }
-                        input_reads[i - my_first_read] = std::move(reads[i]);
-                        reads_added++;
-                    }
-                    input_reads.resize(reads_added);
-                }
-                sequentialAlignReads(graph, paths, input_reads, filter, exact_path_matching);
-                {
-                    std::lock_guard<std::mutex> lock(sync2);
-                    // there probably is a smarter way to do this and keep the same order of the
-                    // reads by preallocating output_reads and just moving the unique_ptrs back
-                    for (auto& i : input_reads)
-                    {
-                        output_reads.emplace_back(std::move(i));
-                    }
-                }
-            }
-        };
+        auto worker
+            = [&graph, &paths, &reads, &filter, exact_sequence_matching, graph_sequence_matching,
+               kmer_sequence_matching, validate_alignments, &output_reads, &sync1, &sync2, &first_read, chunksize]() {
+                  while (first_read < reads.size())
+                  {
+                      std::vector<common::p_Read> input_reads;
+                      {
+                          std::lock_guard<std::mutex> lock(sync1);
+                          size_t my_first_read = first_read;
+                          first_read += chunksize;
+                          input_reads.resize(chunksize);
+                          size_t reads_added = 0;
+                          for (size_t i = my_first_read; i < my_first_read + chunksize; ++i)
+                          {
+                              if (i >= reads.size())
+                              {
+                                  break;
+                              }
+                              input_reads[i - my_first_read] = std::move(reads[i]);
+                              reads_added++;
+                          }
+                          input_reads.resize(reads_added);
+                      }
+                      sequentialAlignReads(
+                          graph, paths, input_reads, filter, exact_sequence_matching, graph_sequence_matching,
+                          kmer_sequence_matching, validate_alignments);
+                      {
+                          std::lock_guard<std::mutex> lock(sync2);
+                          // there probably is a smarter way to do this and keep the same order of the
+                          // reads by preallocating output_reads and just moving the unique_ptrs back
+                          for (auto& i : input_reads)
+                          {
+                              output_reads.emplace_back(std::move(i));
+                          }
+                      }
+                  }
+              };
 
         std::vector<std::thread> workers;
         for (int t = 0; t < threads; ++t)
@@ -190,6 +198,8 @@ void grm::alignReads(
     }
     else
     {
-        sequentialAlignReads(graph, paths, reads, filter, exact_path_matching);
+        sequentialAlignReads(
+            graph, paths, reads, filter, exact_sequence_matching, graph_sequence_matching, kmer_sequence_matching,
+            validate_alignments);
     }
 }

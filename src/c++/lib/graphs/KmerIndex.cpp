@@ -26,263 +26,222 @@
 
 #include "graphs/KmerIndex.hh"
 
+#include <iostream>
+#include <list>
+#include <string>
 #include <unordered_set>
+#include <utility>
+#include <vector>
+
+#include <boost/algorithm/string/join.hpp>
 
 #include "common/Error.hh"
+#include "common/HashHelper.hh"
+
+using std::list;
+using std::string;
+using std::unordered_set;
+using std::vector;
 
 namespace graphs
 {
 
-struct SimpleGraphMatchPos : GraphMatchPos
-{
-    SimpleGraphMatchPos() = default;
-
-    SimpleGraphMatchPos(SimpleGraphMatchPos const& rhs)
-        : node_(rhs.node_)
-        , pos_(rhs.pos_)
-        , length_(rhs.length_)
-    {
-    }
-
-    SimpleGraphMatchPos(uint64_t node, int pos, size_t length)
-        : node_(node)
-        , pos_(pos)
-        , length_(length)
-    {
-    }
-
-    SimpleGraphMatchPos& operator=(SimpleGraphMatchPos const& rhs)
-    {
-        node_ = rhs.node_;
-        pos_ = rhs.pos_;
-        length_ = rhs.length_;
-        return *this;
-    }
-
-    uint64_t node() const override { return node_; }
-    int pos() const override { return pos_; }
-    size_t length() const override { return length_; }
-
-    uint64_t node_ = (uint64_t)-1;
-    int pos_ = -1;
-    size_t length_ = 0;
-};
-
-typedef std::list<SimpleGraphMatchPos> SimpleMatchList;
-typedef std::unordered_map<std::string, SimpleMatchList> SimpleHashIndex;
-
-static std::list<std::string> enumerateKmers(WalkableGraph const& g, int k, uint64_t node, int start_pos)
-{
-    std::list<std::string> results;
-    if (k == 0)
-    {
-        results = { "" };
-        return results;
-    }
-
-    auto this_node = g.node(node);
-    if (start_pos + k <= (int)this_node->sequence().size())
-    {
-        results.emplace_back(
-            this_node->sequence().substr(static_cast<unsigned long>(start_pos), static_cast<unsigned long>(k)));
-    }
-    else
-    {
-        for (const auto& s : g.succ(node))
-        {
-            auto suffixes = enumerateKmers(g, static_cast<int>(k - this_node->sequence().size() + start_pos), s, 0);
-            for (const auto& suffix : suffixes)
-            {
-                results.emplace_back(this_node->sequence().substr(static_cast<unsigned long>(start_pos)) + suffix);
-            }
-        }
-    }
-    return results;
-}
-
-static void uniqueMatchPositions(
-    WalkableGraph const& g, int k, uint64_t node, SimpleHashIndex& target,
-    std::unordered_map<std::string, int>& all_kmer_counts)
-{
-    auto this_node = g.node(node);
-    for (int start_pos = 0; start_pos < (int)this_node->sequence().size(); ++start_pos)
-    {
-        auto kmers = enumerateKmers(g, k, node, start_pos);
-        std::unordered_map<std::string, int> kmer_counts;
-        for (auto const& kmer : kmers)
-        {
-            auto k_it = kmer_counts.find(kmer);
-            if (k_it == kmer_counts.end())
-            {
-                kmer_counts[kmer] = 1;
-            }
-            else
-            {
-                k_it->second++;
-            }
-        }
-        for (auto const& kc : kmer_counts)
-        {
-            target[kc.first].emplace_back(node, start_pos, kc.first.size());
-            // count kmers globally
-            auto k_it = all_kmer_counts.find(kc.first);
-            if (k_it == all_kmer_counts.end())
-            {
-                k_it = all_kmer_counts.emplace(kc.first, 1).first;
-            }
-            else
-            {
-                k_it->second = (k_it->second >= 0) ? k_it->second + kc.second : k_it->second - kc.second;
-            }
-            // if we have more than one match, make this a "bad" / multi-mapping kmer
-            if (kc.second > 1)
-            {
-                k_it->second = -abs(k_it->second);
-            }
-        }
-    }
-}
-
-static void buildKmerIndex(
-    WalkableGraph const& g, int k, SimpleHashIndex& target, std::unordered_map<std::string, int>& all_kmer_counts)
-{
-    target.clear();
-
-    std::unordered_set<uint64_t> visited;
-    std::set<uint64_t> active = { g.source() };
-    while (!active.empty())
-    {
-        auto current = *active.begin();
-        uniqueMatchPositions(g, k, current, target, all_kmer_counts);
-        visited.insert(current);
-        for (auto const& next : g.succ(current))
-        {
-            if (visited.count(next) == 0 && active.count(next) == 0)
-            {
-                active.insert(next);
-            }
-        }
-        active.erase(current);
-    }
-
-    for (auto const& a : g.allNodes())
-    {
-        assert(visited.count(a) != 0);
-    }
-}
-
 struct KmerIndex::KmerIndexImpl
 {
-    KmerIndexImpl(WalkableGraph const& g, int k_)
-        : graph(g)
-        , k(k_)
-    {
-        buildKmerIndex(graph, k, index, kmer_counts);
-    }
-    WalkableGraph graph;
-    int k;
-
-    SimpleHashIndex index;
-    std::unordered_map<std::string, int> kmer_counts;
-
-    std::string searched;
-    std::list<SimpleHashIndex::iterator> matches;
+    explicit KmerIndexImpl(StringToPathsMap kmer_to_paths_map);
+    explicit KmerIndexImpl(const std::shared_ptr<WalkableGraph>& wgraph_ptr, int32_t kmer_len);
+    void addKmerPathsStartingAtNode(const std::shared_ptr<WalkableGraph>& wgraph_ptr, int32_t node_id);
+    void addKmerPaths(const std::list<GraphPath>& kmer_paths);
+    void updateNodeKmerIndex();
+    int32_t kmer_len;
+    StringToPathsMap kmer_to_paths_map;
+    std::unordered_map<uint32_t, size_t> node_kmer_counts;
+    std::unordered_map<std::pair<uint32_t, uint32_t>, size_t> edge_kmer_counts;
 };
 
-KmerIndex::KmerIndex(WalkableGraph const& g, int k)
-    : _impl(new KmerIndexImpl(g, k))
+KmerIndex::KmerIndexImpl::KmerIndexImpl(StringToPathsMap kmer_to_paths_map_)
+    : kmer_to_paths_map(std::move(kmer_to_paths_map_))
 {
+    kmer_len = 0;
+    for (const auto& kv : kmer_to_paths_map)
+    {
+        const string& kmer = kv.first;
+        kmer_len = static_cast<int32_t>(kmer.length());
+        break;
+    }
+    updateNodeKmerIndex();
+}
+
+KmerIndex::KmerIndexImpl::KmerIndexImpl(const std::shared_ptr<WalkableGraph>& wgraph_ptr, int32_t kmer_len_)
+    : kmer_len(kmer_len_)
+{
+    const list<uint64_t> node_ids = wgraph_ptr->allNodes();
+    for (uint64_t node_id : node_ids)
+    {
+        addKmerPathsStartingAtNode(wgraph_ptr, static_cast<int32_t>(node_id));
+    }
+    updateNodeKmerIndex();
+}
+
+void KmerIndex::KmerIndexImpl::addKmerPathsStartingAtNode(
+    const std::shared_ptr<WalkableGraph>& wgraph_ptr, int32_t node_id)
+{
+    const string node_seq = wgraph_ptr->node(static_cast<uint64_t>(node_id))->sequence();
+    vector<int32_t> node_list;
+    node_list.push_back(node_id);
+    for (size_t pos = 0; pos != node_seq.length(); ++pos)
+    {
+        GraphPath path(wgraph_ptr, pos, node_list, pos);
+        addKmerPaths(path.extendBy(0, kmer_len - 1));
+    }
+}
+
+void KmerIndex::KmerIndexImpl::addKmerPaths(const list<GraphPath>& kmer_paths)
+{
+    for (const GraphPath& kmer_path : kmer_paths)
+    {
+        kmer_to_paths_map[kmer_path.seq()].push_back(kmer_path);
+    }
+}
+
+void KmerIndex::KmerIndexImpl::updateNodeKmerIndex()
+{
+    node_kmer_counts.clear();
+    edge_kmer_counts.clear();
+    for (const auto& kmer_and_paths : kmer_to_paths_map)
+    {
+        // kmer is unique
+        if (kmer_and_paths.second.size() == 1)
+        {
+            bool has_previous = false;
+            uint32_t previous_node = 0;
+            for (auto const& path_node_id : kmer_and_paths.second.front().node_ids())
+            {
+                node_kmer_counts[path_node_id] += 1;
+                if (has_previous)
+                {
+                    edge_kmer_counts[std::make_pair(previous_node, path_node_id)] += 1;
+                }
+                has_previous = true;
+                previous_node = path_node_id;
+            }
+        }
+    }
+}
+
+KmerIndex::KmerIndex(const StringToPathsMap& kmer_to_paths_map)
+    : _impl(new KmerIndexImpl(kmer_to_paths_map))
+{
+}
+
+KmerIndex::KmerIndex(std::shared_ptr<WalkableGraph> wgraph_ptr, int32_t kmer_len)
+    : _impl(new KmerIndexImpl(wgraph_ptr, kmer_len))
+{
+}
+
+KmerIndex::KmerIndex(const KmerIndex& other)
+    : _impl(new KmerIndexImpl(*other._impl))
+{
+}
+
+KmerIndex::KmerIndex(KmerIndex&& other) noexcept
+    : _impl(std::move(other._impl))
+{
+}
+
+KmerIndex& KmerIndex::operator=(const KmerIndex& other)
+{
+    if (this != &other)
+    {
+        _impl.reset(new KmerIndexImpl(*other._impl));
+    }
+    return *this;
+}
+
+KmerIndex& KmerIndex::operator=(KmerIndex&& other) noexcept
+{
+    _impl = std::move(other._impl);
+    return *this;
 }
 
 KmerIndex::~KmerIndex() = default;
 
-KmerIndex::KmerIndex(KmerIndex&& rhs) noexcept
-    : _impl(std::move(rhs._impl))
+bool KmerIndex::operator==(const KmerIndex& other) const
 {
+    return (_impl->kmer_to_paths_map == other._impl->kmer_to_paths_map && _impl->kmer_len == other._impl->kmer_len);
 }
 
-KmerIndex& KmerIndex::operator=(KmerIndex&& rhs) noexcept
+static string encodePaths(const list<GraphPath>& paths)
 {
-    _impl = std::move(rhs._impl);
-    return *this;
-}
-
-void KmerIndex::search(std::string const& str)
-{
-    // kmer index with hashing -> cannot search for elements shorter than k
-    // we restrict search to length k but this can be extended to > k
-    // by searching incrementally through the kmers of the string
-    assert(str.size() == (unsigned)_impl->k);
-
-    _impl->matches.clear();
-    auto start_result = _impl->index.find(str.substr(0, (unsigned long)_impl->k));
-
-    if (start_result == _impl->index.end())
+    list<string> path_encodings;
+    for (const auto& path : paths)
     {
-        return;
+        path_encodings.push_back(path.encode());
     }
-
-    _impl->matches.push_back(start_result);
-    _impl->searched = str;
+    return boost::algorithm::join(path_encodings, ",");
 }
 
-uint64_t KmerIndex::count()
+string KmerIndex::encode() const
 {
-    assert(!_impl->searched.empty());
-    size_t pos_count = 0;
-    for (auto const& m : _impl->matches)
+    list<string> kv_encodings;
+    for (const auto& kv : _impl->kmer_to_paths_map)
     {
-        pos_count += m->second.size();
+        const string encoding_of_paths = encodePaths(kv.second);
+        const string kv_encoding = "{" + kv.first + "->" + encoding_of_paths + "}";
+        kv_encodings.push_back(kv_encoding);
     }
-    return pos_count;
+    return boost::algorithm::join(kv_encodings, ",");
 }
 
-std::list<std::unique_ptr<GraphMatchPos>> KmerIndex::matches()
+bool KmerIndex::contains(const std::string& kmer) const
 {
-    std::list<std::unique_ptr<GraphMatchPos>> matchlist;
-    for (auto const& m : _impl->matches)
+    return _impl->kmer_to_paths_map.find(kmer) != _impl->kmer_to_paths_map.end();
+}
+
+size_t KmerIndex::numPaths(const std::string& kmer) const
+{
+    if (!contains(kmer))
     {
-        for (const auto& km : m->second)
-        {
-            matchlist.emplace_back(new SimpleGraphMatchPos(km));
-        }
+        return 0;
     }
-    return matchlist;
+    return _impl->kmer_to_paths_map.at(kmer).size();
 }
 
-int KmerIndex::kmerCount(std::string const& kmer) const
+const list<GraphPath>& KmerIndex::getPaths(const std::string& kmer) const { return _impl->kmer_to_paths_map.at(kmer); }
+
+unordered_set<string> KmerIndex::getKmersWithNonzeroCount() const
 {
-    auto it = _impl->kmer_counts.find(kmer);
-    if (it != _impl->kmer_counts.end())
+    unordered_set<string> kmers_with_nonzero_count;
+    for (const auto& kv : _impl->kmer_to_paths_map)
     {
-        return abs(it->second);
+        kmers_with_nonzero_count.insert(kv.first);
+    }
+    return kmers_with_nonzero_count;
+}
+
+size_t KmerIndex::numUniqueKmersOverlappingNode(uint32_t node_id) const
+{
+    auto node_it = _impl->node_kmer_counts.find(node_id);
+    if (node_it != _impl->node_kmer_counts.end())
+    {
+        return node_it->second;
     }
     return 0;
 }
 
-std::list<std::string> KmerIndex::kmers() const
+size_t KmerIndex::numUniqueKmersOverlappingEdge(uint32_t from, uint32_t to) const
 {
-    std::list<std::string> kmerlist;
-    for (const auto& k : _impl->kmer_counts)
+    auto edge_it = _impl->edge_kmer_counts.find(std::make_pair(from, to));
+    if (edge_it != _impl->edge_kmer_counts.end())
     {
-        if (k.second >= 0)
-        {
-            kmerlist.push_back(k.first);
-        }
+        return edge_it->second;
     }
-    return kmerlist;
+    return 0;
 }
 
-std::list<std::string> KmerIndex::badkmers() const
+std::ostream& operator<<(std::ostream& os, const KmerIndex& kmer_index)
 {
-    std::list<std::string> kmerlist;
-    for (const auto& k : _impl->kmer_counts)
-    {
-        if (k.second < 0)
-        {
-            kmerlist.push_back(k.first);
-        }
-    }
-    return kmerlist;
+    os << kmer_index.encode();
+    return os;
 }
 }

@@ -123,17 +123,18 @@ std::pair<uint64_t, uint64_t> GraphCoordinates::canonicalStartAndEnd(graphs::Gra
 {
     std::pair<uint64_t, uint64_t> start_end{ -1, -1 };
 
-    start_end.first
-        = canonicalPos(_impl->graph.nodeName(mapping[0].node_id()), static_cast<uint64_t>(mapping.referenceStart()));
+    start_end.first = canonicalPos(
+        _impl->graph.nodeName(mapping.front().node_id),
+        static_cast<uint64_t>(mapping.front().mapping.reference_start()));
 
-    auto end_offset = static_cast<uint64_t>(mapping[mapping.size() - 1].referenceSpan());
+    auto end_offset = static_cast<uint64_t>(mapping.back().mapping.referenceSpan());
     if (mapping.size() > 0 && end_offset > 0)
     {
         if (mapping.size() == 1)
         {
-            end_offset += mapping.referenceStart();
+            end_offset += mapping.front().mapping.reference_start();
         }
-        start_end.second = canonicalPos(_impl->graph.nodeName(mapping[mapping.size() - 1].node_id()), end_offset - 1);
+        start_end.second = canonicalPos(_impl->graph.nodeName(mapping.back().node_id), end_offset - 1);
     }
 
     if (start_end.first > start_end.second)

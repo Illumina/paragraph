@@ -2,15 +2,15 @@
   {
     "ID": "test-ins",
     "chrom": "chr1",
-    "start": 11,
-    "end": 11,
-    "ins": "GGGGGG"
+    "start": 161,
+    "end": 162,
+    "ins": "TGGGGGG"
   },
   {
     "ID": "test-del",
     "chrom": "chr1",
-    "start": 12,
-    "end": 12,
+    "start": 161,
+    "end": 163,
     "ins": ""
   }
 ]

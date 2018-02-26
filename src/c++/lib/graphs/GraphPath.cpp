@@ -36,12 +36,15 @@ using std::ostream;
 using std::shared_ptr;
 using std::string;
 using std::to_string;
+using std::vector;
 
 namespace graphs
 {
 struct GraphPath::Impl
 {
-    Impl(shared_ptr<WalkableGraph> wgraph_ptr, int32_t start_position, const list<int32_t>& nodes, int32_t end_position)
+    Impl(
+        shared_ptr<WalkableGraph> wgraph_ptr, int32_t start_position, const vector<int32_t>& nodes,
+        int32_t end_position)
         : wgraph_ptr_(wgraph_ptr)
         , start_position_(start_position)
         , end_position_(end_position)
@@ -65,13 +68,13 @@ struct GraphPath::Impl
     shared_ptr<WalkableGraph> wgraph_ptr_;
     int32_t start_position_;
     int32_t end_position_;
-    list<int32_t> nodes_;
+    vector<int32_t> nodes_;
 };
 
 bool GraphPath::Impl::areNodesOrdered() const
 {
     int32_t cur_node_id = nodes_.front();
-    list<int32_t>::const_iterator node_id_iter = nodes_.begin();
+    vector<int32_t>::const_iterator node_id_iter = nodes_.begin();
     ++node_id_iter; // Assuming the path contains at least one node.
     while (node_id_iter != nodes_.end())
     {
@@ -126,8 +129,8 @@ bool GraphPath::Impl::isLastNodePosValid() const
 
 bool GraphPath::Impl::isPathConected() const
 {
-    list<int32_t>::const_iterator start_iter;
-    list<int32_t>::const_iterator end_iter;
+    vector<int32_t>::const_iterator start_iter;
+    vector<int32_t>::const_iterator end_iter;
     for (start_iter = nodes_.begin(); start_iter != std::prev(nodes_.end()); ++start_iter)
     {
         end_iter = std::next(start_iter);
@@ -140,7 +143,7 @@ bool GraphPath::Impl::isPathConected() const
 }
 
 GraphPath::GraphPath(
-    shared_ptr<WalkableGraph> wgraph_ptr, int32_t start_position, const list<int32_t>& nodes, int32_t end_position)
+    shared_ptr<WalkableGraph> wgraph_ptr, int32_t start_position, const vector<int32_t>& nodes, int32_t end_position)
     : pimpl_(new Impl(wgraph_ptr, start_position, nodes, end_position))
 {
 }
@@ -174,6 +177,68 @@ GraphPath& GraphPath::operator=(GraphPath&& other) noexcept
 
 int32_t GraphPath::start_position() const { return pimpl_->start_position_; }
 int32_t GraphPath::end_position() const { return pimpl_->end_position_; }
+std::shared_ptr<WalkableGraph> GraphPath::wgraph_ptr() const { return pimpl_->wgraph_ptr_; }
+
+vector<int32_t> const& GraphPath::node_ids() const { return pimpl_->nodes_; }
+
+size_t GraphPath::num_nodes() const { return pimpl_->nodes_.size(); }
+
+size_t GraphPath::lengthOnNode(int32_t node_id) const
+{
+    const size_t node_length = pimpl_->wgraph_ptr_->node(node_id)->sequence().length();
+
+    size_t length_on_node = node_length; // This is the length of all intermediate nodes.
+
+    const bool is_first_node = node_id == pimpl_->nodes_.front();
+    const bool is_last_node = node_id == pimpl_->nodes_.back();
+
+    if (is_first_node && is_last_node)
+    {
+        length_on_node = pimpl_->end_position_ - pimpl_->start_position_ + 1;
+    }
+    else if (is_first_node)
+    {
+        length_on_node = node_length - pimpl_->start_position_;
+    }
+    else if (is_last_node)
+    {
+        length_on_node = pimpl_->end_position_ + 1;
+    }
+
+    return length_on_node;
+}
+
+size_t GraphPath::length() const
+{
+
+    size_t path_length = 0;
+    for (int32_t node_id : pimpl_->nodes_)
+    {
+        path_length += lengthOnNode(node_id);
+    }
+
+    return path_length;
+}
+
+string GraphPath::seqOnNode(int32_t node_index) const
+{
+    uint64_t node_id = (int32_t)pimpl_->nodes_[node_index];
+    const Node* node = pimpl_->wgraph_ptr_->node(node_id);
+    const string& sequence = node->sequence();
+
+    if (node_index == 0)
+    {
+        return sequence.substr(pimpl_->start_position_, lengthOnNode(node_id));
+    }
+    else if ((size_t)node_index == pimpl_->nodes_.size() - 1)
+    {
+        return sequence.substr(0, lengthOnNode(node_id));
+    }
+    else
+    {
+        return sequence;
+    }
+}
 
 string GraphPath::seq() const
 {
@@ -218,20 +283,21 @@ string GraphPath::encode() const
     const size_t last_index = pimpl_->nodes_.size() - 1;
     for (int32_t node_id : pimpl_->nodes_)
     {
+        const string node_name = pimpl_->wgraph_ptr_->node(node_id)->name();
         string node_encoding;
         if (node_index == 0) // Encoding first node.
         {
-            node_encoding = "(" + to_string(node_id) + "@" + to_string(pimpl_->start_position_) + ")";
+            node_encoding = "(" + node_name + "@" + to_string(pimpl_->start_position_) + ")";
         }
 
         if (node_index == last_index) // Encoding last node.
         {
-            node_encoding += "-(" + to_string(node_id) + "@" + to_string(pimpl_->end_position_) + ")";
+            node_encoding += "-(" + node_name + "@" + to_string(pimpl_->end_position_) + ")";
         }
 
         if (node_index != 0 && node_index != last_index) // Encoding intermediate node.
         {
-            node_encoding = "-(" + to_string(node_id) + ")";
+            node_encoding = "-(" + node_name + ")";
         }
         path_encoding += node_encoding;
         ++node_index;
@@ -266,7 +332,7 @@ GraphPath GraphPath::extendEndPosition(int32_t extension_len) const
 
 GraphPath GraphPath::extendStartNodeTo(int32_t node_id) const
 {
-    list<int32_t> extended_nodes = pimpl_->nodes_;
+    vector<int32_t> extended_nodes = pimpl_->nodes_;
     extended_nodes.insert(extended_nodes.begin(), node_id);
     Node* new_node = pimpl_->wgraph_ptr_->node(node_id);
     int32_t new_node_seq_len = new_node->sequence().length();
@@ -281,7 +347,7 @@ GraphPath GraphPath::extendStartNodeTo(int32_t node_id) const
 
 GraphPath GraphPath::extendEndNodeTo(int32_t node_id) const
 {
-    list<int32_t> extended_nodes = pimpl_->nodes_;
+    vector<int32_t> extended_nodes = pimpl_->nodes_;
     extended_nodes.push_back(node_id);
     GraphPath extended_path(pimpl_->wgraph_ptr_, pimpl_->start_position_, extended_nodes, 0);
     if (!extended_path.isValid())

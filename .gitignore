@@ -10,3 +10,12 @@ build
 .vscode
 .DS_Store
 /src/python/test/test_failed.json
+valgrind*.xml
+cppcheck.xml
+cppcheck-result
+*-release.tar.gz
+*-buildfolder.tar.gz
+/.settings/
+/.gitignore
+/.cproject
+/.project

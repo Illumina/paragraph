@@ -1,0 +1,267 @@
+#!/bin/bash
+################################################################################
+##
+## file configure
+##
+## Top level configuration file
+##
+## author Roman Petrovski
+##
+################################################################################
+
+#set -x
+set -o pipefail
+shopt -s compat31 2>/dev/null
+
+## Use gcc/g++ by default.
+#export CC=${CC:="gcc"}
+#export CXX=${CXX:="g++"}
+
+# Display paragraph configure usage
+paragraph_usage()
+{
+    cat <<EOF
+Usage: $0 [options]
+Options: [defaults in brackets after descriptions]
+Configuration:
+  --build-type                specify the build type for CMake (affects compiler
+                              options). Allowed values are "", "Debug", "Release",
+                              "RelWithDebInfo", and "MinSizeRel" [RelWithDebInfo]
+  --help                      print this message
+  --parallel=n                build cmake and boost in parallel if needed, where n
+                              is the number of nodes [1]
+  --package-type=type         enables generation of deployment package target (make package)
+                              Valid types are: rpm, deb, tgz and cygwin-binary
+  --static                    forces library static linking
+  --terse                     display less information (disables CMAKE_VERBOSE_MAKEFILE)
+  --verbose                   display more information (enables CMAKE_VERBOSE_MAKEFILE)
+  --with-cmake=CMAKE          specify the cmake executable [cmake]
+  --with-eagle=PATH           specify path to eagle installation
+
+Directory and file names:
+  --prefix=PREFIX         install files in tree rooted at PREFIX
+
+Some influential environment variables:
+  BOOST_ROOT       location of the boost library
+  BOOST_INCLUDEDIR location of the include directory of boost
+  BOOST_LIBRARYDIR location of the lib directory of boost
+  CC               C compiler command
+  CFLAGS           C compiler flags
+  LDFLAGS          linker flags, e.g. -L<lib dir> if you have libraries in a
+                   nonstandard directory <lib dir>
+  CXX              C++ compiler command
+  CXXFLAGS         C++ compiler flags
+  CMAKE_OPTIONS    CMake command line options (for CMAKE_BUILD_TYPE, use --build-type)
+  
+  LIBRARY_PATH        library search path for library detection
+  C_INCLUDE_PATH      include search path for library detection
+  CPATH               include search path for library detection
+  CPLUS_INCLUDE_PATH  include search path for library detection
+
+Use these variables to override the choices made by 'configure' or to help
+it to find libraries and programs with nonstandard names/locations.
+
+EOF
+    exit 10
+}
+
+# Helper function to fix windows paths.
+paragraph_fix_directory_slashes ()
+{
+    case $1 in
+        */) echo "$1" | sed 's/\\/\//g';;
+        *) echo "$1/" | sed 's/\\/\//g';;
+    esac
+}
+
+paragraph_create_path ()
+{
+	mkdir -p "$1"
+	(cd "$1" && pwd) || exit 2 
+}
+
+# Detect system and directory information.
+paragraph_system="`uname`"
+# uname -p returns unknown on cygwin. uname -m returns x86_64 on both CentOS and Cygwin
+paragraph_processor="`uname -m`"
+paragraph_source_dir="`echo $0 | sed -n '/\//{s/\/[^\/]*$//;p;}'`"
+paragraph_source_dir="`(cd "${paragraph_source_dir}";pwd)`"
+paragraph_redist_dir="${paragraph_source_dir}/../redist"
+paragraph_bootstrap_dir="${paragraph_source_dir}/cmake/bootstrap"
+paragraph_build_dir="`pwd`"
+
+# Determine whether this is a MinGW environment.
+if echo "${paragraph_system}" | grep MINGW >/dev/null 2>&1; then
+    paragraph_system_mingw=true
+else
+    paragraph_system_mingw=false
+fi
+
+# Determine whether this is OS X
+if echo "${paragraph_system}" | grep Darwin >/dev/null 2>&1; then
+    paragraph_system_darwin=true
+else
+    paragraph_system_darwin=false
+fi
+
+# Parse arguments
+paragraph_build_type=RelWithDebInfo
+paragraph_cmake_generator="Unix Makefiles"
+paragraph_verbose=
+paragraph_parallel=1
+for a in "$@"; do
+    if echo $a | grep "^--prefix=" > /dev/null 2> /dev/null; then
+        paragraph_prefix_dir=`echo $a | sed "s/^--prefix=//"`
+        paragraph_prefix_dir=`paragraph_fix_directory_slashes "${paragraph_prefix_dir}"` || exit $?
+    elif echo $a | grep "^--help" > /dev/null 2> /dev/null; then
+        paragraph_usage
+    elif echo $a | grep "^--with-cmake" > /dev/null 2> /dev/null; then
+        paragraph_cmake=`echo $a | sed "s/^--with-cmake=//"`
+    elif echo $a | grep "^--with-eagle" > /dev/null 2> /dev/null; then
+        paragraph_eagle=`echo $a | sed "s/^--with-eagle=//"`
+    elif echo $a | grep "^--build-type" > /dev/null 2> /dev/null; then
+        paragraph_build_type=`echo $a | sed "s/^--build-type=//"`
+    elif echo $a | grep "^--parallel" > /dev/null 2> /dev/null; then
+        paragraph_parallel=`echo $a | sed "s/^--parallel=//"`
+    elif echo $a | grep "^--verbose" > /dev/null 2> /dev/null; then
+        CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DBoost_DEBUG:BOOL=ON"
+        paragraph_verbose=TRUE
+    elif echo $a | grep "^--terse" > /dev/null 2> /dev/null; then
+        CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF -DBoost_DEBUG:BOOL=OFF"
+        paragraph_verbose=
+    elif echo $a | grep "^--static" > /dev/null 2> /dev/null; then
+        paragraph_static=TRUE
+    elif echo $a | grep "^--package-type=rpm" > /dev/null 2> /dev/null; then
+        paragraph_package=RPM
+    elif echo $a | grep "^--package-type=deb" > /dev/null 2> /dev/null; then
+        paragraph_package=DEB
+    elif echo $a | grep "^--package-type=tgz" > /dev/null 2> /dev/null; then
+        paragraph_package=TGZ
+    elif echo $a | grep "^--package-type=cygwin-binary" > /dev/null 2> /dev/null; then
+        paragraph_package=CygwinBinary
+    elif echo $a | grep "^--package-type=cygwin-source" > /dev/null 2> /dev/null; then
+        echo "Cygwin source package generation is not supported" >&2
+        exit 2
+    elif echo $a | grep "^--with-gprof" > /dev/null 2> /dev/null; then
+        export CXXFLAGS="-pg -fprofile-arcs ${CXXFLAGS}"
+    else
+        echo "Unknown command line option: $a" >&2
+        exit 2
+    fi
+    
+done
+
+
+# It is important to build cmake in a separate subtree from boost. Cmake 2.8.9 checks its installation folder
+# when searching for boost. If incompatible boost is present elsewhere in the system (/usr/include and such), 
+# cmake caches the folder contents of its installation folder and fails to see paragraph-built boost libraries 
+# after they appear there.
+paragraph_cmake_install_dir="${paragraph_build_dir}/bootstrap_cmake"
+if [ "x${paragraph_cmake}"       == "x" ] ; then 
+    paragraph_cmake=cmake
+    echo "Using existing `which cmake`"
+fi
+
+
+# Set the build and install paths
+
+# display information if required
+if [ -n "${paragraph_verbose}" ]; then
+    echo "Source  directory:  ${paragraph_source_dir}"
+    echo "Prefix  directory:  ${paragraph_prefix_dir}"
+    echo "LIBRARY_PATH     :  ${LIBRARY_PATH}"
+    echo "C_INCLUDE_PATH   :  ${C_INCLUDE_PATH}"
+    echo "CPATH:              ${CPATH}"
+    echo "CPLUS_INCLUDE_PATH: ${CPLUS_INCLUDE_PATH}"
+    echo ""
+fi  
+
+# create the build directory if necessary
+if [[ ! -d "${paragraph_build_dir}" ]]; then 
+    mkdir "${paragraph_build_dir}"
+    if [ "$?" != 0 ]; then
+        echo "Couldn't create the build directory: ${paragraph_build_dir}"
+        exit 4
+    fi
+fi
+
+CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_INSTALL_PREFIX:STRING=${paragraph_prefix_dir}"
+CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_BUILD_TYPE:STRING=${paragraph_build_type}"
+CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_PARALLEL:INTEGER=${paragraph_parallel}"
+
+if [ -n "${paragraph_static}" ]; then
+    CMAKE_OPTIONS="$CMAKE_OPTIONS -DPARAGRAPH_FORCE_STATIC_LINK:BOOL=ON"
+    CMAKE_OPTIONS="$CMAKE_OPTIONS -DLINK_SEARCH_END_STATIC:BOOL=ON"
+fi
+
+if [ "x${paragraph_eagle}"       != "x" ] ; then
+    CMAKE_OPTIONS="$CMAKE_OPTIONS -DPARAGRAPH_EAGLE:PATH=${paragraph_eagle}"
+fi
+
+# cpack stuff for make package
+CMAKE_OPTIONS="$CMAKE_OPTIONS -DCPACK_PACKAGING_INSTALL_PREFIX:STRING=${paragraph_prefix_dir}"
+CMAKE_OPTIONS="${CMAKE_OPTIONS} \
+    -DCPACK_SYSTEM_NAME:STRING=${paragraph_system}-${paragraph_processor} \
+    -DCPACK_PACKAGE_CONTACT:STRING='support@illumina.com'"
+
+if [ "DEB" == "${paragraph_package}" ]; then
+    CMAKE_OPTIONS="${CMAKE_OPTIONS} \
+        -DCPACK_GENERATOR:STRING=DEB \
+        -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE:STRING='`dpkg --print-architecture`' \
+        -DCPACK_DEBIAN_PACKAGE_OWNER:STRING=root \
+        -DCPACK_DEBIAN_PACKAGE_GROUP:STRING=root"
+
+#    CMAKE_OPTIONS="$CMAKE_OPTIONS -DCPACK_DEBIAN_PACKAGE_DEPENDS:STRING='gnuplot(>=4.0),libxslt1.1(>=1.1),xsltproc(>=1.1)'"
+    
+elif [ "RPM" == "${paragraph_package}" ]; then
+    CMAKE_OPTIONS="${CMAKE_OPTIONS} \
+        -DCPACK_GENERATOR:STRING=RPM"
+
+#    CMAKE_OPTIONS="$CMAKE_OPTIONS -DCPACK_RPM_PACKAGE_REQUIRES:STRING='gnuplot >= 4.0,libxslt'"
+
+elif [ "TGZ" == "${paragraph_package}" ]; then
+    CMAKE_OPTIONS="${CMAKE_OPTIONS} \
+        -DCPACK_GENERATOR:STRING=TGZ \
+        -DCPACK_SET_DESTDIR:BOOL=ON"
+elif [ "CygwinBinary" == "${paragraph_package}" ]; then
+     CMAKE_OPTIONS="${CMAKE_OPTIONS} \
+         -DCPACK_GENERATOR:STRING=CygwinBinary"
+fi
+
+if [ -n "${paragraph_verbose}" ]; then
+    echo "Running on: `uname -a`"
+    echo "Configuring the build directory with:"
+    echo "    "${paragraph_cmake} -H\"${paragraph_source_dir}\" -B\"${paragraph_build_dir}\" -G\"${paragraph_cmake_generator}\" ${CMAKE_OPTIONS}
+    echo ""
+fi
+
+eval "${paragraph_cmake} -H'${paragraph_source_dir}' -B'${paragraph_build_dir}' -G'${paragraph_cmake_generator}' ${CMAKE_OPTIONS}"
+
+if [ "$?" != 0 ]; then
+    echo "Couldn't configure the project:"
+    echo ""
+    echo "${paragraph_cmake} -H\"${paragraph_source_dir}\" -B\"${paragraph_build_dir}\" -G\"${paragraph_cmake_generator}\" ${CMAKE_OPTIONS}"
+    echo ""
+    echo "Moving CMakeCache.txt to CMakeCache.txt.removed"
+    echo ""
+    rm -f ${paragraph_build_dir}/CMakeCache.txt.removed && mv ${paragraph_build_dir}/CMakeCache.txt ${paragraph_build_dir}/CMakeCache.txt.removed
+    echo ""
+    exit 5
+fi
+
+if [ "${paragraph_build_dir}" == "${paragraph_source_dir}" ]; then
+    echo ""
+    echo "Warning: it is recommended to build paragraph outside of the source directory:"
+    echo "    mkdir ../paragraph-build"
+    echo "    cd ../paragraph-build"
+    echo "    ../$(basename $(pwd))/configure --prefix=/path/to/install/dir"
+    echo "    make"
+    echo "    make install"
+    echo ""
+fi
+
+echo "The build directory ${paragraph_build_dir} was configured successfully"
+echo ""
+echo Type "make" at the top level of the root directory to build paragraph
+echo ""
+

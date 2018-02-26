@@ -31,20 +31,23 @@
 using std::vector;
 using namespace genotyping;
 
-TEST(Genotype, Recode)
+TEST(Genotype, Relabel)
 {
-    vector<vector<uint64_t>> alt_codes;
-    alt_codes.push_back({ 1, 3 });
-    alt_codes.push_back({ 2, 4, 5 });
+    std::vector<uint64_t> new_labels{ 1, 3 };
 
     Genotype variant;
     variant.gt = { 0, 1 };
-    variant.gl_name.push_back({ 0, 0 });
-    variant.gl_name.push_back({ 0, 1 });
-    variant.gl_name.push_back({ 1, 1 });
+    variant.gl_name.emplace_back(std::initializer_list<uint64_t>{ 0, 0 });
+    variant.gl_name.emplace_back(std::initializer_list<uint64_t>{ 0, 1 });
+    variant.gl_name.emplace_back(std::initializer_list<uint64_t>{ 1, 1 });
 
-    variant.recode(alt_codes);
+    variant.relabel(new_labels);
 
-    EXPECT_EQ("1/2", variant.genotypeString());
-    EXPECT_EQ(5, (int)variant.equivalent_gt.size());
+    EXPECT_EQ("1/3", variant.toString());
+    EXPECT_EQ(variant.gl_name[0][0], 1ull);
+    EXPECT_EQ(variant.gl_name[0][1], 1ull);
+    EXPECT_EQ(variant.gl_name[1][0], 1ull);
+    EXPECT_EQ(variant.gl_name[1][1], 3ull);
+    EXPECT_EQ(variant.gl_name[2][0], 3ull);
+    EXPECT_EQ(variant.gl_name[2][1], 3ull);
 }

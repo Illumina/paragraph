@@ -25,7 +25,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "graphs/GraphSearch.hh"
-#include <graphs/GraphMapping.hh>
+
+#include "graphs/GraphMapping.hh"
+#include "graphs/GraphMappingOperations.hh"
 
 namespace graphs
 {
@@ -116,11 +118,11 @@ std::string prefixMatch(WalkableGraph const& wg, uint64_t node, int pos, std::st
         for (auto const& successor : succs)
         {
             auto succ_cigar = prefixMatch(wg, successor, 0, suffix_left);
-            GraphMapping mapping(0, succ_cigar, suffix_left, wg);
+            GraphMapping mapping = decodeFromString(0, succ_cigar, suffix_left, wg);
             size_t succ_matches = 0;
-            for (size_t i = 0; i < mapping.size(); ++i)
+            for (const auto& node_mapping : mapping)
             {
-                succ_matches += mapping[i].matched();
+                succ_matches += node_mapping.mapping.matched();
             }
             if (succ_matches >= current_best_match_len)
             {

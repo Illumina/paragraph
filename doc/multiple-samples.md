@@ -29,13 +29,13 @@ samples = [fname.replace('.txt', '') for fname in os.listdir('manifests/')]
 
 rule targets:
     input:
-        expand('results/{sample}/{sample}.genotype.json.gz', sample=samples)
+        expand('results/{sample}/genotype.json.gz', sample=samples)
 
 rule graph_typing:
     input:
         'manifests/{sample}.txt'
     output:
-        'results/{sample}/{sample}.genotype.json.gz'
+        'results/{sample}/genotypes.json.gz'
     params:
         ref=reference,
         vcf=vcf,
@@ -43,10 +43,9 @@ rule graph_typing:
     shell:
         r'''
             export PARAGRAPH=/path/to/paragraph/installation
-            python3 ${{PARAGRAPH}}/runGraphTyping.py \
+            python3 ${{PARAGRAPH}}/multigrmpy.py \
                 -i {params.vcf} \
                 -m {input} \
-                --relative-manifest-path \
                 -r {params.ref} \
                 -o results/{params.sample}
         '''

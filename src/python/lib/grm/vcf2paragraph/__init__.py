@@ -46,7 +46,7 @@ def add_reference_information(paragraph_dict, reference_fasta):
     for n in paragraph_dict["nodes"]:
         if "reference" in n:
             chrom, start, end = parse_region(n["reference"])
-            n["reference_sequence"] = fasta.fetch(chrom, start - 1, end)
+            n["reference_sequence"] = fasta.fetch(chrom, start - 1, end).upper()
 
 
 def convert_allele_vcf(vcf_path,

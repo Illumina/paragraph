@@ -53,14 +53,17 @@ class Parameters
 public:
     explicit Parameters(
         int max_reads_in = 10000, int min_reads_for_variant = 1, float min_frac_for_variant = 0.0f,
-        float bad_align_frac = 0.8, int outputs = output_options::ALL, bool exact_sequence_matching = true)
+        float bad_align_frac = 0.8, int outputs = output_options::ALL, bool exact_sequence_matching = true,
+        bool graph_sequence_matching = true, bool kmer_sequence_matching = false, bool validate_alignments = false)
         : max_reads_(static_cast<size_t>(max_reads_in))
         , min_reads_for_variant_(min_reads_for_variant)
         , min_frac_for_variant_(min_frac_for_variant)
         , bad_align_frac_(bad_align_frac)
         , output_options_(outputs)
         , exact_sequence_matching_(exact_sequence_matching)
-        , threads_(1){};
+        , graph_sequence_matching_(graph_sequence_matching)
+        , kmer_sequence_matching_(kmer_sequence_matching)
+        , validate_alignments_(validate_alignments){};
 
     enum output_options
     {
@@ -73,16 +76,15 @@ public:
         DETAILED_READ_COUNTS = 0x40,
         PATH_COVERAGE = 0x80,
         NODE_COVERAGE = 0x100,
+        HAPLOTYPES = 0x200,
         ALL = 0xffffffff
     };
 
     void load(
-        const std::string& bam_path, const std::string& graph_path, const std::string& reference_path,
+        const std::string& graph_path, const std::string& reference_path,
         const std::string& override_target_regions = "");
 
     const std::string& reference_path() const { return reference_path_; }
-
-    const std::string& bam_path() const { return bam_path_; }
 
     size_t max_reads() const { return max_reads_; }
 
@@ -99,13 +101,21 @@ public:
     bool output_enabled(output_options const o) const { return static_cast<const bool>((output_options_ & o) != 0); }
 
     bool exact_sequence_matching() const { return exact_sequence_matching_; }
+    bool graph_sequence_matching() const { return graph_sequence_matching_; }
+    bool kmer_sequence_matching() const { return kmer_sequence_matching_; }
+    bool validate_alignments() const { return validate_alignments_; }
 
     int threads() const { return threads_; }
     void set_threads(int threads) { threads_ = threads; }
 
+    int kmer_len() const { return kmer_len_; }
+    void set_kmer_len(int kmer_len) { kmer_len_ = kmer_len; }
+
+    bool remove_nonuniq_reads() const { return remove_nonuniq_reads_; }
+    void set_remove_nonuniq_reads(bool remove_nonuniq_reads) { remove_nonuniq_reads_ = remove_nonuniq_reads; }
+
 private:
     std::string reference_path_;
-    std::string bam_path_;
 
     size_t max_reads_; ///< maximum number of reads to process per locus
 
@@ -116,11 +126,18 @@ private:
     int output_options_; ///< output options
 
     bool exact_sequence_matching_; ///< enable use of PathAligner
+    bool graph_sequence_matching_; ///< enable use of GraphAligner
+    bool kmer_sequence_matching_; ///< enable use of KmerAligner
+    bool validate_alignments_;
 
     Json::Value description_; ///< graph description
 
     std::list<common::Region> target_regions_; ///< target regions for read retrieval
 
-    int threads_;
+    int threads_{ 1 }; ///< number of threads for parallel read processing
+
+    int kmer_len_{ 0 }; ///< kmer length for validation
+
+    bool remove_nonuniq_reads_{ true }; // remove reads with no unique alignment
 };
 }

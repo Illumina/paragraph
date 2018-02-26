@@ -84,6 +84,7 @@ static inline char transitionBase(char base)
  */
 static inline bool snvIsTransversion(char refBase, char altBase, bool& isValidSnv)
 {
+    // cppcheck-suppress constStatement
     assert(altBase != refBase);
     const char refBaseUpper(toupper(refBase));
     const char altBaseUpper(toupper(altBase));

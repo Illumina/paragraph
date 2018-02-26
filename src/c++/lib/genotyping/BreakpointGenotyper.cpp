@@ -28,169 +28,170 @@
 #include "common/Error.hh"
 #include <algorithm>
 #include <boost/math/distributions/poisson.hpp>
+#include <boost/math/special_functions/binomial.hpp>
+#include <cmath>
 #include <limits>
-#include <math.h>
+#include <numeric>
 
 using boost::math::poisson_distribution;
+using std::map;
 using std::vector;
 
 namespace genotyping
 {
 
-Genotype BreakpointGenotyper::genotype(
-    const vector<int32_t>& read_counts, std::vector<double> haplotypeReadFraction,
-    std::vector<double> genotypeErrorRate) const
+/**
+ * @param genotype_parameters GenotypeParameter class
+ */
+BreakpointGenotyper::BreakpointGenotyper(GenotypingParameters* param)
+    : n_alleles_(param->numAlleles())
+    , ploidy_(param->ploidy())
+    , min_overlap_bases_(param->minOverlapBases())
+    , possible_genotypes(param->possibleGenotypes())
 {
-    if (read_counts.size() < 2)
+    if (param->alleleErrorRates().empty())
     {
-        error("Error: haploid genotypes are not supported yet.");
+        allele_error_rate_.push_back(param->otherAlleleErrorRate());
     }
-    if (!haplotypeReadFraction.empty())
+    else
     {
-        if (read_counts.size() != haplotypeReadFraction.size())
+        allele_error_rate_ = param->alleleErrorRates();
+    }
+
+    if (param->hetHaplotypeFractions().empty())
+    {
+        haplotype_read_fraction_.push_back(param->otherHetHaplotypeFraction());
+    }
+    else
+    {
+        haplotype_read_fraction_ = param->hetHaplotypeFractions();
+    }
+
+    if (!param->genotypeFractions().empty())
+    {
+        genotype_prior_ = param->genotypeFractions();
+        for (auto& phi : genotype_prior_)
         {
-            error(
-                "Error: use-specified haplotypeReadFraction should have size equal to the number of haplotypes. Error "
-                "at %d, %d.",
-                read_counts.size(), haplotypeReadFraction.size());
-        }
-        for (double mu : haplotypeReadFraction)
-        {
-            if (mu <= 0 || mu >= 1)
+            if (phi.first.size() < ploidy_)
             {
-                error("Error: use-specified haplotypeReadFraction should be between 0~1.");
+                error("Error: genotype and ploidy does not match.");
             }
+            if (phi.second < 0 || phi.second > 1)
+            {
+                error("Error: genotype prior should be between 0~1.");
+            }
+            phi.second = log(phi.second);
         }
     }
-    if (!genotypeErrorRate.empty())
+};
+
+Genotype BreakpointGenotyper::genotype(double read_depth, int32_t read_length, const vector<int32_t>& read_counts) const
+{
+    if (read_counts.size() != n_alleles_)
     {
-        uint64_t num_haplotypes = (uint64_t)read_counts.size();
-        uint64_t num_genotypes = num_haplotypes * (num_haplotypes + 1) / 2;
-        if ((uint64_t)genotypeErrorRate.size() != num_genotypes)
+        error("Error: number of read counts and alleles mismatches. %i != %i.", (int)read_counts.size(), n_alleles_);
+    }
+    Genotype result;
+
+    // compute adjusted depth
+    const double multiplier = (read_length - min_overlap_bases_) / (double)read_length;
+    assert(multiplier > 0);
+    const double lambda = read_depth * multiplier;
+    const int32_t total_num_reads = std::accumulate(read_counts.begin(), read_counts.end(), 0);
+    if (total_num_reads == 0)
+    {
+        result.filter = "NO_READS";
+        return result;
+    }
+    result.num_reads = total_num_reads;
+
+    // compute GL and GT
+    double best_gl = -std::numeric_limits<double>::max();
+
+    for (const auto& igt : possible_genotypes)
+    {
+        const double gl = genotypeLikelihood(lambda, igt, read_counts);
+        result.gl_name.push_back(igt);
+        result.gl.push_back(gl);
+
+        // update GT if GL is better
+        if (gl > best_gl)
         {
-            error("Error: use-specified genotypeErrorRate should have size equal to the number of possible "
-                  "genotypes.");
+            best_gl = gl;
+            result.gt = igt;
         }
     }
-    return genotypeDiploidBreakpoint(read_counts, haplotypeReadFraction, genotypeErrorRate);
+
+    // compute allele fractions
+    result.allele_fractions.resize(n_alleles_, 0.0);
+    for (unsigned int al = 0; al < n_alleles_; ++al)
+    {
+        result.allele_fractions[al] = ((double)read_counts[al]) / total_num_reads;
+    }
+
+    return result;
 }
 
-Genotype BreakpointGenotyper::genotypeDiploidBreakpoint(
-    const vector<int32_t>& read_counts, std::vector<double> haplotypeReadFraction,
-    std::vector<double> genotypeErrorRate) const
+/**
+ * return genotype likelihood given genotype (using Poisson model with internal parameters)
+ * @param lambda Poisson distribution parameter
+ * @param gv Genotype vector
+ * @param read_counts Read count vector for each allele
+ */
+double BreakpointGenotyper::genotypeLikelihood(
+    double lambda, const GenotypeVector& gv, const vector<int32_t>& read_counts) const
 {
-    const int32_t num_haplotypes = (int32_t)read_counts.size();
-    const int32_t num_genotypes = num_haplotypes * (num_haplotypes + 1) / 2;
-    if (haplotypeReadFraction.empty())
+    double log_phi;
+    auto it = genotype_prior_.find(gv);
+    if (it == genotype_prior_.end())
     {
-        haplotypeReadFraction.resize(num_haplotypes, 0.5);
+        log_phi = 0;
     }
-    if (genotypeErrorRate.empty())
+    else
     {
-        genotypeErrorRate.resize(num_genotypes, genotype_error_rate_);
-    }
-    const double phi = (double)1 / num_genotypes; // Fixed prior for each genotype.
-    const double multiplier = (read_length_ - min_overlap_bases_) / (double)read_length_;
-    const double lambda = read_depth_ * multiplier;
-
-    int32_t total_num_reads = 0;
-    for (int32_t count : read_counts)
-    {
-        total_num_reads += count;
+        log_phi = it->second;
     }
 
-    Genotype genotype;
-    genotype.num_reads = total_num_reads;
-    double max_log_genotype_prob = std::numeric_limits<double>::lowest();
-    int32_t most_likely_haplotype1_index = -1;
-    int32_t most_likely_haplotype2_index = -1;
-
-    int genotype_index = 0;
-    for (int32_t haplotype1_index = 0; haplotype1_index != num_haplotypes; haplotype1_index++)
+    // compute how many copies of each allele we have in this GT
+    vector<int> allele_ploidy;
+    allele_ploidy.resize(n_alleles_, 0);
+    for (unsigned int al = 0; al < n_alleles_; ++al)
     {
-        int32_t num_haplotype1_reads = read_counts[haplotype1_index];
-        for (int32_t haplotype2_index = haplotype1_index; haplotype2_index < num_haplotypes; haplotype2_index++)
+        for (const auto g : gv)
         {
-            double log_genotype_prob = 0;
-            if (haplotype2_index == haplotype1_index)
+            if (al == g)
             {
-                double lambda_error = lambda * genotypeErrorRate[genotype_index];
-                double lambda_mapped = lambda * (1 - genotypeErrorRate[genotype_index]);
-                if (lambda_mapped == 0)
-                {
-                    lambda_mapped = std::numeric_limits<double>::lowest() * (-1);
-                }
-                if (lambda_error == 0)
-                {
-                    lambda_error = std::numeric_limits<double>::lowest() * (-1);
-                }
-                const poisson_distribution<> hom_hap1_distribution(lambda_mapped);
-                const poisson_distribution<> hom_hap1_error_distribution(lambda_error);
-                int32_t num_spurious_reads = total_num_reads - num_haplotype1_reads;
-                log_genotype_prob = log(phi) + log(pdf(hom_hap1_distribution, num_haplotype1_reads))
-                    + log(pdf(hom_hap1_error_distribution, num_spurious_reads));
+                ++allele_ploidy[al];
             }
-            else
-            {
-                double lambda_hap1 = lambda * haplotypeReadFraction[haplotype1_index];
-                double lambda_hap2 = lambda * haplotypeReadFraction[haplotype2_index];
-                double lambda_het_error = lambda * genotypeErrorRate[genotype_index];
-                if (lambda_hap1 == 0)
-                {
-                    lambda_hap1 = std::numeric_limits<double>::lowest() * (-1);
-                }
-                if (lambda_hap2 == 0)
-                {
-                    lambda_hap2 = std::numeric_limits<double>::lowest() * (-1);
-                }
-                if (lambda_het_error == 0)
-                {
-                    lambda_het_error = std::numeric_limits<double>::lowest() * (-1);
-                }
-                const poisson_distribution<> single_hap1_distribution(lambda_hap1);
-                const poisson_distribution<> single_hap2_distribution(lambda_hap2);
-                const poisson_distribution<> het_error_distribution(lambda_het_error);
-                int32_t num_haplotype2_reads = read_counts[haplotype2_index];
-                int32_t num_spurious_reads = total_num_reads - num_haplotype1_reads - num_haplotype2_reads;
-                log_genotype_prob = log(phi) + log(pdf(single_hap1_distribution, num_haplotype1_reads))
-                    + log(pdf(single_hap2_distribution, num_haplotype2_reads))
-                    + log(pdf(het_error_distribution, num_spurious_reads));
-            }
-            genotype.gl_name.push_back({ (uint64_t)haplotype1_index, (uint64_t)haplotype2_index });
-            if (isinf(log_genotype_prob))
-            {
-                log_genotype_prob = -std::numeric_limits<double>::max();
-            }
-            genotype.gl.push_back(log_genotype_prob);
-
-            if (max_log_genotype_prob < log_genotype_prob)
-            {
-                max_log_genotype_prob = log_genotype_prob;
-                most_likely_haplotype1_index = haplotype1_index;
-                most_likely_haplotype2_index = haplotype2_index;
-            }
-            genotype_index++;
         }
     }
 
-    if (genotype_index > 0)
+    // compute GL by summing all allele contributions
+    double gl = log_phi;
+    for (unsigned int al = 0; al < n_alleles_; ++al)
     {
-        if (most_likely_haplotype1_index == -1) // all -Inf
+        if (allele_ploidy[al] == 0)
         {
-            return genotype;
+            // no copies -> all reads supporting this allele will be errors
+            const double eps = (allele_error_rate_.size() == 1 ? allele_error_rate_[0] : allele_error_rate_[al]);
+            const poisson_distribution<> error_distribution(lambda * eps);
+            gl += log(pdf(error_distribution, read_counts[al]));
         }
-        genotype.gt = { (uint64_t)most_likely_haplotype1_index, (uint64_t)most_likely_haplotype2_index };
-        int32_t sum_count = 0;
-        for (auto r_count : read_counts)
+        else
         {
-            sum_count += r_count;
-        }
-        genotype.allele_fractions.resize(num_haplotypes, 0);
-        for (auto i = 0; i < num_haplotypes; i++)
-        {
-            genotype.allele_fractions[i] = (double)read_counts[i] / sum_count;
+            const double mu
+                = (haplotype_read_fraction_.size() == 1 ? haplotype_read_fraction_[0] : haplotype_read_fraction_[al]);
+            const double mu_with_ploidy = allele_ploidy[al] * mu;
+
+            const poisson_distribution<> allele_count_distribution(lambda * mu_with_ploidy);
+            gl += log(pdf(allele_count_distribution, read_counts[al]));
         }
     }
-    return genotype;
+
+    if (std::isinf(gl))
+    {
+        gl = std::numeric_limits<double>::min();
+    }
+    return gl;
 }
 }

@@ -182,6 +182,7 @@ static inline void leftShift(common::FastaFile const& f, const char* chr, std::l
         }
         leftShift(f, chr, (RefVar&)r, pos_min);
         pos_min = r.end + 1;
+        last_start = r.start;
     }
 }
 
@@ -189,14 +190,9 @@ static inline void rightShift(
     common::FastaFile const& f, const char* chr, std::list<RefVar>& rv,
     int64_t pos_max = std::numeric_limits<int64_t>::max())
 {
-    int64_t last_start = -1;
     for (auto it = rv.rbegin(); it != rv.rend(); ++it)
     {
         RefVar const& r = *it;
-        if (last_start > 0 && r.start < last_start)
-        {
-            error("Variants out of order at %s:%i", chr, last_start);
-        }
         rightShift(f, chr, (RefVar&)r, pos_max);
         pos_max = r.start - 1;
     }

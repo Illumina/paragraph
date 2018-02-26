@@ -728,7 +728,6 @@ void countRefVarPrimitives(
         {
             ++homref;
         }
-        ++rstart;
         ++pos;
         --reflen;
         --altlen;

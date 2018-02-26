@@ -25,6 +25,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "genotyping/BreakpointGenotyper.hh"
+#include "genotyping/GenotypingParameters.hh"
 #include "gmock/gmock.h"
 #include <string>
 #include <vector>
@@ -33,24 +34,31 @@ using std::string;
 using std::vector;
 using namespace genotyping;
 
-TEST(BeakpointGenotyper, ErrorsOutIfFewerThanTwoCountsAreGiven)
+TEST(BeakpointGenotyper, ThrowsWhenWrongNumberOfReadcounts)
 {
     const double read_depth = 40.0;
     const int32_t read_length = 100;
-    BreakpointGenotyper genotyper(read_depth, read_length);
-    ASSERT_ANY_THROW(genotyper.genotype({}));
-    ASSERT_ANY_THROW(genotyper.genotype({ 10 }));
+    const vector<string> alleles = { "REF", "ALT" };
+    GenotypingParameters param(alleles);
+    BreakpointGenotyper genotyper(&param);
+    ASSERT_ANY_THROW(genotyper.genotype(read_depth, read_length, {}));
+    ASSERT_ANY_THROW(genotyper.genotype(read_depth, read_length, { 10 }));
 }
 
 TEST(BeakpointGenotyper, GenotypesWellCoveredBreakpoints)
 {
     const double read_depth = 40.0;
     const int32_t read_length = 100;
-    BreakpointGenotyper genotyper(read_depth, read_length);
+    const vector<string> alleles = { "REF", "ALT" };
+    GenotypingParameters param(alleles);
+    BreakpointGenotyper genotyper(&param);
 
-    EXPECT_EQ("0/0", (string)genotyper.genotype({ 20, 0 }));
-    EXPECT_EQ("0/1", (string)genotyper.genotype({ 20, 20 }));
-    EXPECT_EQ("1/1", (string)genotyper.genotype({ 0, 20 }));
-    EXPECT_EQ("1/1", (string)genotyper.genotype({ 0, 20 }, { 0.4, 0.6 }, { 0.1, 0.001, 0.1 }));
-    EXPECT_EQ("1/3", (string)genotyper.genotype({ 1, 20, 2, 20, 2 }));
+    EXPECT_EQ("0/0", (string)genotyper.genotype(read_depth, read_length, { 20, 0 }));
+    EXPECT_EQ("0/1", (string)genotyper.genotype(read_depth, read_length, { 20, 20 }));
+    EXPECT_EQ("1/1", (string)genotyper.genotype(read_depth, read_length, { 0, 20 }));
+
+    const vector<string> alleles2 = { "REF", "ALT1", "ALT2", "ALT3", "ALT4" };
+    GenotypingParameters param2 = GenotypingParameters(alleles2);
+    BreakpointGenotyper genotyper_q(&param2);
+    EXPECT_EQ("1/3", (string)genotyper_q.genotype(read_depth, read_length, { 1, 20, 2, 20, 2 }));
 }

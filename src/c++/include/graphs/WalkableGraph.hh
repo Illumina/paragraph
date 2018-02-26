@@ -61,6 +61,8 @@ public:
 
     operator Graph&() const;
 
+    Graph const& graph() const;
+
     /**
      * Nodes in topological order
      */
@@ -84,6 +86,7 @@ public:
 
     graphs::GraphHeader const& header() const;
 
+    void addSequence(const std::string& sequence_name, std::vector<uint64_t> nodes);
     uint64_t sequenceId(const std::string& sequence_name) const;
     std::string sequenceName(uint64_t sequence_name) const;
 

@@ -109,17 +109,56 @@ TEST_F(DeletionGraph, PathReturnsItsSequence)
 {
     {
         GraphPath path(wgraph_ptr, 3, { 0 }, 3);
-        ASSERT_EQ("A", path.seq());
+        EXPECT_EQ("A", path.seq());
     }
     {
         GraphPath path(wgraph_ptr, 3, { 1 }, 4);
-        ASSERT_EQ("GG", path.seq());
+        EXPECT_EQ("GG", path.seq());
     }
 
     {
         GraphPath path(wgraph_ptr, 3, { 0, 1, 2 }, 1);
-        ASSERT_EQ("ACCTTTGGAT", path.seq());
+        EXPECT_EQ("ACCTTTGGAT", path.seq());
     }
+}
+
+TEST_F(DeletionGraph, PathReturnsItsLength)
+{
+    {
+        GraphPath path(wgraph_ptr, 3, { 0 }, 3);
+        EXPECT_EQ((size_t)1, path.length());
+    }
+    {
+        GraphPath path(wgraph_ptr, 3, { 1 }, 4);
+        EXPECT_EQ((size_t)2, path.length());
+    }
+
+    {
+        GraphPath path(wgraph_ptr, 3, { 0, 1, 2 }, 1);
+        EXPECT_EQ((size_t)10, path.length());
+    }
+}
+
+TEST_F(DeletionGraph, PathReturnsLengthOfNodeOverlaps)
+{
+    {
+        GraphPath path(wgraph_ptr, 3, { 0, 1, 2 }, 1);
+        EXPECT_EQ((size_t)3, path.lengthOnNode(0));
+        EXPECT_EQ((size_t)5, path.lengthOnNode(1));
+        EXPECT_EQ((size_t)2, path.lengthOnNode(2));
+    }
+    {
+        GraphPath path(wgraph_ptr, 1, { 2 }, 2);
+        EXPECT_EQ((size_t)2, path.lengthOnNode(2));
+    }
+}
+
+TEST_F(DeletionGraph, PathReturnsSequenceOfNodeItOverlaps)
+{
+    GraphPath path(wgraph_ptr, 3, { 0, 1, 2 }, 1);
+    EXPECT_EQ("ACC", path.seqOnNode(0));
+    EXPECT_EQ("TTTGG", path.seqOnNode(1));
+    EXPECT_EQ("AT", path.seqOnNode(2));
 }
 
 TEST_F(DeletionGraph, WellFormedPathIsValid)
@@ -163,11 +202,11 @@ TEST_F(DeletionGraph, PathIsEncodedAsString)
 {
     {
         GraphPath path(wgraph_ptr, 0, { 0 }, 1);
-        ASSERT_EQ("(0@0)-(0@1)", path.encode());
+        ASSERT_EQ("(LF@0)-(LF@1)", path.encode());
     }
     {
         GraphPath path(wgraph_ptr, 3, { 0, 1, 2 }, 1);
-        ASSERT_EQ("(0@3)-(1)-(2@1)", path.encode());
+        ASSERT_EQ("(LF@3)-(DEL)-(RF@1)", path.encode());
     }
 }
 

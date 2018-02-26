@@ -180,6 +180,7 @@ std::ostream& operator<<(std::ostream& os, const Operation& operation)
 
 Mapping::Mapping(
     int32_t reference_start, const std::string& cigar, const std::string& query, const std::string& reference)
+    : reference_start_(reference_start)
 {
     decodeOperations(reference_start, cigar, query, reference);
     updateCounts();
@@ -341,6 +342,7 @@ int32_t Mapping::referenceSpan() const
 
 std::ostream& operator<<(std::ostream& os, const Mapping& mapping)
 {
+    os << "Ref start: " << mapping.reference_start() << ", ";
     for (size_t index = 0; index != mapping.num_operations(); ++index)
     {
         os << mapping[index];
@@ -349,62 +351,12 @@ std::ostream& operator<<(std::ostream& os, const Mapping& mapping)
     return os;
 }
 
-NodeMapping::NodeMapping(int32_t reference_start, const string& node_cigar, const string& query, const Graph& graph)
-{
-    std::string nodeid_encoding;
-    for (size_t index = 0; index != node_cigar.length(); ++index)
-    {
-        if (node_cigar[index] == '[')
-        {
-            node_id_ = std::stoull(nodeid_encoding);
-            std::string cigar = node_cigar.substr(index + 1);
-            cigar.pop_back();
-            const string& reference = graph.nodes.at(node_id_)->sequence();
-            decodeOperations(reference_start, cigar, query, reference);
-            updateCounts();
-            break;
-        }
-        if (isdigit(node_cigar[index]) == 0)
-        {
-            error("Error: %s is a malformed node CIGAR", node_cigar.c_str());
-        }
-        nodeid_encoding += node_cigar[index];
-    }
-}
-
-std::ostream& operator<<(std::ostream& os, const NodeMapping& node_mapping)
-{
-    os << node_mapping.node_id() << '[' << static_cast<const Mapping&>(node_mapping) << ']';
-    return os;
-}
-
-GraphMapping::GraphMapping(
-    int32_t first_node_reference_start, const std::string& graph_cigar, const std::string& query, const Graph& graph)
-    : first_node_reference_start_(first_node_reference_start)
-{
-    int32_t query_pos = 0;
-    std::string node_cigar;
-    for (size_t index = 0; index != graph_cigar.length(); ++index)
-    {
-        node_cigar += graph_cigar[index];
-        if (node_cigar.back() == ']')
-        {
-            string query_piece = query.substr((size_t)query_pos);
-            int32_t ref_pos = node_mappings_.empty() ? first_node_reference_start : 0;
-            NodeMapping node_mapping(ref_pos, node_cigar, query_piece, graph);
-            node_mappings_.push_back(node_mapping);
-            query_pos += node_mapping.querySpan();
-            node_cigar.clear();
-        }
-    }
-}
-
 string GraphMapping::query() const
 {
     string query;
     for (const auto& node_mapping : node_mappings_)
     {
-        query += node_mapping.query();
+        query += node_mapping.mapping.query();
     }
     return query;
 }
@@ -414,7 +366,7 @@ string GraphMapping::reference() const
     string reference;
     for (const auto& node_mapping : node_mappings_)
     {
-        reference += node_mapping.reference();
+        reference += node_mapping.mapping.reference();
     }
     return reference;
 }
@@ -424,9 +376,19 @@ int32_t GraphMapping::querySpan() const
     int32_t query_span = 0;
     for (const auto& node_mapping : node_mappings_)
     {
-        query_span += node_mapping.querySpan();
+        query_span += node_mapping.mapping.querySpan();
     }
     return query_span;
+}
+
+int32_t GraphMapping::queryClipped() const
+{
+    int32_t query_clipped = 0;
+    for (const auto& node_mapping : node_mappings_)
+    {
+        query_clipped += node_mapping.mapping.clipped();
+    }
+    return query_clipped;
 }
 
 int32_t GraphMapping::referenceSpan() const
@@ -434,8 +396,27 @@ int32_t GraphMapping::referenceSpan() const
     int32_t reference_span = 0;
     for (const auto& node_mapping : node_mappings_)
     {
-        reference_span += node_mapping.referenceSpan();
+        reference_span += node_mapping.mapping.referenceSpan();
     }
     return reference_span;
+}
+
+int32_t GraphMapping::numMatches() const
+{
+    int32_t num_matches = 0;
+    for (const auto& node_mapping : node_mappings_)
+    {
+        num_matches += node_mapping.mapping.matched();
+    }
+    return num_matches;
+}
+
+std::ostream& operator<<(std::ostream& os, const GraphMapping& graph_mapping)
+{
+    for (const NodeMapping& node_mapping : graph_mapping)
+    {
+        os << node_mapping.node_id << "[" << node_mapping.mapping << "]";
+    }
+    return os;
 }
 }

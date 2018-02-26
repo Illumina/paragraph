@@ -149,7 +149,7 @@ public:
         LOG()->set_level(spdlog::level::err);
 
         auto rb_reads = toReadBuffer(reads);
-        grm::alignReads(init_graph, paths, rb_reads, nullptr, false);
+        grm::alignReads(init_graph, paths, rb_reads, nullptr, false, true, false, false);
         graph = init_graph;
         paragraph::disambiguateReads(graph, rb_reads, nullptr, nullptr, paths);
         for (size_t i = 0; i < rb_reads.size(); ++i)

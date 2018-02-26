@@ -37,44 +37,52 @@
 #pragma once
 
 #include "genotyping/Genotype.hh"
+#include "genotyping/GenotypingParameters.hh"
+
+#include <map>
+#include <vector>
 
 namespace genotyping
 {
 class BreakpointGenotyper
 {
 public:
-    BreakpointGenotyper(
-        const double read_depth, const int32_t read_length, const double genotype_error_rate = 0.01,
-        const int32_t min_overlap_bases = 16)
-        : read_depth_(read_depth)
-        , read_length_(read_length)
-        , genotype_error_rate_(genotype_error_rate)
-        , min_overlap_bases_(min_overlap_bases){};
+    /**
+     * Initialize a breakpoint genotyper through genotype parameters
+     */
+    explicit BreakpointGenotyper(GenotypingParameters* param);
 
     /**
      * public function to do breakpoint genotyping from read counts on edges
-     * after sanity check, invode genotypeDiploidBrekpoint
+     * @param read_depth expected / mean read depth
+     * @param read_length read length
+     * @param read counts for each allele
      */
-    Genotype genotype(
-        const std::vector<int32_t>& read_counts, std::vector<double> haplotypeReadFraction = {},
-        std::vector<double> genotypeErrorRate = {}) const;
+    Genotype genotype(double read_depth, int32_t read_length, const std::vector<int32_t>& read_counts_per_allele) const;
 
 private:
     /**
-     * core funciton for doing breakpoint genotyping
+     * return genotype likelihood given genotype (using Poisson model with internal parameters)
+     * @param lambda Poisson distribution parameter
+     * @param gv Genotype vector
+     * @param read_counts Read count vector for each allele
      */
-    Genotype genotypeDiploidBreakpoint(
-        const std::vector<int32_t>& read_counts, std::vector<double> haplotypeReadFraction,
-        std::vector<double> genotypeErrorRate) const;
+    double genotypeLikelihood(double lambda, const GenotypeVector& gv, const std::vector<int32_t>& read_counts) const;
+
+    unsigned int n_alleles_;
+    unsigned int ploidy_;
 
     /**
-     * necessary bam/cram stats
+     *  genotyping specific stats
      */
-    const double read_depth_;
-    const int32_t read_length_;
+    int32_t min_overlap_bases_; // Minimum number of bases that a high-confidence alignment must overlap a node.
 
-    // genotyping specific stats
-    const double genotype_error_rate_;
-    const int32_t min_overlap_bases_; // Minimum number of bases that a high-confidence alignment must overlap a node.
+    std::vector<GenotypeVector> possible_genotypes; // all possible genotypes
+
+    std::vector<double> allele_error_rate_; // error rate for each allele
+
+    std::vector<double> haplotype_read_fraction_; // mean expected haplotype fraction for each allele
+
+    std::map<GenotypeVector, double> genotype_prior_; // genotype prior log probabilities
 };
 };

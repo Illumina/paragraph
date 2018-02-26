@@ -24,6 +24,14 @@
 // OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+/**
+ * Functions to run counting and genotyping in grmpy
+ *
+ * \author Sai Chen & Egor Dolzhenko & Peter Krusche
+ * \email schen6@illumina.com & pkrusche@illumina.com & edolzhenko@illumina.com
+ *
+ */
+
 #include <fstream>
 #include <string>
 
@@ -31,20 +39,28 @@
 #include <boost/program_options.hpp>
 
 #include "common/Error.hh"
-#include "genotyping/GraphGenotyper.hh"
-#include "grm/CountAndGenotype.hh"
+#include "common/JsonHelpers.hh"
+#include "genotyping/GraphBreakpointGenotyper.hh"
+#include "graphs/WalkableGraph.hh"
+#include "grmpy/CountAndGenotype.hh"
 
 namespace po = boost::program_options;
 using namespace common;
 
-namespace grm
+namespace grmpy
 {
 
+/**
+ * main function for alignment and genotyping
+ *
+ * @param parameters Input parameters
+ * @param out_stream pointer to the output stream (for testing purpose)
+ */
 void countAndGenotype(const Parameters& parameters, std::ostream* out_stream)
 {
     auto logger = LOG();
     std::unique_ptr<std::ofstream> file_out;
-    const std::string output_path = parameters.output_path();
+    const std::string& output_path = parameters.output_path();
     if (!output_path.empty())
     {
         logger->info("Output path: {}", output_path);
@@ -54,22 +70,28 @@ void countAndGenotype(const Parameters& parameters, std::ostream* out_stream)
     }
     else
     {
-        logger->info("Empty output path. Re-direct to std output");
+        logger->info("Empty output path. Re-direct to std output or specified outstream.");
     }
 
-    genotyping::GraphGenotyper graph_genotypes(
-        parameters.genotype_error_rate(), parameters.min_overlap_bases(), parameters.max_read_times());
-    graph_genotypes.genotypeGraph(
-        parameters.input_path(), parameters.reference_path(), parameters.manifest_path(), parameters.use_em());
-    logger->info("Genotyping completed");
-    if (parameters.output_as_csv())
+    // Initialize walkable graph
+    Json::Value root = common::getJSON(parameters.graph_path());
+    graphs::Graph graph;
+    graphs::fromJson(root, parameters.reference_path(), graph);
+
+    auto wgraph_ptr = std::make_shared<graphs::WalkableGraph>(graph);
+
+    genotyping::GraphBreakpointGenotyper graph_genotyper;
+    graph_genotyper.reset(wgraph_ptr);
+    graph_genotyper.setParameters(parameters.genotypingParameterPath());
+
+    for (auto& sample_info : parameters.getSamples())
     {
-        graph_genotypes.toCsv(out_stream);
+        graph_genotyper.addAlignment(sample_info);
     }
-    else
-    {
-        graph_genotypes.toJson(out_stream);
-    }
-    logger->info("Finished analysis and printed output");
+
+    Json::StyledStreamWriter writer;
+    writer.write(*out_stream, graph_genotyper.getGenotypes());
+
+    logger->info("Output data written.");
 }
 }

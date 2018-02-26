@@ -41,6 +41,8 @@
 #include <string>
 #include <unistd.h>
 
+#define ABS_ERROR_TOL 1e-6
+
 class GTestEnvironment : public testing::Environment
 {
 public:

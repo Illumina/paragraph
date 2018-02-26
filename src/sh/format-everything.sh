@@ -5,6 +5,10 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CLANG_FORMAT=clang-format
 
 if [ ! -x "$(command -v ${CLANG_FORMAT})" ]; then
+    CLANG_FORMAT=clang-format-5.0
+fi
+
+if [ ! -x "$(command -v ${CLANG_FORMAT})" ]; then
     CLANG_FORMAT=clang-format-mp-5.0
 fi
 

@@ -52,5 +52,6 @@ static const Json::Value NO_PATHS = Json::objectValue;
  */
 void alignReads(
     const graphs::Graph& graph, Json::Value const& paths, std::vector<common::p_Read>& reads, ReadFilter const& filter,
-    bool exact_path_matching, int threads = 1);
+    bool exact_sequence_matching, bool graph_sequence_matching, bool kmer_sequence_matching, bool validate_alignments,
+    int threads = 1);
 }

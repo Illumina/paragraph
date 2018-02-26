@@ -25,8 +25,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * \Genotyper for the graph-represented whole variant
- *  \Most likely genotype is voted from all breakpoint genotypes
+ * Genotyper for the graph-represented whole variants across many samples
  *
  * \author Sai Chen & Egor Dolzhenko & Peter Krusche
  * \email schen6@illumina.com & pkrusche@illumina.com & edolzhenko@illumina.com
@@ -35,12 +34,12 @@
 
 #pragma once
 
-#include "genotyping/BreakpointStat.hh"
 #include "genotyping/Genotype.hh"
-#include "genotyping/Idxdepth.hh"
-#include "genotyping/VariantGenotype.hh"
+#include "genotyping/GenotypingParameters.hh"
+#include "genotyping/SampleInfo.hh"
 #include "graphs/WalkableGraph.hh"
 #include "json/json.h"
+
 #include <map>
 #include <memory>
 #include <vector>
@@ -48,77 +47,106 @@
 namespace genotyping
 {
 
+/**
+ * Graph genotyper interface and basic functionality
+ */
 class GraphGenotyper
 {
 public:
-    GraphGenotyper(
-        const double genotype_error_rate, const int min_overlap_bases, const int max_read_times,
-        const std::string reference_allele_name = "REF");
-
-    ~GraphGenotyper();
+    GraphGenotyper();
+    GraphGenotyper(GraphGenotyper const&) = delete;
+    GraphGenotyper(GraphGenotyper&&) = delete;
+    virtual ~GraphGenotyper();
+    GraphGenotyper& operator=(GraphGenotyper const&) = delete;
+    GraphGenotyper& operator=(GraphGenotyper&&) = delete;
 
     /**
-     * main function for getting whole
+     * Set the graph we genotype on
+     * @param graph our graph to genotype
      */
-    void genotypeGraph(
-        const std::string& paragraph_input_path, const std::string& reference_path, const std::string& manifest_path,
-        bool use_em);
+    void reset(std::shared_ptr<graphs::WalkableGraph> graph);
 
-    // output functions (different format)
-    void toCsv(std::ostream* out);
+    /**
+     * @return the graph (asserts if no graph is set)
+     */
+    graphs::WalkableGraph const& getGraph() const;
 
-    void toJson(std::ostream* out);
+    /**
+     * Add a alignment and depth information for a sample
+     */
+    void addAlignment(SampleInfo const& sampleinfo);
+
+    /**
+     * This runs runGenotyping.
+     * @return JSON encoded set of genotypes for all alignments that were added
+     */
+    Json::Value getGenotypes();
+
+    /**
+     * Function to set parameter values in derived classes
+     * @param parameters set of parameters
+     */
+    virtual void setParameters(const std::string& genotyping_parameter_path) {}
+
+protected:
+    /**
+     * Implemented by derived classes which implement genotyping
+     */
+    virtual void runGenotyping() = 0;
+
+    /**
+     * Set the genotype for a particular sample
+     *
+     * @param samplename sample name
+     * @param breakpointname name of breakpoint ("" for combined GT)
+     * @param genotype breakpoint genotype
+     */
+    void setGenotype(const std::string& samplename, const std::string& breakpointname, Genotype genotype);
+
+    /**
+     * Get the genotype for a particular sample
+     *
+     * @param samplename sample name
+     * @param breakpointname name of breakpoint ("" for combined GT)
+     * @return the genotype
+     */
+    Genotype getGenotype(const std::string& samplename, const std::string& breakpointname) const;
+
+    /**
+     * @return an ordered list of sample names
+     */
+    std::vector<std::string> const& sampleNames() const;
+
+    /**
+     * @return a list of breakpoint names
+     */
+    std::list<std::string> const& breakpointNames() const;
+
+    /**
+     * @return a list of allele names
+     */
+    std::vector<std::string> const& alleleNames() const;
+
+    /**
+     * Get the alignment read counts
+     * @param sample_index index of sample (name is in sampleNames[sample_index])
+     * @param breakpoint the name of the breakpoint
+     * @param edge_or_allele_name name of edge or allele
+     * @return alignment result for sample
+     */
+    int32_t getCount(size_t sample_index, std::string const& breakpoint, std::string const& edge_or_allele_name) const;
+
+    /**
+     * Get the depth data for a sample
+     * @param sample_index index of sample (name is in sampleNames[sample_index])
+     * @return pair of expected mean depth and read length
+     */
+    std::pair<double, int> const& getDepthAndReadlength(size_t sample_index) const;
 
 private:
     /**
-     * load graph description, sequence index and read counts from input Json
+     * internal data structure
      */
-    void loadGraphAndCounts(const std::string& paragraph_input_path, const std::string& reference_path);
-
-    /**
-     *  load sequence names and put reference sequence name at the beginning.
-     */
-    void loadSeqNames(Json::Value& paragraph_json);
-
-    /**
-     *  load breakpoints, sequence index and edge names
-     */
-    void loadBreakpointInfo(graphs::WalkableGraph& wgraph, Json::Value& paragraph_json);
-
-    /**
-     * load the map edge_name->sequence index
-     * with the map, breakpoint genotype will be represented by sequence index
-     */
-    std::map<std::string, std::vector<uint64_t>>
-    generateEgeNameToSeqIndexMap(Json::Value& paragraph_json, bool source_exist);
-
-    /**
-     * special handling of graph with source & sink
-     */
-    std::vector<uint64_t> removeSourceSink(const std::vector<uint64_t>& node_vec, uint64_t source, uint64_t sink);
-
-    /**
-     *  load counts of all BP and samples from paragraph json
-     */
-    void loadEdgeCounts(Json::Value& paragraph_json);
-
-    /**
-     * generate breakpoint specific genotypes from loaded counts
-     */
-    void computeBreakpointGenotypes(bool use_em);
-
-    /**
-     * perform genotyping for the whole variant
-     */
-    void computeVariantGenotypes();
-
-    /**
-     *  append pooled stats as HWE/AF/CR
-     */
-    void updateVariantStats();
-
-    std::vector<std::string> getUniqueEdgeNames();
-
     struct GraphGenotyperImpl;
     std::unique_ptr<GraphGenotyperImpl> _impl;
 };

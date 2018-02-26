@@ -48,8 +48,12 @@
 #include "common/ReadExtraction.hh"
 #include "common/ReadPairs.hh"
 #include "graphs/GraphMapping.hh"
+#include "graphs/GraphMappingOperations.hh"
 #include "grm/Align.hh"
 #include "paragraph/Disambiguation.hh"
+#include "paragraph/GraphSummaryStatistics.hh"
+#include "paragraph/HaplotypePaths.hh"
+#include "paragraph/ReadFilter.hh"
 #include "variant/Variant.hh"
 
 #include "spdlog/spdlog.h"
@@ -231,6 +235,7 @@ void countReads(
         output["fragment_statistics"]["problematic_linear"] = (Json::UInt64)problematic_fragments_linear;
         output["fragment_statistics"]["problematic_graph"] = (Json::UInt64)problematic_fragments_graph;
 
+#ifdef FRAGMENT_STATS_HISTOGRAM
         output["fragment_statistics"]["linear_histogram"] = Json::arrayValue;
         output["fragment_statistics"]["graph_histogram"] = Json::arrayValue;
 
@@ -251,6 +256,7 @@ void countReads(
             bin_value["value"] = bin.second;
             output["fragment_statistics"]["graph_histogram"].append(bin_value);
         }
+#endif
     }
 
     for (auto& f : fragments)
@@ -512,165 +518,6 @@ void getVariants(
 }
 
 /**
- * Align reads from single BAM file to graph and disambiguate reads
- * to produce counts.
- *
- * @param parameters alignment parameters
- * @param output_reads pass a pointer to a vector to retrieve all reads
- * @return results as JSON value
- */
-Json::Value alignAndDisambiguate(Parameters& parameters, common::ReadBuffer& all_reads)
-{
-    auto logger = LOG();
-
-    // Initialize the graph aligner.
-    graphs::Graph graph;
-
-    graphs::fromJson(parameters.description(), parameters.reference_path(), graph);
-
-    graphs::WalkableGraph wgraph(graph);
-    graphs::GraphCoordinates coordinates(wgraph);
-
-    Json::Value output = parameters.description();
-    output["reference"] = parameters.reference_path();
-    output["bam"] = parameters.bam_path();
-
-    common::ReadBuffer output_reads;
-
-    size_t bad_align = 0;
-    size_t nonuniq_align = 0;
-
-    if (parameters.output_enabled(Parameters::ALIGNMENTS) || parameters.output_enabled(Parameters::FILTERED_ALIGNMENTS))
-    {
-        output["alignments"] = Json::Value();
-    }
-
-    const float bad_align_frac = parameters.bad_align_frac();
-    std::mutex output_mutex;
-    auto read_filter = [&wgraph, bad_align_frac, &bad_align, &nonuniq_align, &parameters, &output, &output_reads,
-                        &output_mutex](Read& r) -> bool {
-        bool result = false;
-        std::string error;
-        if (!r.is_graph_alignment_unique())
-        {
-            ++nonuniq_align;
-            error = "nonuniq";
-            result = true;
-        }
-        graphs::GraphMapping mapping(r.graph_pos(), r.graph_cigar(), r.bases(), wgraph);
-        if (mapping.querySpan() < 16 || r.graph_alignment_score() < (int)(bad_align_frac * (mapping.querySpan())))
-        {
-            bad_align++;
-            error = "bad_align";
-            result = true;
-        }
-        if (result && parameters.output_enabled(Parameters::FILTERED_ALIGNMENTS))
-        {
-            Json::Value r_json = r.asJson();
-            r_json["error"] = error;
-            std::lock_guard<std::mutex> output_guard(output_mutex);
-            output["alignments"].append(r_json);
-            output_reads.emplace_back(new Read(r));
-        }
-        return result;
-    };
-
-    grm::alignReads(
-        wgraph, parameters.description()["paths"], all_reads, read_filter, parameters.exact_sequence_matching(),
-        parameters.threads());
-
-    auto nodefilter = [&wgraph](Read& read, const std::string& node) -> bool {
-        try
-        {
-            graphs::GraphMapping mapping(read.graph_pos(), read.graph_cigar(), read.bases(), wgraph);
-
-            const auto node_id = wgraph.nodeId(node);
-            const auto nodeinfo = wgraph.node(node);
-            const bool is_short_node = nodeinfo->sequence().size() < read.bases().size() / 2;
-
-            for (size_t i = 0; i < mapping.size(); ++i)
-            {
-                auto const& nodemapping = mapping[i];
-                const uint64_t this_node = nodemapping.node_id();
-
-                if (node_id == this_node)
-                {
-                    const size_t nonmatch = nodemapping.mismatched() + nodemapping.clipped();
-                    const size_t indel = nodemapping.inserted() + nodemapping.deleted();
-
-                    if (is_short_node && (nonmatch > 0 || indel > 0))
-                    {
-                        return false;
-                    }
-                    return nonmatch + indel <= read.bases().size() / 2;
-                }
-            }
-        }
-        catch (std::exception const&)
-        {
-            LOG()->warn("Invalid read mapping for {} : {}", read.fragment_id(), read.graph_cigar());
-        }
-        return false; // node not covered by read
-    };
-
-    auto edgefilter = [&wgraph, nodefilter](Read& read, const std::string& node1, const std::string& node2) -> bool {
-        try
-        {
-            graphs::GraphMapping mapping(read.graph_pos(), read.graph_cigar(), read.bases(), wgraph);
-
-            const auto node_id1 = wgraph.nodeId(node1);
-            const auto node_id2 = wgraph.nodeId(node2);
-
-            const graphs::NodeMapping* previous_mapping = nullptr;
-            for (size_t i = 0; i < mapping.size(); ++i)
-            {
-                auto const& nodemapping = mapping[i];
-                const uint64_t this_node = nodemapping.node_id();
-
-                if (previous_mapping != nullptr && previous_mapping->node_id() == node_id1 && this_node == node_id2)
-                {
-                    return previous_mapping->matched() >= (unsigned)std::min(previous_mapping->referenceSpan(), 16)
-                        && nodemapping.matched() >= (unsigned)std::min(nodemapping.referenceSpan(), 16);
-                }
-
-                previous_mapping = &nodemapping;
-            }
-        }
-        catch (std::exception const&)
-        {
-            LOG()->warn("Invalid read mapping for {} : {}", read.fragment_id(), read.graph_cigar());
-        }
-        return false; // edge not covered by read
-    };
-
-    disambiguateReads(wgraph, all_reads, nodefilter, edgefilter, parameters.description()["paths"]);
-
-    countReads(
-        coordinates, all_reads, output, parameters.output_enabled(Parameters::NODE_READ_COUNTS),
-        parameters.output_enabled(Parameters::EDGE_READ_COUNTS),
-        parameters.output_enabled(Parameters::PATH_READ_COUNTS),
-        parameters.output_enabled(Parameters::DETAILED_READ_COUNTS));
-
-    getVariants(
-        coordinates, all_reads, output, parameters.min_reads_for_variant(), parameters.min_frac_for_variant(),
-        parameters.description()["paths"], parameters.output_enabled(Parameters::VARIANTS),
-        parameters.output_enabled(Parameters::NODE_COVERAGE), parameters.output_enabled(Parameters::PATH_COVERAGE));
-
-    if (parameters.output_enabled(Parameters::ALIGNMENTS))
-    {
-        output_reads.reserve(all_reads.size() + output_reads.size());
-        for (auto& r : all_reads)
-        {
-            Json::Value r_json = r->asJson();
-            output["alignments"].append(r_json);
-            output_reads.emplace_back(std::move(r));
-        }
-    }
-    all_reads = std::move(output_reads);
-    return output;
-}
-
-/**
  * Update sequence labels in read according to nodes the read has traversed
  * @param g graph structure
  * @param reads list of aligned reads
@@ -723,11 +570,11 @@ void disambiguateReads(
             std::set<uint64_t> nodes_supported_by_read;
             std::set<uint64_t> supported_sequences;
 
-            GraphMapping gm(read->graph_pos(), read->graph_cigar(), read->bases(), g);
+            GraphMapping gm = decodeFromString(read->graph_pos(), read->graph_cigar(), read->bases(), g);
 
-            for (size_t node_index = 0; node_index < gm.size(); ++node_index)
+            for (const auto& node_mapping : gm)
             {
-                auto const& node_name = g.nodeName(gm[node_index].node_id());
+                auto const& node_name = g.nodeName(static_cast<uint64_t>(node_mapping.node_id));
                 auto node = g.nodeId(node_name);
 
                 if (has_previous && (edgefilter == nullptr || edgefilter(*read, previous_node_name, node_name)))
@@ -875,5 +722,241 @@ void disambiguateReads(
             }
         }
     }
+}
+
+/**
+ * Align reads from single BAM file to graph and disambiguate reads
+ * to produce counts.
+ *
+ * @param parameters alignment parameters
+ * @param output_reads pass a pointer to a vector to retrieve all reads
+ * @return results as JSON value
+ */
+Json::Value alignAndDisambiguate(Parameters& parameters, common::ReadBuffer& all_reads)
+{
+    auto logger = LOG();
+
+    // Initialize the graph aligner.
+    graphs::Graph graph;
+
+    graphs::fromJson(parameters.description(), parameters.reference_path(), graph);
+
+    graphs::WalkableGraph wgraph(graph);
+
+    Json::Value output = parameters.description();
+    output["reference"] = parameters.reference_path();
+
+    common::ReadBuffer output_reads;
+
+    if (parameters.output_enabled(Parameters::ALIGNMENTS) || parameters.output_enabled(Parameters::FILTERED_ALIGNMENTS))
+    {
+        output["alignments"] = Json::Value();
+    }
+
+    auto read_filter = createReadFilter(
+        &wgraph, parameters.remove_nonuniq_reads(), parameters.bad_align_frac(), parameters.kmer_len());
+    // remember total number of reads for later
+    const size_t total_reads_input = all_reads.size();
+    std::map<std::string, size_t> read_filter_counts;
+    std::mutex output_mutex;
+    auto read_filter_function
+        = [&read_filter, &read_filter_counts, &parameters, &output, &output_reads, &output_mutex](Read& r) -> bool {
+        const auto result_and_error = read_filter->filterRead(r);
+        if (result_and_error.first && parameters.output_enabled(Parameters::FILTERED_ALIGNMENTS))
+        {
+            auto count_it = read_filter_counts.find(result_and_error.second);
+            if (count_it == read_filter_counts.end())
+            {
+                read_filter_counts[result_and_error.second] = 1;
+            }
+            else
+            {
+                count_it->second++;
+            }
+            r.set_graph_mapping_status(reads::BAD_ALIGN);
+            Json::Value r_json = r.asJson();
+            r_json["error"] = result_and_error.second;
+            std::lock_guard<std::mutex> output_guard(output_mutex);
+            output["alignments"].append(r_json);
+            output_reads.emplace_back(new Read(r));
+        }
+        return result_and_error.first;
+    };
+
+    grm::alignReads(
+        wgraph, parameters.description()["paths"], all_reads, read_filter_function,
+        parameters.exact_sequence_matching(), parameters.graph_sequence_matching(), parameters.kmer_sequence_matching(),
+        parameters.validate_alignments(), parameters.threads());
+
+    auto nodefilter = [&wgraph](Read& read, const std::string& node) -> bool {
+        try
+        {
+            graphs::GraphMapping mapping = decodeFromString(read.graph_pos(), read.graph_cigar(), read.bases(), wgraph);
+
+            const auto node_id = wgraph.nodeId(node);
+            const auto nodeinfo = wgraph.node(node);
+            const bool is_short_node = nodeinfo->sequence().size() < read.bases().size() / 2;
+
+            for (const auto& node_mapping : mapping)
+            {
+                if ((int32_t)node_id == node_mapping.node_id)
+                {
+                    const size_t nonmatch = node_mapping.mapping.mismatched() + node_mapping.mapping.clipped();
+                    const size_t indel = node_mapping.mapping.inserted() + node_mapping.mapping.deleted();
+
+                    if (is_short_node && (nonmatch > 0 || indel > 0))
+                    {
+                        return false;
+                    }
+                    return nonmatch + indel <= read.bases().size() / 2;
+                }
+            }
+        }
+        catch (std::exception const&)
+        {
+            LOG()->warn("Invalid read mapping for {} : {}", read.fragment_id(), read.graph_cigar());
+        }
+        return false; // node not covered by read
+    };
+
+    auto edgefilter = [&wgraph](Read& read, const std::string& node1, const std::string& node2) -> bool {
+        try
+        {
+            graphs::GraphMapping mapping = decodeFromString(read.graph_pos(), read.graph_cigar(), read.bases(), wgraph);
+
+            const auto node_id1 = (int32_t)wgraph.nodeId(node1);
+            const auto node_id2 = (int32_t)wgraph.nodeId(node2);
+
+            const graphs::Mapping* previous_mapping = nullptr;
+            int32_t previous_node_id = -1; // Large positive number
+            for (const auto& node_mapping : mapping)
+            {
+                if (previous_mapping != nullptr && previous_node_id == node_id1 && node_mapping.node_id == node_id2)
+                {
+                    return previous_mapping->matched() >= (unsigned)std::min(previous_mapping->referenceSpan(), 16)
+                        && node_mapping.mapping.matched()
+                        >= (unsigned)std::min(node_mapping.mapping.referenceSpan(), 16);
+                }
+
+                previous_mapping = &node_mapping.mapping;
+                previous_node_id = node_mapping.node_id;
+            }
+        }
+        catch (std::exception const&)
+        {
+            LOG()->warn("Invalid read mapping for {} : {}", read.fragment_id(), read.graph_cigar());
+        }
+        return false; // edge not covered by read
+    };
+
+    // add supported read haplotypes
+    Json::Value paths = parameters.description()["paths"];
+    if (parameters.output_enabled(Parameters::HAPLOTYPES))
+    {
+        auto haplotypes = findHaplotypes(wgraph, all_reads);
+
+        unsigned int haplo_id = 1;
+        for (auto const& haplotype : haplotypes)
+        {
+            Json::Value haplo_json = Json::objectValue;
+            const std::string& sequence = haplotype.seq();
+            haplo_json["path_sequence"] = sequence;
+            haplo_json["path_length"] = (Json::UInt64)sequence.size();
+            haplo_json["path_start"] = haplotype.start_position();
+            haplo_json["path_end"] = haplotype.end_position();
+            haplo_json["path_encoding"] = haplotype.encode();
+            std::string path_id = "RH_" + std::to_string(haplo_id) + "|";
+
+            const std::string sequence_name = "READ_HAPLOTYPE_" + std::to_string(haplo_id);
+            haplo_json["sequence"] = sequence_name;
+            wgraph.addSequence(
+                sequence_name, std::vector<uint64_t>{ haplotype.node_ids().begin(), haplotype.node_ids().end() });
+            output["sequencenames"].append(sequence_name);
+            haplo_json["nodes"] = Json::arrayValue;
+            uint64_t legacy_nucleotide_len = 0;
+            for (const auto& node : haplotype.node_ids())
+            {
+                haplo_json["nodes"].append(wgraph.nodeName(static_cast<uint64_t>(node)));
+                legacy_nucleotide_len += wgraph.node(static_cast<uint64_t>(node))->sequence().size();
+                if (path_id.back() != '|')
+                {
+                    path_id += "_";
+                }
+                path_id += std::to_string(node);
+            }
+            haplo_json["path_id"] = path_id;
+            haplo_json["nucleotide_len"] = (Json::UInt64)legacy_nucleotide_len;
+            paths.append(haplo_json);
+            output["paths"].append(haplo_json);
+            ++haplo_id;
+        }
+
+        // update node + edge sequence labels
+        uint64_t node_id = 0;
+        for (auto& json_node : output["nodes"])
+        {
+            const auto& node = wgraph.node(node_id);
+            json_node["sequences"] = Json::arrayValue;
+            for (const auto sequence : node->sequence_ids())
+            {
+                json_node["sequences"].append(wgraph.sequenceName(sequence));
+            }
+            ++node_id;
+        }
+        for (auto& json_edge : output["edges"])
+        {
+            const auto& edge
+                = wgraph.edge(wgraph.nodeId(json_edge["from"].asString()), wgraph.nodeId(json_edge["to"].asString()));
+            json_edge["sequences"] = Json::arrayValue;
+            for (const auto sequence : edge->sequence_ids())
+            {
+                json_edge["sequences"].append(wgraph.sequenceName(sequence));
+            }
+        }
+    }
+
+    disambiguateReads(wgraph, all_reads, nodefilter, edgefilter, paths);
+
+    graphs::GraphCoordinates coordinates(wgraph);
+    countReads(
+        coordinates, all_reads, output, parameters.output_enabled(Parameters::NODE_READ_COUNTS),
+        parameters.output_enabled(Parameters::EDGE_READ_COUNTS),
+        parameters.output_enabled(Parameters::PATH_READ_COUNTS),
+        parameters.output_enabled(Parameters::DETAILED_READ_COUNTS));
+
+    getVariants(
+        coordinates, all_reads, output, parameters.min_reads_for_variant(), parameters.min_frac_for_variant(), paths,
+        parameters.output_enabled(Parameters::VARIANTS), parameters.output_enabled(Parameters::NODE_COVERAGE),
+        parameters.output_enabled(Parameters::PATH_COVERAGE));
+
+    summarizeAlignments(wgraph, all_reads, output);
+    double bad_alignment_pct = 0;
+    if (total_reads_input > 0)
+    {
+        auto bad_align_count_it = read_filter_counts.find("bad_align");
+        if (bad_align_count_it != read_filter_counts.end())
+        {
+            bad_alignment_pct = ((double)bad_align_count_it->second) / total_reads_input;
+        }
+    }
+    output["alignment_statistics"]["bad_alignment_pct"] = bad_alignment_pct;
+    for (auto const& read_filter_type : read_filter_counts)
+    {
+        output["alignment_statistics"]["read_filter_" + read_filter_type.first] = (Json::UInt64)read_filter_type.second;
+    }
+
+    if (parameters.output_enabled(Parameters::ALIGNMENTS))
+    {
+        output_reads.reserve(all_reads.size() + output_reads.size());
+        for (auto& r : all_reads)
+        {
+            Json::Value r_json = r->asJson();
+            output["alignments"].append(r_json);
+            output_reads.emplace_back(std::move(r));
+        }
+    }
+    all_reads = std::move(output_reads);
+
+    return output;
 }
 }

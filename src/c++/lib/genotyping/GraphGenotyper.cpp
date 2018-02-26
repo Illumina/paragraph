@@ -1,5 +1,6 @@
+// -*- mode: c++; indent-tabs-mode: nil; -*-
 //
-// Copyright (c) 2016 Illumina, Inc.
+// Copyright (c) 2017 Illumina, Inc.
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -23,476 +24,363 @@
 // OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "genotyping/GraphGenotyper.hh"
-#include "common/Error.hh"
-#include "genotyping/PopStats.hh"
-#include "graphs/Graph.hh"
-#include <fstream>
-#include <iostream>
-#include <utility>
+/**
+ * Genotyper for the graph-represented whole variants across many samples
+ *
+ * \author Sai Chen & Egor Dolzhenko & Peter Krusche
+ * \email schen6@illumina.com & pkrusche@illumina.com & edolzhenko@illumina.com
+ *
+ */
 
+#include "genotyping/GraphGenotyper.hh"
+#include "GraphGenotyperImpl.hh"
+#include "genotyping/BreakpointFinder.hh"
+#include "genotyping/BreakpointStatistics.hh"
+#include "genotyping/GenotypeSet.hh"
+#include "genotyping/PopulationStatistics.hh"
+
+#include "common/Error.hh"
+
+#include <map>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+using std::list;
+using std::map;
+using std::pair;
+using std::set;
 using std::string;
+using std::unordered_map;
 using std::vector;
 
 namespace genotyping
 {
-struct GraphGenotyper::GraphGenotyperImpl
-{
-    GraphGenotyperImpl(
-        const double genotype_error_rate, const int min_overlap_bases, const int max_read_times,
-        const std::string reference_allele_name)
-        : genotype_error_rate(genotype_error_rate)
-        , min_overlap_bases(static_cast<int32_t>(min_overlap_bases))
-        , max_read_times(static_cast<int32_t>(max_read_times))
-        , reference_allele_name(reference_allele_name){};
 
-    // name of sequences (alleles)
-    std::vector<std::string> sequence_names;
-
-    // basic information for final output
-    Json::Value basic_json_information;
-
-    Idxdepth sample_idxdepth;
-
-    /**
-     *  genotyping result storage
-     *  order is the same as sample_names and idx_stats_
-     */
-    std::map<std::string, BreakpointStat> breakpoints_map; // BP key -> info & gt & stats
-
-    /**
-     *  whole-variant genotypes by BP vote
-     */
-    std::vector<VariantGenotype> graph_genotypes;
-
-    /**
-     *  population-scale stats for whole-variant genotypes across all samples
-     */
-    double call_rate;
-    double zero_count_rate;
-    double pass_rate;
-    int num_valid_samples;
-    std::vector<double> allele_frequencies; // order the same oas sequence_names_
-    double hwe_pval;
-
-    // parameters
-    const double genotype_error_rate;
-    const int32_t min_overlap_bases;
-    const int32_t max_read_times;
-    const std::string reference_allele_name;
-};
-
-GraphGenotyper::GraphGenotyper(
-    const double genotype_error_rate, const int min_overlap_bases, const int max_read_times,
-    const std::string reference_allele_name)
-    : _impl(new GraphGenotyperImpl(genotype_error_rate, min_overlap_bases, max_read_times, reference_allele_name))
+GraphGenotyper::GraphGenotyper()
+    : _impl(new GraphGenotyperImpl())
 {
 }
 
 GraphGenotyper::~GraphGenotyper() = default;
 
-void GraphGenotyper::genotypeGraph(
-    const string& paragraph_input_path, const string& reference_path, const string& manifest_path, bool use_em)
+/**
+ * Set the graph we genotype on
+ * @param graph our graph to genotype
+ */
+void GraphGenotyper::reset(std::shared_ptr<graphs::WalkableGraph> graph)
 {
-    auto logger = LOG();
+    // reset all counts
+    _impl.reset(new GraphGenotyperImpl());
+    _impl->graph = std::move(graph);
 
-    // read sample info
-    _impl->sample_idxdepth.load(manifest_path);
-    logger->info("Done loading bam stats from manifest.");
-
-    // read graph and read count info
-    loadGraphAndCounts(paragraph_input_path, reference_path);
-    logger->info("Loaded paragraph input JSON.");
-
-    // breakpoint genotyping
-    logger->info("Running breakpoint genotyping...");
-    try
+    // work out allele and edge names
+    const auto bp_map = createBreakpointMap(*_impl->graph);
+    set<string> allele_names;
+    for (const auto& bp : bp_map)
     {
-        computeBreakpointGenotypes(use_em);
+        _impl->breakpointnames.push_back(bp.first);
+        auto const& bp_info = bp.second;
+        for (auto const& an : bp_info.alleleNames())
+        {
+            allele_names.insert(an);
+        }
     }
-    catch (const std::exception& e)
-    {
-        throw e.what();
-    }
-    logger->info("Breakpoint genotyping completed. Calculating whole-variant variant genotypes...");
-
-    // whole variant genotyping
-    try
-    {
-        computeVariantGenotypes();
-    }
-    catch (const std::exception& e)
-    {
-        throw e.what();
-    }
-    logger->info("Whole-variant genotyping completed.");
+    _impl->allelenames.resize(allele_names.size());
+    std::copy(allele_names.begin(), allele_names.end(), _impl->allelenames.begin());
 }
 
-void GraphGenotyper::loadGraphAndCounts(const string& paragraph_input_path, const string& reference_path)
+/**
+ * @return the graph (asserts if no graph is set)
+ */
+graphs::WalkableGraph const& GraphGenotyper::getGraph() const
 {
-    // open & read json
-    Json::Reader reader;
-    Json::Value paragraph_json;
-    std::ifstream graph_desc(paragraph_input_path);
-    reader.parse(graph_desc, paragraph_json);
-    if (!paragraph_json.isMember("samples"))
-    {
-        throw std::logic_error(
-            "Missing sample information in paragraph json. Raw paragraph output needs to be merged through "
-            "merge_paragraph_json.py before going into the genotyper");
-    }
-    graph_desc.close();
-
-    // build graph
-    graphs::Graph graph;
-    graphs::fromJson(paragraph_json, reference_path, graph);
-    graphs::WalkableGraph wgraph(graph);
-
-    // load basic json info for output
-    _impl->basic_json_information["eventinfo"] = paragraph_json["eventinfo"];
-    _impl->basic_json_information["graphinfo"] = Json::objectValue;
-    vector<string> copied_keys = { "ID", "target_regions", "sequencenames"};
-    for (auto& key : copied_keys)
-    {
-        _impl->basic_json_information["graphinfo"][key] = paragraph_json[key];
-    }
-    _impl->basic_json_information["graphinfo"]["nodes"] = Json::arrayValue;
-    for (auto const& n : paragraph_json["nodes"])
-    {
-        Json::Value node = Json::objectValue;
-        node["name"] = n["name"];
-        if (n.isMember("sequences"))
-        {
-            node["sequences"] = n["sequences"];
-        }
-        _impl->basic_json_information["graphinfo"]["nodes"].append(node);
-    }
-    _impl->basic_json_information["graphinfo"]["edges"] = Json::arrayValue;
-    for (auto const& e : paragraph_json["edges"])
-    {
-        Json::Value edge = Json::objectValue;
-        edge["name"] = e["from"].asString() + "_" + e["to"].asString();
-        if (e.isMember("sequences"))
-        {
-            edge["sequences"] = e["sequences"];
-        }
-        _impl->basic_json_information["graphinfo"]["edges"].append(edge);
-    }
-
-    // load allele info from JSON
-    loadSeqNames(paragraph_json);
-    if (_impl->sequence_names.empty())
-    {
-        throw std::logic_error("Unable to load allele (sequencenames) from paragraph json. Please check your input!");
-    }
-
-    // load breakpoints & counts
-    loadBreakpointInfo(wgraph, paragraph_json);
-    loadEdgeCounts(paragraph_json);
+    assert(_impl->graph);
+    return *_impl->graph;
 }
 
-void GraphGenotyper::loadSeqNames(Json::Value& paragraph_json)
+/**
+ * Add a alignment, depth and summary statistics for a sample
+ */
+void GraphGenotyper::addAlignment(SampleInfo const& sampleinfo)
 {
-    vector<string> raw_seq_names;
-    for (auto& seq_name : paragraph_json["sequencenames"])
+    const std::string& samplename = sampleinfo.sample_name();
+    const Json::Value& alignment = sampleinfo.get_alignment_data();
+    const double depth = sampleinfo.autosome_depth();
+    const int read_length = sampleinfo.read_length();
+
+    _impl->samplenames.push_back(samplename);
+    _impl->samplenameindex[samplename] = _impl->samplenames.size() - 1;
+
+    // add breakpoint map and counts
+    _impl->breakpoint_maps.push_back(createBreakpointMap(*_impl->graph));
+    for (auto& breakpoint : _impl->breakpoint_maps.back())
     {
-        raw_seq_names.push_back(seq_name.asString());
+        breakpoint.second.addCounts(alignment);
     }
-    // now try to put reference in position 0
-    int ref_index = -1;
-    for (int i = 0; i < (int)raw_seq_names.size(); i++)
+    _impl->depths.emplace_back(depth, read_length);
+
+    // extract extra information and check we have the same event
+    if (alignment.isMember("eventinfo"))
     {
-        if (raw_seq_names[i] == _impl->reference_allele_name)
+        if (_impl->basic_info.isMember("eventinfo"))
         {
-            ref_index = i;
-            break;
+            assert(alignment["eventinfo"] == _impl->basic_info["eventinfo"]);
+        }
+        else
+        {
+            _impl->basic_info["eventinfo"] = alignment["eventinfo"];
         }
     }
-    if (ref_index == -1)
+
+    if (!_impl->basic_info.isMember("graphinfo"))
     {
-        std::cerr << "Warning: no reference allele specified. Use input allele order. This might be problematic "
-                     "for brekapoint genotyping"
-                  << std::endl;
-        _impl->sequence_names = raw_seq_names;
-    }
-    else
-    {
-        _impl->sequence_names.push_back(_impl->reference_allele_name);
-        for (int i = 0; i < (int)raw_seq_names.size(); i++)
+        _impl->basic_info["graphinfo"] = Json::objectValue;
+
+        // load event ID
+        if (alignment.isMember("ID"))
         {
-            if (i == ref_index)
-            {
-                continue;
-            }
-            _impl->sequence_names.push_back(raw_seq_names[i]);
+            _impl->basic_info["graphinfo"]["ID"] = alignment["ID"];
         }
-    }
-}
-
-void GraphGenotyper::loadBreakpointInfo(graphs::WalkableGraph& wgraph, Json::Value& paragraph_json)
-{
-    bool source_exist = wgraph.nodeName(wgraph.source()) == "source";
-    bool sink_exist = wgraph.nodeName(wgraph.sink()) == "sink";
-    if ((source_exist && !sink_exist) || (!source_exist && sink_exist))
-    {
-        throw std::logic_error("Bad graph: only have source or sink node.");
-    }
-
-    std::map<string, vector<uint64_t>> edge_to_seq_indexes = generateEgeNameToSeqIndexMap(paragraph_json, source_exist);
-
-    for (auto node : wgraph.allNodes())
-    {
-        if (source_exist)
+        else if (alignment.isMember("vcf_records"))
         {
-            if (node == wgraph.source() || node == wgraph.sink())
+            // comma separate multiple vcf record ID together
+            std::string event_id = "";
+            for (auto const& rec : alignment["vcf_records"])
             {
-                continue;
-            }
-        }
-
-        vector<const vector<uint64_t>*> raw_neighbors;
-        raw_neighbors.resize(2);
-        const auto pred = wgraph.pred(node);
-        const vector<uint64_t> pred_vec = { pred.begin(), pred.end() };
-        const auto succ = wgraph.succ(node);
-        const vector<uint64_t> succ_vec = { succ.begin(), succ.end() };
-        raw_neighbors[0] = &pred_vec;
-        raw_neighbors[1] = &succ_vec;
-
-        string node_name = wgraph.nodeName(node);
-        for (size_t index = 0; index < 2; index++)
-        {
-            const vector<uint64_t> neighbors = source_exist
-                ? removeSourceSink(*raw_neighbors[index], wgraph.source(), wgraph.sink())
-                : *raw_neighbors[index];
-            if (neighbors.size() > 1)
-            {
-                bool from_node_fixed = (index != 0);
-                string node_key = from_node_fixed ? (node_name + "_") : ("_" + node_name);
-                vector<string> neighbor_names;
-                for (auto& neighbor : neighbors)
+                if (rec.isMember("id"))
                 {
-                    neighbor_names.push_back(wgraph.nodeName(neighbor));
-                }
-                BreakpointStat bp_element(node_name, from_node_fixed, neighbor_names, edge_to_seq_indexes);
-                _impl->breakpoints_map.insert(std::make_pair(node_key, bp_element));
-            }
-        }
-    }
-}
-
-std::map<string, vector<uint64_t>>
-GraphGenotyper::generateEgeNameToSeqIndexMap(Json::Value& paragraph_json, bool source_exist)
-{
-    std::map<string, vector<uint64_t>> edge_name_to_seq_indexes; // edge name --> sequence index
-
-    std::map<string, uint64_t> seq_name_to_index; // sequence name --> sequence index
-    for (size_t i = 0; i < _impl->sequence_names.size(); i++)
-    {
-        seq_name_to_index[_impl->sequence_names[i]] = (uint64_t)i;
-    }
-
-    for (auto edge : paragraph_json["edges"])
-    {
-        if (!edge.isMember("sequences"))
-        {
-            if (!source_exist)
-            {
-                throw std::logic_error("Missing sequence label at non-sink or non-source node!");
-            }
-        }
-        string edge_name = edge["from"].asString() + "_" + edge["to"].asString();
-        for (auto& seq_name : edge["sequences"])
-        {
-            edge_name_to_seq_indexes[edge_name].push_back(seq_name_to_index[seq_name.asString()]);
-        }
-    }
-    return edge_name_to_seq_indexes;
-}
-
-vector<uint64_t> GraphGenotyper::removeSourceSink(const vector<uint64_t>& node_vec, uint64_t source, uint64_t sink)
-{
-    std::vector<uint64_t> new_vec;
-    for (auto v : node_vec)
-    {
-        if (v != source && v != sink)
-        {
-            new_vec.push_back(v);
-        }
-    }
-    return new_vec;
-}
-
-void GraphGenotyper::loadEdgeCounts(Json::Value& paragraph_json)
-{
-    for (auto& bp_stat : _impl->breakpoints_map)
-    {
-        for (int i = 0; i < (int)_impl->sample_idxdepth.sampleSize(); i++)
-        {
-            bp_stat.second.addBreakpointEdgeCountForOneSample(paragraph_json, _impl->sample_idxdepth.getSampleName(i));
-        }
-    }
-}
-
-void GraphGenotyper::computeBreakpointGenotypes(bool use_em)
-{
-    for (auto& bp_stat : _impl->breakpoints_map)
-    {
-        bp_stat.second.genotype(
-            _impl->genotype_error_rate, (int)_impl->sample_idxdepth.sampleSize(), _impl->max_read_times,
-            _impl->min_overlap_bases, _impl->sample_idxdepth, use_em);
-    }
-}
-
-void GraphGenotyper::computeVariantGenotypes()
-{
-    // whole variant genotyping
-    for (size_t sample = 0; sample < _impl->sample_idxdepth.sampleSize(); sample++)
-    {
-        VariantGenotype sample_genotype = VariantGenotype();
-        for (auto& breakpoint : _impl->breakpoints_map)
-        {
-            sample_genotype.addInfoFromSingleBreakpoint(breakpoint.second.getGenotype(sample));
-        }
-        sample_genotype.genotype();
-        _impl->graph_genotypes.push_back(sample_genotype);
-    }
-    // update stats
-    if (_impl->graph_genotypes.size() > 1)
-    {
-        updateVariantStats();
-    }
-}
-
-void GraphGenotyper::updateVariantStats()
-{
-    int num_missing = 0;
-    int num_zero_count = 0;
-    int num_pass = 0;
-    for (auto& sample_genotype : _impl->graph_genotypes)
-    {
-        if (sample_genotype.empty())
-        {
-            num_missing++;
-            if (sample_genotype.zeroCount())
-            {
-                num_zero_count++;
-            }
-            continue;
-        }
-        if (sample_genotype.pass())
-        {
-            num_pass++;
-        }
-    }
-    _impl->num_valid_samples = (int)_impl->graph_genotypes.size() - num_missing;
-    _impl->call_rate = (double)_impl->num_valid_samples / _impl->graph_genotypes.size();
-    _impl->zero_count_rate = (double)num_zero_count / _impl->graph_genotypes.size();
-    _impl->pass_rate = (double)num_pass / _impl->graph_genotypes.size();
-
-    PopStats pop_stats(_impl->graph_genotypes);
-    std::map<uint64_t, int> raw_allele_counts = pop_stats.alleleCounts();
-    _impl->allele_frequencies.resize(_impl->sequence_names.size(), 0);
-    for (auto& allele : raw_allele_counts)
-    {
-        _impl->allele_frequencies[allele.first] = (double)allele.second / _impl->num_valid_samples / 2;
-    }
-    _impl->hwe_pval = pop_stats.getHWE();
-}
-
-void GraphGenotyper::toCsv(std::ostream* out)
-{
-    *out << "#Sample\tGenotype" << std::endl;
-    for (size_t sample = 0; sample < _impl->sample_idxdepth.sampleSize(); sample++)
-    {
-        string sample_name = _impl->sample_idxdepth.getSampleName((int)sample);
-        *out << sample_name << "," << string(_impl->graph_genotypes[sample]) << std::endl;
-    }
-}
-
-void GraphGenotyper::toJson(std::ostream* out)
-{
-    Json::Value output_json = _impl->basic_json_information;
-    output_json["sequencenames"] = Json::arrayValue;
-    for (auto& seq_name : _impl->sequence_names)
-    {
-        output_json["sequencenames"].append(seq_name);
-    }
-
-    if (_impl->graph_genotypes.size() > 1)
-    {
-        output_json["call_rate"] = _impl->call_rate;
-        output_json["zero_count_rate"] = _impl->zero_count_rate;
-        output_json["pass_rate"] = _impl->pass_rate;
-        output_json["AF"] = Json::Value();
-        for (size_t i = 0; i < _impl->allele_frequencies.size(); i++)
-        {
-            output_json["AF"][_impl->sequence_names[i]] = _impl->allele_frequencies[i];
-        }
-        output_json["hwe_p"] = _impl->hwe_pval;
-        output_json["breakpoints"] = Json::Value();
-        for (auto& bp_stat : _impl->breakpoints_map)
-        {
-            output_json["breakpoints"][bp_stat.first] = bp_stat.second.descriptionsToJson();
-        }
-    }
-
-    // sample-specific information
-    output_json["samples"] = Json::Value();
-    vector<string> edge_names_to_print = getUniqueEdgeNames();
-
-    for (int sample = 0; sample < (int)_impl->sample_idxdepth.sampleSize(); sample++)
-    {
-        string sample_name = _impl->sample_idxdepth.getSampleName((int)sample);
-        output_json["samples"][sample_name] = Json::Value();
-        output_json["samples"][sample_name] = _impl->graph_genotypes[sample].toJson(_impl->sequence_names);
-        for (auto& key_name : { "read_counts_by_edge", "breakpoints" })
-        {
-            output_json["samples"][sample_name][key_name] = Json::Value();
-        }
-
-        for (auto& bp_stat : _impl->breakpoints_map)
-        {
-            for (auto& edge_name : edge_names_to_print)
-            {
-                auto current_edge_count = bp_stat.second.getEdgeCount(sample, edge_name);
-                if (current_edge_count > 0)
-                {
-                    output_json["samples"][sample_name]["read_counts_by_edge"][edge_name]
-                        = static_cast<int>(current_edge_count);
+                    if (!event_id.empty())
+                    {
+                        event_id += ",";
+                    }
+                    event_id += rec["id"].asString();
                 }
             }
+            _impl->basic_info["graphinfo"]["ID"] = event_id;
         }
-
-        for (auto& bp_stat : _impl->breakpoints_map)
+        // load basic json info for output
+        vector<string> copied_keys = { "target_regions", "sequencenames" };
+        for (auto& key : copied_keys)
         {
-            output_json["samples"][sample_name]["breakpoints"][bp_stat.first]
-                = bp_stat.second.sampleGenotypeToJson(sample, _impl->sequence_names);
+            _impl->basic_info["graphinfo"][key] = alignment[key];
+        }
+        _impl->basic_info["graphinfo"]["nodes"] = Json::arrayValue;
+        for (auto const& n : alignment["nodes"])
+        {
+            Json::Value node = Json::objectValue;
+            node["name"] = n["name"];
+            if (n.isMember("sequences"))
+            {
+                node["sequences"] = n["sequences"];
+            }
+            _impl->basic_info["graphinfo"]["nodes"].append(node);
+        }
+        _impl->basic_info["graphinfo"]["edges"] = Json::arrayValue;
+        for (auto const& e : alignment["edges"])
+        {
+            Json::Value edge = Json::objectValue;
+            edge["name"] = e["from"].asString() + "_" + e["to"].asString();
+            if (e.isMember("sequences"))
+            {
+                edge["sequences"] = e["sequences"];
+            }
+            _impl->basic_info["graphinfo"]["edges"].append(edge);
         }
     }
-    Json::StyledStreamWriter w;
-    w.write(*out, output_json);
+
+    // graph alignment statistics summary
+    if (!_impl->basic_info.isMember("samples"))
+    {
+        _impl->basic_info["samples"] = Json::Value();
+    }
+    _impl->basic_info["samples"][samplename] = alignment["alignment_statistics"];
+    auto& alignment_stat_json = _impl->basic_info["samples"][samplename];
+    for (auto& k : alignment["fragment_statistics"].getMemberNames())
+    {
+        if (k != "linear_histogram" && k != "graph_histogram") // skip histogram output because it is too lengthy
+        {
+            alignment_stat_json[k] = alignment["fragment_statistics"][k];
+        }
+    }
 }
 
-vector<string> GraphGenotyper::getUniqueEdgeNames()
+/**
+ * @return set of genotypes for all alignments that were added
+ */
+Json::Value GraphGenotyper::getGenotypes()
 {
-    std::map<string, bool> unique_edge_map;
-    for (auto& bp_stat : _impl->breakpoints_map)
+    // produce genotypes
+    runGenotyping();
+
+    Json::Value result = _impl->basic_info;
+    auto& samples = result["samples"];
+
+    for (const auto& samplename : _impl->samplenames)
     {
-        vector<string> edge_names = bp_stat.second.exportEdgeNames();
-        for (auto& e_name : edge_names)
+        samples[samplename]["breakpoints"] = Json::objectValue;
+    }
+
+    map<string, GenotypeSet> genotypeSets; // sample->breakpoints to breakpoint->samples. for popluation statistics
+
+    for (size_t isample = 0; isample < _impl->samplenames.size(); ++isample)
+    {
+        const string& samplename = _impl->samplenames[isample];
+        const BreakpointMap& breakpoints = _impl->breakpoint_maps[isample];
+
+        // initialize blank GT
+        static const std::vector<std::string> no_alleles;
+        static const Genotype empty_genotype = Genotype();
+
+        // print breakpoint genotypes (breakpoint_maps doesn't have "" breakpoint)
+        for (const auto& breakpoint : breakpoints)
         {
-            if (unique_edge_map.find(e_name) == unique_edge_map.end())
+            const std::string& breakpointname = breakpoint.first;
+            auto& this_set = genotypeSets[breakpointname];
+
+            auto gt_it = _impl->graph_genotypes.find(std::make_pair(samplename, breakpointname));
+            if (gt_it != _impl->graph_genotypes.end())
             {
-                unique_edge_map[e_name] = true;
+                const auto& allele_names = alleleNames();
+                this_set.add(allele_names, gt_it->second);
+                samples[samplename]["breakpoints"][breakpointname] = Json::objectValue;
+                auto& breakpoint_json = samples[samplename]["breakpoints"][breakpointname];
+                breakpoint_json["gt"] = gt_it->second.toJson(allele_names);
+
+                // output read counts
+                const auto breakpoint_it = _impl->breakpoint_maps[isample].find(breakpointname);
+                if (breakpoint_it != _impl->breakpoint_maps[isample].end())
+                {
+                    breakpoint_json["counts"] = Json::objectValue;
+                    breakpoint_json["counts"]["edges"] = Json::objectValue;
+                    breakpoint_json["counts"]["alleles"] = Json::objectValue;
+                    for (const auto& bp_edgename : breakpoint_it->second.edgeNames())
+                    {
+                        breakpoint_json["counts"]["edges"][bp_edgename] = breakpoint_it->second.getCount(bp_edgename);
+                    }
+                    for (const auto& bp_allelename : breakpoint_it->second.alleleNames())
+                    {
+                        breakpoint_json["counts"]["alleles"][bp_allelename]
+                            = breakpoint_it->second.getCount(bp_allelename);
+                    }
+                }
+            }
+            else
+            {
+                this_set.add(no_alleles, empty_genotype);
+            }
+        }
+
+        // print whole variant genotypes
+        auto gt_it = _impl->graph_genotypes.find(std::make_pair(samplename, ""));
+        auto& this_set = genotypeSets[""];
+        if (gt_it != _impl->graph_genotypes.end())
+        {
+            const auto& allele_names = alleleNames();
+            this_set.add(allele_names, gt_it->second);
+            samples[samplename]["gt"] = gt_it->second.toJson(allele_names);
+        }
+        else
+        {
+            this_set.add(no_alleles, empty_genotype);
+            samples[samplename]["gt"] = empty_genotype.toJson(no_alleles);
+        }
+    }
+
+    // print population statistics for more than one sample
+    if (_impl->samplenames.size() > 1)
+    {
+        result["population"] = Json::objectValue;
+        auto& pop = result["population"];
+        for (auto& iset : genotypeSets)
+        {
+            PopulationStatistics ps(iset.second);
+            if (iset.first.empty())
+            {
+                pop = ps.toJson();
+            }
+            else
+            {
+                if (!pop.isMember("breakpoints"))
+                {
+                    pop["breakpoints"] = Json::objectValue;
+                }
+                pop["breakpoints"][iset.first] = ps.toJson();
             }
         }
     }
-    vector<string> unique_edge_names;
-    for (auto& element : unique_edge_map)
+
+    return result;
+}
+
+/**
+ * @return a list of allele names
+ */
+std::vector<std::string> const& GraphGenotyper::alleleNames() const { return _impl->allelenames; }
+
+/**
+ * Set the genotype for a particular sample
+ *
+ * @param samplename sample name
+ * @param breakpointname name of breakpoint ("" for combined GT)
+ * @param alleles names of the alleles for the genotype
+ * @param genotype variant genotype(s)
+ */
+void GraphGenotyper::setGenotype(const std::string& samplename, const std::string& breakpointname, Genotype genotype)
+{
+    _impl->graph_genotypes[make_pair(samplename, breakpointname)] = std::move(genotype);
+}
+
+/**
+ * Get the genotype for a particular sample
+ *
+ * @param samplename sample name
+ * @param breakpointname name of breakpoint ("" for combined GT)
+ * @return the genotype
+ */
+Genotype GraphGenotyper::getGenotype(const std::string& samplename, const std::string& breakpointname) const
+{
+    auto gt_it = _impl->graph_genotypes.find(make_pair(samplename, breakpointname));
+    if (gt_it == _impl->graph_genotypes.end())
     {
-        unique_edge_names.push_back(element.first);
+        return Genotype();
     }
-    return unique_edge_names;
+    return gt_it->second;
+}
+
+/**
+ * @return a list of sample names
+ */
+std::vector<std::string> const& GraphGenotyper::sampleNames() const { return _impl->samplenames; }
+
+/**
+ * @return a list of breakpoint names
+ */
+std::list<std::string> const& GraphGenotyper::breakpointNames() const { return _impl->breakpointnames; }
+
+/**
+ * Get the alignment read counts
+ * @param sample_index index of sample (name is in sampleNames[sample_index])
+ * @param edge_or_allele_name name of edge or allele
+ * @return alignment result for sample
+ */
+int32_t
+GraphGenotyper::getCount(size_t sample_index, string const& breakpoint, std::string const& edge_or_allele_name) const
+{
+    assert(sample_index < _impl->breakpoint_maps.size());
+    auto bp_it = _impl->breakpoint_maps[sample_index].find(breakpoint);
+    assert(bp_it != _impl->breakpoint_maps[sample_index].end());
+    return bp_it->second.getCount(edge_or_allele_name);
+}
+
+/**
+ * Get the depth data for a sample
+ * @param sample_index index of sample (name is in sampleNames[sample_index])
+ * @return pair of expected mean depth and read length
+ */
+std::pair<double, int> const& GraphGenotyper::getDepthAndReadlength(size_t sample_index) const
+{
+    return _impl->depths[sample_index];
 }
 }

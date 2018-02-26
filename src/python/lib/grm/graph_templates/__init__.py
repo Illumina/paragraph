@@ -56,13 +56,13 @@ def make_graph(reference, event):
     # needs to be deletion, insertion or both
     ref_len = event["end"] - event["start"] + 1
     is_del = ref_len > 0
-    assert is_del or len(ins) > 0
+    assert is_del or len(ins) > 0  # pylint: disable=len-as-condition
 
     chrom = event["chrom"]
     start = min(event["start"], event["end"])
     end = max(event["start"], event["end"])
 
-    if is_del and len(ins) == 0:
+    if is_del and len(ins) == 0:   # pylint: disable=len-as-condition
         if ref_len <= 2 * flank:
             return "del", shortdeletion.make_graph(chrom, start, end, flank)
         else:

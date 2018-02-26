@@ -1026,10 +1026,12 @@ static void split_info_numeric(
     case BCF_HT_INT:
         BRANCH_NUMERIC(int32, int32_t);
         break;
-    // cppcheck-suppress invalidPointerCast
     case BCF_HT_REAL:
+    {
+        // cppcheck-suppress invalidPointerCast
         BRANCH_NUMERIC(float, float);
         break;
+    }
     }
 #undef BRANCH_NUMERIC
 }
@@ -1157,6 +1159,7 @@ static void split_format_genotype(
             {
                 break;
             }
+            // cppcheck-suppress clarifyCalculation
             if (bcf_gt_is_missing(gt[j]) || bcf_gt_allele(gt[j]) == 0)
             {
                 continue; // missing allele or ref: leave as is
@@ -1267,8 +1270,11 @@ static void split_format_numeric(
         BRANCH_NUMERIC(int32, int32_t, src_vals[j] == bcf_int32_vector_end, dst_vals[2] = bcf_int32_vector_end);
         break;
     case BCF_HT_REAL:
+    {
+        // cppcheck-suppress invalidPointerCast
         BRANCH_NUMERIC(float, float, bcf_float_is_vector_end(src_vals[j]), bcf_float_set_vector_end(dst_vals[2]));
         break;
+    }
     }
 #undef BRANCH_NUMERIC
 }
@@ -1350,9 +1356,9 @@ static void split_format_string(
     }
     else if (len == BCF_VL_G)
     {
+        int i, blen = ret / nsmpl, maxlen = 0, i0a = bcf_alleles2gt(0, ialt + 1);
         // cppcheck-suppress duplicateExpression
-        int i, blen = ret / nsmpl, maxlen = 0, i0a = bcf_alleles2gt(0, ialt + 1),
-               iaa = bcf_alleles2gt(ialt + 1, ialt + 1);
+        int iaa = bcf_alleles2gt(ialt + 1, ialt + 1);
         char* ptr = str.s;
         for (i = 0; i < nsmpl; i++)
         {

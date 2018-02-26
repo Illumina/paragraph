@@ -35,6 +35,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstdarg>
 #include <cstdio>
 #include <stdexcept>
@@ -188,6 +189,38 @@ static inline void assertFileExists(const std::string& path_str)
     if (!boost::filesystem::is_regular_file(p))
     {
         error("ERROR: %s does not exist", path_str.c_str());
+    }
+}
+
+/**
+ * Error if one of the files doesn't exist
+ * @param path_str
+ */
+template <typename It> void assertFilesExist(It begin, It end) { std::for_each(begin, end, &assertFileExists); }
+
+/**
+ * Error if one or more paths have matching file names
+ * @param path_str
+ */
+template <typename It> void assertFileNamesUnique(It begin, It end)
+{
+    std::vector<boost::filesystem::path> filePaths(begin, end);
+    std::sort(
+        filePaths.begin(), filePaths.end(),
+        [](const boost::filesystem::path& left, const boost::filesystem::path& right) {
+            return left.filename() < right.filename();
+        });
+
+    const auto dupe = std::adjacent_find(
+        filePaths.begin(), filePaths.end(),
+        [](const boost::filesystem::path& left, const boost::filesystem::path& right) {
+            return left.filename() == right.filename();
+        });
+    if (filePaths.end() != dupe)
+    {
+        error(
+            "ERROR: file names conflict between these paths: '%s' and '%s'", dupe->string().c_str(),
+            (dupe + 1)->string().c_str());
     }
 }
 

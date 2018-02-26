@@ -134,7 +134,7 @@ public:
 /** Alignment result storage */
 struct AlignmentResult
 {
-    AlignmentResult(Alignment* aln)
+    explicit AlignmentResult(Alignment* aln)
     {
         score = aln->getScore();
         uint32_t* tmp;
@@ -175,7 +175,7 @@ struct AlignmentResult
         }
     }
 
-    AlignmentResult const& operator=(AlignmentResult const& rhs)
+    AlignmentResult& operator=(AlignmentResult const& rhs)
     {
         if (&rhs == this)
         {

@@ -26,6 +26,8 @@
 
 #include "common/Fragment.hh"
 
+#include "graphs/GraphMappingOperations.hh"
+
 namespace common
 {
 
@@ -70,7 +72,8 @@ void Fragment::addRead(graphs::GraphCoordinates const& coordinates, Read const& 
             ++n_graph_forward_reads;
         }
 
-        graphs::GraphMapping mapping(read.graph_pos(), read.graph_cigar(), read.bases(), coordinates.getGraph());
+        graphs::GraphMapping mapping
+            = decodeFromString(read.graph_pos(), read.graph_cigar(), read.bases(), coordinates.getGraph());
         read_positions_.emplace_back(coordinates.canonicalStartAndEnd(mapping));
         read_lengths_.emplace_back(mapping.querySpan());
         if (read_positions_.size() == 1)

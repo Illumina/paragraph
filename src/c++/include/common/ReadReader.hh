@@ -39,6 +39,8 @@ class ReadReader
 public:
     virtual ~ReadReader() {}
 
+    virtual void setRegion(const std::string& region_encoding) = 0;
+
     virtual bool getAlign(Read& align) = 0;
 
     virtual bool getAlignedMate(const Read& read, Read& mate) = 0;

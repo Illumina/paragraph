@@ -42,34 +42,34 @@
 
 #include "spdlog/spdlog.h"
 
-#include "common/Error.hh"
+#include "grmpy/AlignSamples.hh"
+#include "grmpy/CountAndGenotype.hh"
+#include "grmpy/Parameters.hh"
 
-#include "grm/CountAndGenotype.hh"
-#include "grm/Parameters.hh"
+#include "common/Error.hh"
 
 using std::string;
 namespace po = boost::program_options;
 
-using namespace grm;
+using namespace grmpy;
 
-int main(int argc, char* argv[])
+int main(int argc, const char* argv[])
 {
     po::options_description desc("Allowed options");
     desc.add_options()("help,h", "Produce help message.")(
-        "paragraph,p", po::value<string>(), "JSON file output produced by Paragraph tool.")(
-        "reference,r", po::value<string>(), "Reference genome fasta file.")(
+        "reference,r", po::value<string>(),
+        "Reference genome fasta file.")("graph-spec,g", po::value<string>(), "JSON file describing the graph")(
+        "genotyping-parameters,G", po::value<string>(), "JSON file with genotyping model parameters")(
         "manifest,m", po::value<string>(), "Manifest of samples with path and bam stats.")(
         "output,o", po::value<string>(), "Output file name. Will output tabular format to stdout if omitted.")(
-        "print-csv", po::value<bool>()->default_value(false), "print output as csv instead of json")(
+        "max-reads-per-event,M", po::value<int>()->default_value(10000),
+        "Maximum number of reads to process for a single event.")(
+        "bad-align-frac", po::value<float>()->default_value(0.8f),
+        "Fraction of read that needs to be mapped in order for it to be used.")(
         "log-level", po::value<string>()->default_value("info"), "Set log level (error, warning, info).")(
-        "genotype-error-rate", po::value<double>()->default_value(0.01),
-        "Fixed genotype error rate for breakpoint genotyping")(
-        "min-overlap-bases", po::value<int>()->default_value(16),
-        "Minimum overlap bases used in estimating poisson model parameters.")(
-        "max-read-times", po::value<int>()->default_value(40),
-        "Max times of total reads in one sample for a breakpoint. Multiplied by depth.")(
-        "useEM", po::value<bool>()->default_value(false),
-        "use Expectation-Maximization for genotyping. Will be more accurate but take more time")(
+        "sample-threads,t", po::value<int>()->default_value(std::thread::hardware_concurrency()),
+        "Number of threads for parallel sample processing.")(
+        "alignment-threads", po::value<int>()->default_value(1), "Number of threads for parallel read alignment.")(
         "log-file", po::value<string>()->default_value(""), "Log to a file instead of stderr.")(
         "log-async", po::value<bool>()->default_value(true), "Enable / disable async logging.");
 
@@ -91,18 +91,6 @@ int main(int argc, char* argv[])
             vm["log-level"].as<string>().c_str());
         logger = LOG();
 
-        string paragraph_input_path;
-        if (vm.count("paragraph") != 0u)
-        {
-            paragraph_input_path = vm["paragraph"].as<string>();
-            logger->info("Paragraph result as input: {}", paragraph_input_path);
-            assertFileExists(paragraph_input_path);
-        }
-        else
-        {
-            error("Error: Paragraph output is missing.");
-        }
-
         string reference_path;
         if (vm.count("reference"))
         {
@@ -113,6 +101,18 @@ int main(int argc, char* argv[])
         else
         {
             error("Error: Reference genome path is missing.");
+        }
+
+        string graph_path;
+        if (vm.count("graph-spec"))
+        {
+            graph_path = vm["graph-spec"].as<string>();
+            logger->info("Graph path: {}", graph_path);
+            assertFileExists(graph_path);
+        }
+        else
+        {
+            error("Error: Graph spec path is missing.");
         }
 
         string manifest_path;
@@ -126,15 +126,28 @@ int main(int argc, char* argv[])
         {
             error("Error: Manifest file is missing.");
         }
+        string genotyping_parameter_path;
+        if (vm.count("genotyping-parameters"))
+        {
+            genotyping_parameter_path = vm["genotyping-parameters"].as<string>();
+        }
 
-        string output_path = vm["output"].as<string>();
-        Parameters parameters(
-            vm["print-csv"].as<bool>(), vm["genotype-error-rate"].as<double>(), vm["min-overlap-bases"].as<int>(),
-            vm["max-read-times"].as<int>(), vm["useEM"].as<bool>());
+        const string output_path = vm["output"].as<string>();
+
         logger->info("Loading parameters");
-        parameters.load(paragraph_input_path, reference_path, manifest_path, output_path);
+        Parameters parameters(
+            vm["sample-threads"].as<int>(), vm["alignment-threads"].as<int>(), vm["max-reads-per-event"].as<int>(),
+            vm["bad-align-frac"].as<float>());
+        parameters.load(graph_path, reference_path, manifest_path, output_path, genotyping_parameter_path);
         logger->info("Done loading parameters");
-        countAndGenotype(parameters, &std::cout);
+
+        logger->info("Running alignments");
+        alignSamples(parameters);
+        logger->info("Done running alignments");
+
+        logger->info("Running genotyper");
+        countAndGenotype(parameters);
+        logger->info("Done running genotyper");
     }
     catch (const std::exception& e)
     {

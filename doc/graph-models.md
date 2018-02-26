@@ -134,69 +134,73 @@ Note that one node may correspond to two breakpoints if it has more than one
 input edge and more than one output edge. Genotyping of these two breakpoints
 will be performed independently.
 
-Consider a breakpoint in one sample. We have:
+Consider a breakpoint in one sample. We define:
 
-&nbsp;&nbsp;&nbsp;&nbsp;**[G]<sub>a/b</sub>**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A possible underlying genotype with haplotypes named *a*, *b*.
-
-&nbsp;&nbsp;&nbsp;&nbsp;**R**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set of reads mapped to edges connected with this breakpoint and with this direction
-
-&nbsp;&nbsp;&nbsp;&nbsp;**R<sub>a,b</sub>**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reads in **R** mapped to the edge of haplotype *a* or *b*.
-
-&nbsp;&nbsp;&nbsp;&nbsp;**R<sub>≠a,b</sub>**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reads in **R** mapped to edges that belong to any other haplotypes rather than *a* or *b*.
-
-&nbsp;&nbsp;&nbsp;&nbsp;**P(G<sub>a/b</sub>)**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Prior of genotype G<sub>a/b</sub>.
+![Model definitions](genotyping-model-defs.png)
   
-The likelihood of observing such reads with the underlying genotype of **G<sub>a/b</sub>**
+We define the likelihood of observing a set of reads 
+given genotype **G<sub>a/b</sub>** as follows:
 
-&nbsp;&nbsp;&nbsp;&nbsp;**P(R | G<sub>a/b</sub>) =  &nbsp;P(R<sub>a,b</sub> | G<sub>a/b</sub>)&nbsp; * &nbsp;P(R<sub>≠a,b</sub> | G<sub>a/b</sub>)**
+![Read likelihood](genotyping-model-read-likelihood.png)
 
-is the product of the likelihood of reads mapped to haplotype *a*,*b*, and 
-the likelihood of reads not mapped haplotype *a* or *b*.
+That is, the likelihood of observing reads in R under genotype a/b is the product of (A) the likelihood of reads aligned to edges corresponding to haplotypes a and b and (B) the likelihood of reads aligned to other edges (erroneously if a/b is the true genotype).
 
-The likelihood of observing genotype **G<sub>a/b</sub>** given a set of reads **R** is then
+The likelihood of observing genotype **G<sub>a/b</sub>** given a set of reads **R** is then 
 
-&nbsp;&nbsp;&nbsp;&nbsp;**P(G<sub>a/b</sub> | R) &prop; &nbsp;P(G<sub>a/b</sub>)&nbsp; * &nbsp;P(R | G<sub>a/b</sub>)&nbsp;**
+![GT likelihood](genotyping-model-gt-likelihood.png)
 
 where &nbsp;P(G<sub>a/b</sub>)&nbsp; is the prior genotype probability for **G<sub>a/b</sub>** (e.g. a
 population frequency, or uniform prior over all possible genotypes).
  
-Assuming read length ***l***, average depth ***d***, and a pre-defined minimum overlap of read bases ***m***, we estimate Poisson distribution mean **λ** for **R** as
+We assume that the read count for a locus is Poisson-distributed with
+mean **λ**. Let **dpois(N, λ)** be the probability of observing 
+**N = N<sub>≠a,b</sub> + N<sub>a</sub> + N<sub>b</sub>** reads. 
 
-&nbsp;&nbsp;&nbsp;&nbsp;**λ = round( *d* * (*l* - *m*) / *l* )**
+With read length ***l***, average sequencing depth ***d***, and a 
+pre-defined read-anchoring overlap of ***m*** bases, we the mean 
+**λ** for **R** as **λ = round( *d*  (*l* - *m*) / *l* )**. This
+correction is used because we require the reads we use as support
+for breakpoint edges to not just overlap a single nucleotide, but 
+rather ***m*** bases which anchor the read on either side of the
+breakpoint.
 
-Let **ε<sub>a/b</sub>** be the genotype error rate for **[G]<sub>a/b</sub>**. We get the Poisson distribution mean for **R<sub>≠a,b</sub>**:
+Let **ε<sub>a/b</sub>** be the read error rate which models the 
+fraction of reads which may have been identified to support an 
+incorrect haplotype (i.e. a non- *a*/*b* haplotype in case
+of ***G<sub>a/b</sub>*** ). The likelihood for reads not mapped
+to *a* or *b* is:
 
-&nbsp;&nbsp;&nbsp;&nbsp;**λ<sub>≠a,b</sub> = round( λ * ε<sub>a/b</sub> )**
+![Read error likelihood](genotyping-model-error-likelihood.png)
 
-With the following notation:
+To compute the read likelihood for reads supporting haplotypes
+*a* and *b*, we consider two cases.
 
-&nbsp;&nbsp;&nbsp;&nbsp;**PMF<sub>≠a,b</sub>**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Poisson probability mass function with parameter **λ<sub>≠a,b</sub>**
+If *a*, *b* are the same haplotype, we have **N<sub>a,b</sub> = N<sub>a</sub> + N<sub>b</sub>**, and we use
 
-&nbsp;&nbsp;&nbsp;&nbsp;**N<sub>≠a,b</sub>**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;number of reads mapped to neither haplotype *a* or *b*
+![One haplotype read likelihood](genotyping-model-goodread-likelihood.png)
 
-The genotype likelihood part of **R<sub>≠a,b</sub>** (reads mapped to neither *a* or *b*) is
+For the case where *a*,*b* are different haplotypes, we introduce two more 
+parameters *μ<sub>a</sub>*, *μ<sub>b</sub>* which denote the expected fraction
+of reads supporting haplotypes *a* and *b* respectively:
 
-&nbsp;&nbsp;&nbsp;&nbsp;**P(R<sub>≠a,b</sub> | G<sub>a/b</sub>) = PMF<sub>≠a,b</sub>( N<sub>≠a,b</sub> )**
+![Two haplotype read likelihood](genotyping-model-goodread-likelihood-dip.png)
 
-If *a*, *b* are the same haplotype:
+The additional parameters are useful 
+because we are differently successful retrieving the reads supporting each 
+allele depending on its type. In the ideal case, values for μ should be 
+close to 0.5. However, when genotyping insertions we may be missing some of
+the reads for our insertion allele since they may not have been aligned 
+within the target regions. This can be accounted for by using a lower 
+μ value. Empirically, we can use the mean read allele frequency for each 
+allele type as an approximation:
 
-&nbsp;&nbsp;&nbsp;&nbsp;**λ<sub>a,b</sub> = round( λ * (1 - ε<sub>a/b</sub>) )**
+![Allele frequency plots](allele-read-fraction.png)
 
-With similar notation above, the genotype likelihood part of **R<sub>a,b</sub>** is
-
-&nbsp;&nbsp;&nbsp;&nbsp;**P(R<sub>a,b</sub> | G<sub>a/b</sub>) = PMF<sub>a,b</sub>( N<sub>a,b</sub> )**
-
-If *a*,*b* are different haplotypes:
-
-With expected read fraction in heterozygotes of haplotype *a*, *b* as *μ<sub>a</sub>*, *μ<sub>b</sub>*
-
-&nbsp;&nbsp;&nbsp;&nbsp;**λ<sub>a</sub> = λ * μ<sub>a</sub>**
-
-&nbsp;&nbsp;&nbsp;&nbsp;**λ<sub>b</sub> = λ * μ<sub>b</sub>**
-
-The resulting genotype likelihood part of **R<sub>a,b</sub>** (reads mapped to *a* or *b*) is
-
-&nbsp;&nbsp;&nbsp;&nbsp;**P(R<sub>a,b</sub> | G<sub>a/b</sub>) = PMF<sub>a</sub>( N<sub>a</sub> ) * PMF<sub>b</sub>( N<sub>b</sub> ) * PMF<sub>≠a,b</sub>( N<sub>≠a,b</sub> )**.
+In the current version of this tool we apply the same model and parameter
+set to all events. However, it is possible to improve the accuracy of 
+genotyping by using an Expectation-Maximisation algorithm to estimate
+error parameters for individual events as long as these have a high-enough
+population allele frequency.
 
 ## <a name='WholeVariantGenotyping'></a>Whole Variant Genotyping
 We use the above breakpoint genotyping model to determine the most likely 
@@ -214,7 +218,7 @@ the filter as *CONFLICTS*.
 
 A graph model for a sequence swap consists of four nodes representing left flank, deleted sequence, inserted sequence, and right flank. It can be represented schematically like this:
 
-+![breakpoint-genotyper.png](sequence-swap-graph.png)
+![breakpoint-genotyper.png](sequence-swap-graph.png)
 
 This graph has two breakpoints: breakpoint #1 defined by two "from" edges and breakpoint #2 defined by two "to" edges (see the diagram above).
 
@@ -239,21 +243,24 @@ Assume the sample has depth ***d*** = 20, read length ***l*** = 100. Using the d
 
 &nbsp;&nbsp;&nbsp;&nbsp;**λ = round( d * (*l* - *m*) / *l* ) = 19**
 
-Using the default ε as 0.05 for all genotypes:
+Using the default ε as 0.05:
 
 &nbsp;&nbsp;&nbsp;&nbsp;**λ<sub>≠a,b</sub> = round(λ * ε) = 1**
 
-&nbsp;&nbsp;&nbsp;&nbsp;**P(R<sub>≠a,b</sub> | G<sub>a/b</sub>) = PMF<sub>≠a,b</sub>(N<sub>≠a,b</sub>) = PMF<sub>≠a,b</sub>(0) = 0.368**
+&nbsp;&nbsp;&nbsp;&nbsp;**P(R<sub>≠a,b</sub> | G<sub>a/b</sub>) = dpois(N<sub>≠a,b</sub>, λ<sub>≠a,b</sub>) = dpois(0, 1) = 0.368**.
 
-Using the default haplotype fraction **μ** = 0.5 for both **μ<sub>a</sub>** and **μ<sub>b</sub>**
+Using haplotype fraction **μ** = 0.5 for both **μ<sub>a</sub>** and **μ<sub>b</sub>** we get
 
-&nbsp;&nbsp;&nbsp;&nbsp;**λ<sub>a</sub> = λ<sub>a</sub> = round(λ * (1 - ε) * μ) = 10**
+&nbsp;&nbsp;&nbsp;&nbsp;**λ<sub>a</sub> = λ<sub>b</sub> = round(λ * (1 - ε) * μ) = 10**
 
-&nbsp;&nbsp;&nbsp;&nbsp;**P(R<sub>a,b</sub> | G<sub>a/b</sub>) = PMF<sub>a</sub>(N<sub>a</sub>) * PMF<sub>b</sub>(N<sub>b</sub>)**
+&nbsp;&nbsp;&nbsp;&nbsp;**P(R<sub>a,b</sub> | G<sub>a/b</sub>) = dpois(N<sub>a</sub>, λ<sub>a</sub>) * dpois(N<sub>b</sub>, λ<sub>b</sub>)**
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**= dpois(19, 10) * dpois(1, 10)**
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**= 3.73e<sup>-3</sup> * 4.54e<sup>-4</sup> = 1.69e<sup>-6<sup>**
 
-Using the default fixed prior for all genotypes as 1 devided by the total number of genotypes. Here we have 3 genotypes (REF/REF, REF/INS and INS/INS), so
+Using a uniform genotype prior for three genotypes (REF/REF, REF/INS and INS/INS) we
+get
 
 &nbsp;&nbsp;&nbsp;&nbsp;**P(G<sub>a/b</sub>) = 1/3 ≈ 0.33**
 

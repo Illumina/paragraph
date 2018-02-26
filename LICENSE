@@ -55,8 +55,6 @@ respective source files / tarballs):
     See also the LICENSE files contained in external/googletest-release-1.8.0.tar.gz.
 *   VG stream.hpp from https://github.com/vgteam/vg/blob/master/src/stream.hpp -- MIT license, see
     https://github.com/vgteam/vg/blob/master/LICENSE
-*   Intervaltree by Erik Garrison from https://github.com/ekg/intervaltree -- MIT license,
-    see https://github.com/ekg/intervaltree/blob/master/LICENSE and external/intervaltree/LICENSE.
 *   Spdlog from https://github.com/gabime/spdlog (MIT license, Copyright (c) 2016 Gabi Melman.),
     see https://github.com/gabime/spdlog/blob/master/LICENSE and the LICENSE file in
     external/spdlog.tar.gz

@@ -40,7 +40,7 @@
 
 struct cerr_redirect
 {
-    cerr_redirect(std::streambuf* new_buffer)
+    explicit cerr_redirect(std::streambuf* new_buffer)
         : old(std::cerr.rdbuf(new_buffer))
     {
         tmp[0] = 0;
@@ -50,7 +50,7 @@ struct cerr_redirect
         fflush(stderr);
         fgetpos(stderr, &pos);
         fd = dup(fileno(stderr));
-        freopen(tmp, "w", stderr);
+        assert(freopen(tmp, "w", stderr) != nullptr);
     }
 
     ~cerr_redirect()

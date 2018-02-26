@@ -44,10 +44,8 @@ namespace paragraph
 {
 
 void Parameters::load(
-    const std::string& bam_path, const std::string& graph_path, const std::string& reference_path,
-    const std::string& override_target_regions)
+    const std::string& graph_path, const std::string& reference_path, const std::string& override_target_regions)
 {
-    bam_path_ = bam_path;
     reference_path_ = reference_path;
 
     Json::Value root;
@@ -55,6 +53,15 @@ void Parameters::load(
     std::ifstream graph_desc(graph_path);
     reader.parse(graph_desc, root);
 
+    // compatiability with graph key
+    if (root.isMember("graph"))
+    {
+        for (auto& key_name : root["graph"].getMemberNames())
+        {
+            root[key_name] = root["graph"][key_name];
+        }
+        root.removeMember("graph");
+    }
     description_ = root;
 
     if (!override_target_regions.empty())
@@ -68,7 +75,7 @@ void Parameters::load(
         // add target regions
         if (!root.isMember("target_regions") || root["target_regions"].type() != Json::ValueType::arrayValue)
         {
-            error("Graph description is missing a the target_regions key.");
+            error("Graph description is missing \"target_regions\" key.");
         }
         for (auto& r : root["target_regions"])
         {

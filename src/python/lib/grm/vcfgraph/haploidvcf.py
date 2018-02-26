@@ -171,11 +171,11 @@ class HaploidVCFGraph(object):
         assert len(ref) == end - start + 1
 
         # trim allele
-        while len(alt) > 0 and len(ref) > 0 and ref[-1] == alt[-1]:
+        while len(alt) > 0 and len(ref) > 0 and ref[-1] == alt[-1]:  # pylint: disable=len-as-condition
             ref = ref[:-1]
             alt = alt[:-1]
             end -= 1
-        while len(alt) > 0 and len(ref) > 0 and ref[0] == alt[0]:
+        while len(alt) > 0 and len(ref) > 0 and ref[0] == alt[0]:    # pylint: disable=len-as-condition
             ref = ref[1:]
             alt = alt[1:]
             start += 1

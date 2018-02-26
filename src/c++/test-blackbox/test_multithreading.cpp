@@ -65,13 +65,18 @@ TEST(Paragraph, AlignsSequentially)
             | Parameters::output_options::PATH_READ_COUNTS,
         true);
     parameters.set_threads(1);
-    parameters.load(bam_path, spec_path, reference_path);
+    parameters.load(spec_path, reference_path);
 
     common::ReadBuffer all_reads;
-    common::extractReads(
-        parameters.bam_path(), reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    common::extractReads(bam_path, reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
 
     auto result = paragraph::alignAndDisambiguate(parameters, all_reads);
+
+    //    {
+    //        Json::StyledStreamWriter writer;
+    //        std::ofstream o("test.json");
+    //        writer.write(o, result);
+    //    }
 
     Json::Value expected_result;
     {
@@ -136,11 +141,10 @@ TEST(Paragraph, AlignsMultithreaded)
             | Parameters::output_options::PATH_READ_COUNTS,
         true);
     parameters.set_threads(4);
-    parameters.load(bam_path, spec_path, reference_path);
+    parameters.load(spec_path, reference_path);
 
     common::ReadBuffer all_reads;
-    common::extractReads(
-        parameters.bam_path(), reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    common::extractReads(bam_path, reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
 
     auto result = paragraph::alignAndDisambiguate(parameters, all_reads);
 

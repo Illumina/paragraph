@@ -1,0 +1,123 @@
+{
+    "bam": "/illumina/scratch/popdata/users/schen/grm.py-build/share/data/paragraph/long-del/chr4_graph_typing.bam",
+    "sequencenames": [
+        "ALT",
+        "REF"
+    ],
+    "edges": [
+        {
+            "from": "MID_L",
+            "to": "sink"
+        },
+        {
+            "from": "LF",
+            "sequences": [
+                "REF"
+            ],
+            "to": "MID_L"
+        },
+        {
+            "from": "LF",
+            "sequences": [
+                "ALT"
+            ],
+            "to": "RF"
+        },
+        {
+            "from": "MID_R",
+            "sequences": [
+                "REF"
+            ],
+            "to": "RF"
+        },
+        {
+            "from": "RF",
+            "to": "sink"
+        },
+        {
+            "from": "source",
+            "to": "LF"
+        },
+        {
+            "from": "source",
+            "to": "MID_R"
+        }
+    ],
+    "ID": "chr4_graph_typing",
+    "nodes": [
+        {
+            "name": "source",
+            "sequence": "NNNNNNNNNN"
+        },
+        {
+            "end": 8816,
+            "name": "MID_R",
+            "reference": "chr4:8667-8816",
+            "start": 8667
+        },
+        {
+            "name": "LF",
+            "reference": "chr4:850-999",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "name": "RF",
+            "reference": "chr4:8817-8965",
+            "sequences": [
+                "REF"
+            ]
+        },
+        {
+            "end": 1149,
+            "name": "MID_L",
+            "reference": "chr4:1000-1149",
+            "start": 1000
+        },
+        {
+            "name": "sink",
+            "sequence": "NNNNNNNNNN"
+        }
+    ],
+    "paths": [
+        {
+            "nodes": [
+                "source",
+                "LF",
+                "RF",
+                "sink"
+            ],
+            "nucleotide_length": 299,
+            "path_id": "ALT|1",
+            "sequence": "ALT"
+        },
+        {
+            "nodes": [
+                "source",
+                "MID_R",
+                "RF",
+                "sink"
+            ],
+            "nucleotide_length": 299,
+            "path_id": "REF|1",
+            "sequence": "REF"
+        },
+        {
+            "nodes": [
+                "source",
+                "LF",
+                "MID_L",
+                "sink"
+            ],
+            "nucleotide_length": 300,
+            "path_id": "REF|2",
+            "sequence": "REF"
+        }
+    ],
+    "reference": "/illumina/scratch/popdata/users/schen/grm.py-build/share/data/paragraph/long-del/chr4_graph_typing.fa",
+    "target_regions": [
+        "chr4:850-1149",
+        "chr4:8667-8965"
+    ]
+}

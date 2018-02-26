@@ -39,6 +39,7 @@
 #include <iostream>
 #include <list>
 #include <string>
+#include <vector>
 
 #include "graphs/WalkableGraph.hh"
 
@@ -51,19 +52,25 @@ class GraphPath
 public:
     // The constructor does not check if the inputs define a well-formed path; isValid() method can be used to do this.
     GraphPath(
-        std::shared_ptr<WalkableGraph> wgraph_ptr, int32_t start_position, const std::list<int32_t>& nodes,
+        std::shared_ptr<WalkableGraph> wgraph_ptr, int32_t start_position, const std::vector<int32_t>& nodes,
         int32_t end_position);
     ~GraphPath();
     GraphPath(const GraphPath& other);
     GraphPath(GraphPath&& other) noexcept;
     GraphPath& operator=(const GraphPath& other);
     GraphPath& operator=(GraphPath&& other) noexcept;
+    std::vector<int32_t> const& node_ids() const;
+    size_t num_nodes() const;
     std::string seq() const;
+    std::string seqOnNode(int32_t node_index) const;
+    std::shared_ptr<WalkableGraph> wgraph_ptr() const;
     bool isValid() const;
     bool operator==(const GraphPath& other) const;
     std::string encode() const;
     int32_t start_position() const;
     int32_t end_position() const;
+    size_t length() const;
+    size_t lengthOnNode(int32_t node_id) const;
     GraphPath extendStartPosition(int32_t extension_len) const;
     GraphPath extendEndPosition(int32_t extension_len) const;
     GraphPath extendStartNodeTo(int32_t node_id) const;

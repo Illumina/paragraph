@@ -24,31 +24,53 @@
 // OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+/**
+ * \brief Kmer index for graphs
+ *
+ * \file KmerIndex.hh
+ * \author Egor Dolzhenko & Peter Krusche
+ * \email edolzhenko@illumina.com, pkrusche@illumina.com
+ *
+ */
+
 #pragma once
 
+#include <unordered_map>
+#include <unordered_set>
+
 #include "GraphIndex.hh"
+#include "graphs/GraphPath.hh"
 
 namespace graphs
 {
-class KmerIndex : public GraphIndex
+
+typedef std::unordered_map<std::string, std::list<GraphPath>> StringToPathsMap;
+
+// Kmer index holds paths that correspond to each kmer that appears in the graph and supports a few standard operations.
+class KmerIndex
 {
 public:
-    KmerIndex(WalkableGraph const& g, int k = 12);
+    explicit KmerIndex(std::shared_ptr<WalkableGraph> wgraph, int32_t kmer_len = 12);
+    explicit KmerIndex(const StringToPathsMap& kmer_to_paths_map);
+    KmerIndex(const KmerIndex& other);
+    KmerIndex(KmerIndex&& other) noexcept;
+    KmerIndex& operator=(const KmerIndex& other);
+    KmerIndex& operator=(KmerIndex&& other) noexcept;
     ~KmerIndex();
+    bool operator==(const KmerIndex& other) const;
+    std::string encode() const;
+    const std::list<GraphPath>& getPaths(const std::string& kmer) const;
+    bool contains(const std::string& kmer) const;
+    size_t numPaths(const std::string& kmer) const;
+    std::unordered_set<std::string> getKmersWithNonzeroCount() const;
 
-    KmerIndex(KmerIndex&&) noexcept;
-    KmerIndex& operator=(KmerIndex&&) noexcept;
-
-    void search(std::string const& str);
-    uint64_t count();
-    std::list<std::unique_ptr<GraphMatchPos>> matches();
-
-    int kmerCount(std::string const& kmer) const;
-    std::list<std::string> kmers() const;
-    std::list<std::string> badkmers() const;
+    size_t numUniqueKmersOverlappingNode(uint32_t node_id) const;
+    size_t numUniqueKmersOverlappingEdge(uint32_t from, uint32_t to) const;
 
 private:
     struct KmerIndexImpl;
     std::unique_ptr<KmerIndexImpl> _impl;
 };
+
+std::ostream& operator<<(std::ostream& os, const KmerIndex& kmer_index);
 }

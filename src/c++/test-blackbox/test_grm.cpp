@@ -26,26 +26,39 @@
 
 #include "gtest/gtest.h"
 
+#include <iostream>
 #include <sstream>
 #include <string>
 
 #include "common.hh"
-#include "grm/CountAndGenotype.hh"
-#include "grm/Parameters.hh"
+#include "grmpy/AlignSamples.hh"
+#include "grmpy/CountAndGenotype.hh"
+#include "grmpy/Parameters.hh"
+#include "json/json.h"
 
 TEST(Grmpy, GenotypesSingleSwap)
 {
-    std::string input_path
-        = g_testenv->getBasePath() + "/../share/test-data/genotyping_test/chr4_graph_typing.2sample.json";
+    std::string graph_path
+        = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/chr4_graph_typing.2sample.json";
     std::string reference_path
         = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/chr4_graph_typing.fa";
     std::string manifest_path
-        = g_testenv->getBasePath() + "/../share/test-data/genotyping_test/chr4_graph_typing.manifest";
+        = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/chr4_graph_typing.manifest";
+    std::string genotype_parameter_path
+        = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/param.json";
     std::string output_path = std::string();
-    grm::Parameters parameters(true, 0.01, 16, 40, false);
-    parameters.load(input_path, reference_path, manifest_path, output_path);
-    std::ostringstream out_stream;
-    grm::countAndGenotype(parameters, &out_stream);
-    std::string expected_output = "#Sample\tGenotype\nSAMPLE1,0/0\nSAMPLE2,0/0\n";
-    EXPECT_EQ(expected_output, out_stream.str());
+    grmpy::Parameters parameters;
+    parameters.load(graph_path, reference_path, manifest_path, output_path, genotype_parameter_path);
+    grmpy::alignSamples(parameters);
+    std::stringstream out_stream;
+    grmpy::countAndGenotype(parameters, &out_stream);
+    std::stringstream* p_sstream = &out_stream;
+
+    std::istream* json_stream = p_sstream;
+    Json::Value result;
+    Json::Reader reader;
+    reader.parse(*json_stream, result);
+
+    EXPECT_EQ("REF/REF", result["samples"]["SAMPLE1"]["gt"]["GT"].asString());
+    std::cout << out_stream.str() << std::endl;
 }

@@ -24,6 +24,7 @@
 // OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include <string>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -32,6 +33,7 @@
 #include "common/ReadExtraction.hh"
 #include "common/ReadPairs.hh"
 #include "common/ReadReader.hh"
+#include "common/Region.hh"
 
 using std::vector;
 using namespace testing;
@@ -42,6 +44,7 @@ class MockReader : public ReadReader
 public:
     MOCK_METHOD1(getAlign, bool(Read&));
     MOCK_METHOD2(getAlignedMate, bool(const Read&, Read&));
+    MOCK_METHOD1(setRegion, void(const std::string&));
 };
 
 class ExtractReads : public Test
@@ -53,9 +56,13 @@ public:
     Read read2;
     virtual void SetUp()
     {
+        read1.set_chrom_id(1);
+        read1.set_pos(100);
         read1.set_fragment_id("Fragment_1");
         read1.set_bases("AAAA");
         read1.set_quals("####");
+        read2.set_chrom_id(1);
+        read2.set_pos(100);
         read2.set_fragment_id("Fragment_2");
         read2.set_bases("AAAA");
         read2.set_quals("####");
@@ -110,12 +117,14 @@ TEST_F(ExtractReads, ExtractsAllReadsFromReader)
         .WillOnce(DoAll(SetArgReferee<0>(read2), Return(true)))
         .WillOnce(Return(false));
 
-    const int max_reads = 10;
-    extractReads(max_reads, reader, read_pairs);
+    int max_reads = 10;
+    const std::string chrom = std::string("1");
+    const Region region(chrom, 0, 1800);
+    vector<Read> observed_reads;
+    extractMappedReadsFromRegion(read_pairs, max_reads, reader, region);
+    read_pairs.getReads(observed_reads);
 
     vector<Read> expected_reads = { read1, read2 };
-    vector<Read> observed_reads;
-    read_pairs.getReads(observed_reads);
     ASSERT_EQ(expected_reads, observed_reads);
 }
 
@@ -124,11 +133,13 @@ TEST_F(ExtractReads, ExtractsMaxAllowedReadsFromReader)
     const int max_reads = 1;
     EXPECT_CALL(reader, getAlign(_)).WillOnce(DoAll(SetArgReferee<0>(read1), Return(true)));
 
-    extractReads(max_reads, reader, read_pairs);
+    const std::string chrom = std::string("1");
+    const Region region(chrom, 0, 1800);
+    vector<Read> observed_reads;
+    extractMappedReadsFromRegion(read_pairs, max_reads, reader, region);
+    read_pairs.getReads(observed_reads);
 
     vector<Read> expected_reads = { read1 };
-    vector<Read> observed_reads;
-    read_pairs.getReads(observed_reads);
     ASSERT_EQ(expected_reads, observed_reads);
 }
 
@@ -152,4 +163,20 @@ TEST_F(RecoverMissingMates, RecoversAnomalousMates)
     read_pairs.getReads(observed_reads);
 
     ASSERT_EQ(expected_reads, observed_reads);
+}
+
+TEST_F(ExtractReads, isReadOrItsMateInRegion)
+{
+    const std::string chrom = std::string("1");
+    const Region region_left(chrom, 0, 50);
+    const Region region_overlap(chrom, 101, 103);
+    const Region region_overlap_mate(chrom, 1550, 1650);
+    const Region region_right(chrom, 110, 200);
+    ASSERT_FALSE(isReadOrItsMateInRegion(read1, region_left));
+    ASSERT_TRUE(isReadOrItsMateInRegion(read1, region_overlap));
+    ASSERT_FALSE(isReadOrItsMateInRegion(read1, region_right));
+
+    read1.set_mate_chrom_id(1);
+    read1.set_mate_pos(1600);
+    ASSERT_TRUE(isReadOrItsMateInRegion(read1, region_overlap_mate));
 }
