@@ -158,7 +158,8 @@ Json::Value estimateDepths(Parameters const& parameters)
     int next_contig = 0;
 
     auto worker = [&]() {
-        common::BamReader depthEstimator(parameters.bam_path(), parameters.reference_path());
+        common::BamReader depthEstimator(
+            parameters.bam_path(), parameters.bam_index_path(), parameters.reference_path());
         while (next_contig < header->n_targets)
         {
             int this_contig = -1;

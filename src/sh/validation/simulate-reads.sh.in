@@ -4,8 +4,11 @@
 #
 # Author: Roman Petrovski <rpetrovski@illumina.com>
 
+set -eo pipefail
+
 EAGLE_PATH=@PARAGRAPH_EAGLE@
 JOBS=$(grep -c ^processor /proc/cpuinfo || echo 1)
+COVERAGE=30
 
 print_usage()
 {
@@ -13,6 +16,7 @@ print_usage()
 Usage: $0 --graph-genome PATH --reference-genome PATH [options]
 Options: [defaults in brackets after descriptions]
 Configuration:
+  -c, --coverage COVERAGE      graph genome coverage for simulated reads [${COVERAGE}]
   -g, --graph-genome PATH      path to fasta file with path sequences. Use graph-to-fasta to produce one
   --help                       print this message
   -j,--jobs n                  number of parallel processes allowed to run [${JOBS}]
@@ -35,6 +39,8 @@ while (( ${#@} )); do
         EAGLE_PATH=`echo $1 | sed "s/^--with-eagle=//"`
     elif echo $1 | grep "^--jobs=" > /dev/null 2> /dev/null; then
         JOBS=`echo $1 | sed "s/^--jobs=//"`
+    elif echo $1 | grep "^--coverage=" > /dev/null 2> /dev/null; then
+        COVERAGE=`echo $1 | sed "s/^--coverage=//"`
     else
         param=$1
         shift
@@ -46,6 +52,8 @@ while (( ${#@} )); do
             EAGLE_PATH=$1
         elif [[ $param == "--jobs" || $param == "-j" ]]; then
             JOBS=$1
+        elif [[ $param == "--coverage" || $param == "-c" ]]; then
+            COVERAGE=$1
         else
             echo "ERROR: unrecognized argument: $param" >&2
             exit 2
@@ -68,4 +76,5 @@ export EAGLE_LIBEXEC=$(realpath ${EAGLE_PATH}/libexec/EAGLE-*/)
 EXEC_PATH=$(dirname $0)
 
 make -j ${JOBS} -f ${EXEC_PATH}/SimulateReads.mk simulated.bam.bai \
-    EXEC_PATH:=${EXEC_PATH} GRAPH_FA:=${GRAPH_FA} REFERENCE_FA:=${REFERENCE_FA} EAGLE_SHARE:=${EAGLE_SHARE}
+    EXEC_PATH:=${EXEC_PATH} GRAPH_FA:=${GRAPH_FA} REFERENCE_FA:=${REFERENCE_FA} \
+    EAGLE_SHARE:=${EAGLE_SHARE} COVERAGE_DEPTH:=${COVERAGE}

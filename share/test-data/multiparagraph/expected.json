@@ -249,9 +249,9 @@
                 "INS_RF:FWD": 1,
                 "INS_RF:READS": 1,
                 "INS_RF:REV": 0,
-                "LF_INS": 2,
-                "LF_INS:FWD": 2,
-                "LF_INS:READS": 2,
+                "LF_INS": 1,
+                "LF_INS:FWD": 1,
+                "LF_INS:READS": 1,
                 "LF_INS:REV": 0,
                 "LF_MID": 2,
                 "LF_MID:FWD": 2,
@@ -296,9 +296,9 @@
                     "total:REV": 0
                 },
                 "INS": {
-                    "total": 2,
-                    "total:FWD": 2,
-                    "total:READS": 2,
+                    "total": 1,
+                    "total:FWD": 1,
+                    "total:READS": 1,
                     "total:REV": 0
                 },
                 "REF": {
@@ -706,9 +706,9 @@
                 "INS_RF:FWD": 1,
                 "INS_RF:READS": 1,
                 "INS_RF:REV": 0,
-                "LF_INS": 2,
-                "LF_INS:FWD": 2,
-                "LF_INS:READS": 2,
+                "LF_INS": 1,
+                "LF_INS:FWD": 1,
+                "LF_INS:READS": 1,
                 "LF_INS:REV": 0,
                 "LF_RF": 2,
                 "LF_RF:FWD": 2,
@@ -739,9 +739,9 @@
             },
             "read_counts_by_sequence": {
                 "INS": {
-                    "total": 2,
-                    "total:FWD": 2,
-                    "total:READS": 2,
+                    "total": 1,
+                    "total:FWD": 1,
+                    "total:READS": 1,
                     "total:REV": 0
                 },
                 "REF": {

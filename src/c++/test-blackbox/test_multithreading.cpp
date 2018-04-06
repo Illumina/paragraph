@@ -34,6 +34,7 @@
 
 #include "common/Error.hh"
 #include "common/ReadExtraction.hh"
+#include "common/Threads.hh"
 #include "graphs/Graph.hh"
 #include "paragraph/Disambiguation.hh"
 
@@ -65,10 +66,12 @@ TEST(Paragraph, AlignsSequentially)
             | Parameters::output_options::PATH_READ_COUNTS,
         true);
     parameters.set_threads(1);
+    common::CPU_THREADS().reset(1);
     parameters.load(spec_path, reference_path);
 
     common::ReadBuffer all_reads;
-    common::extractReads(bam_path, reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    common::extractReads(
+        bam_path, "", reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
 
     auto result = paragraph::alignAndDisambiguate(parameters, all_reads);
 
@@ -141,10 +144,12 @@ TEST(Paragraph, AlignsMultithreaded)
             | Parameters::output_options::PATH_READ_COUNTS,
         true);
     parameters.set_threads(4);
+    common::CPU_THREADS().reset(4);
     parameters.load(spec_path, reference_path);
 
     common::ReadBuffer all_reads;
-    common::extractReads(bam_path, reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    common::extractReads(
+        bam_path, "", reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
 
     auto result = paragraph::alignAndDisambiguate(parameters, all_reads);
 

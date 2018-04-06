@@ -43,7 +43,8 @@ namespace grmpy
 /**
  * main function for genotyping
  *
- * @param parameters parameters for genotyping
  */
-void countAndGenotype(const Parameters& parameters, std::ostream* out_stream = &std::cout);
+Json::Value countAndGenotype(
+    const std::string& graphPath, const std::string& referencePath, const std::string& genotypingParameterPath,
+    const genotyping::Samples& samples);
 }

@@ -5,6 +5,7 @@ include(FindBZip2)
 include(FindLibLZMA)
 if (IS_DIRECTORY ${HTSLIB_INSTALL_PATH})
     message( "Using pre-built htslib from ${HTSLIB_INSTALL_PATH}")
+    message( WARNING "htslib <= 1.7 is known to leak memory with cram files")
 else()
     message( "Using included htslib" )
     set(HTSLIB_INSTALL_PATH ${CMAKE_BINARY_DIR}/external/htslib-install)
@@ -14,11 +15,12 @@ else()
         project(htslib-build NONE)
         include(ExternalProject)
         ExternalProject_Add(htslib
-        URL               \"${CMAKE_SOURCE_DIR}/external/htslib.tar.gz\"
-        URL_HASH          MD5=fde78c5212a41921f68665617b03f371
+        URL               \"${CMAKE_SOURCE_DIR}/external/htslib-1.8.tar.gz\"
+        URL_HASH          MD5=7f921fc4163b9147ced68c50751368be
         SOURCE_DIR        \"${CMAKE_BINARY_DIR}/external/htslib-src\"
         INSTALL_DIR       \"${HTSLIB_INSTALL_PATH}\"
         CONFIGURE_COMMAND \"\"
+        PATCH_COMMAND \"\"
         BUILD_COMMAND make -C <SOURCE_DIR> prefix=<INSTALL_DIR>
         INSTALL_COMMAND make -C <SOURCE_DIR> install prefix=<INSTALL_DIR> )")
 

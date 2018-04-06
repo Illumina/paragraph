@@ -55,7 +55,7 @@ namespace paragraph
  * @param all_reads pass read bufer with all reads to be aligned and disambiguated
  * @return results as JSON value
  */
-Json::Value alignAndDisambiguate(Parameters& parameters, common::ReadBuffer& all_reads);
+Json::Value alignAndDisambiguate(const Parameters& parameters, common::ReadBuffer& all_reads);
 
 /**
  * Internal functions (exposed for testing)

@@ -24,24 +24,27 @@
 // OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "grm/Align.hh"
+#include <boost/range.hpp>
+
 #include "common/Error.hh"
+#include "common/Threads.hh"
 #include "graphs/GraphMappingOperations.hh"
+#include "grm/Align.hh"
 #include "grm/CompositeAligner.hh"
 #include "grm/ValidationAligner.hh"
 
 using namespace grm;
 
-void logAlignerStats(int filtered, const CompositeAligner& aligner)
+void logAlignerStats(const CompositeAligner& aligner)
 {
     LOG()->info(
         "[Done with alignment step {} total aligned (exact: {} / kmers: {} / sw: {}) ; {} were filtered]",
-        aligner.attempted(), aligner.mappedExactly(), aligner.mappedKmers(), aligner.mappedSw(), filtered);
+        aligner.attempted(), aligner.mappedExactly(), aligner.mappedKmers(), aligner.mappedSw(), aligner.filtered());
 }
 
-template <typename AlignerT> void logAlignerStats(int filtered, const ValidationAligner<AlignerT>& aligner)
+template <typename AlignerT> void logAlignerStats(const ValidationAligner<AlignerT>& aligner)
 {
-    logAlignerStats(filtered, aligner.base());
+    logAlignerStats(aligner.base());
 
     LOG()->info("[VALIDATION]\tMAPQ\tEmpMAPQ\tWrong\tTotal");
     LOG()->info("[VALIDATION]\tunalgnd\t0\t0\t{}", (aligner.total() - aligner.aligned() - aligner.repeats()));
@@ -62,48 +65,37 @@ template <typename AlignerT> void logAlignerStats(int filtered, const Validation
  * @param filter filter function to discard reads if alignment isn't good
  * @param exact_path_matching enable / disable exact matching step (=force Smith Waterman)
  */
-template <typename AlignerT>
+template <typename IteratorT, typename AlignerT>
 static void sequentialAlignReads(
-    const graphs::Graph& graph, Json::Value const& paths, std::vector<common::p_Read>& reads, ReadFilter filter,
-    AlignerT& aligner)
+    const IteratorT begin, IteratorT end, const graphs::Graph& graph, Json::Value const& paths, ReadFilter filter,
+    std::vector<common::p_Read>& filtered_reads, AlignerT& aligner)
 {
     auto logger = LOG();
-    logger->info("[Aligning {} reads]", reads.size());
+    logger->info("[Aligning {} reads]", std::distance(begin, end));
 
-    int f = 0;
-    std::vector<common::p_Read> filtered_reads;
-    for (auto& read : reads)
+    for (auto& read : boost::make_iterator_range(begin, end))
     {
         if (read->bases().empty())
         {
             continue;
         }
         read->set_graph_mapping_status(reads::UNMAPPED);
-        aligner.alignRead(*read);
+        aligner.alignRead(*read, filter);
 
-        if (filter != nullptr && filter(*read))
+        if (reads::MappingStatus::MAPPED == read->graph_mapping_status())
         {
-            read->set_graph_mapping_status(reads::MappingStatus::BAD_ALIGN);
-            ++f;
-        }
-        else
-        {
-            read->set_graph_mapping_status(reads::MappingStatus::MAPPED);
             filtered_reads.emplace_back(std::move(read));
         }
     }
-    reads.clear();
-    for (auto& read : filtered_reads)
-    {
-        reads.emplace_back(std::move(read));
-    }
 
-    logAlignerStats(f, aligner);
+    logAlignerStats(aligner);
 }
 
+template <typename IteratorT>
 static void sequentialAlignReads(
-    const graphs::Graph& graph, Json::Value const& paths, std::vector<common::p_Read>& reads, ReadFilter filter,
-    bool exact_sequence_matching, bool graph_sequence_matching, bool kmer_sequence_matching, bool validate_alignments)
+    const IteratorT begin, IteratorT end, const graphs::Graph& graph, Json::Value const& paths, ReadFilter filter,
+    bool exact_sequence_matching, bool graph_sequence_matching, bool kmer_sequence_matching, bool validate_alignments,
+    std::vector<common::p_Read>& filtered_reads)
 {
     if (validate_alignments)
     {
@@ -111,13 +103,13 @@ static void sequentialAlignReads(
             grm::CompositeAligner(exact_sequence_matching, graph_sequence_matching, kmer_sequence_matching), graph,
             paths);
         aligner.setGraph(graph, paths);
-        sequentialAlignReads(graph, paths, reads, filter, aligner);
+        sequentialAlignReads(begin, end, graph, paths, filter, filtered_reads, aligner);
     }
     else
     {
         grm::CompositeAligner aligner(exact_sequence_matching, graph_sequence_matching, kmer_sequence_matching);
         aligner.setGraph(graph, paths);
-        sequentialAlignReads(graph, paths, reads, filter, aligner);
+        sequentialAlignReads(begin, end, graph, paths, filter, filtered_reads, aligner);
     }
 }
 
@@ -135,71 +127,40 @@ void grm::alignReads(
     bool exact_sequence_matching, bool graph_sequence_matching, bool kmer_sequence_matching, bool validate_alignments,
     int threads)
 {
-    if (threads > 1)
-    {
-        const size_t chunksize = std::min(200ull, (long long unsigned int)reads.size() / threads);
-        size_t first_read = 0;
-        std::vector<common::p_Read> output_reads;
-        std::mutex sync1;
-        std::mutex sync2;
-        auto worker
-            = [&graph, &paths, &reads, &filter, exact_sequence_matching, graph_sequence_matching,
-               kmer_sequence_matching, validate_alignments, &output_reads, &sync1, &sync2, &first_read, chunksize]() {
-                  while (first_read < reads.size())
-                  {
-                      std::vector<common::p_Read> input_reads;
-                      {
-                          std::lock_guard<std::mutex> lock(sync1);
-                          size_t my_first_read = first_read;
-                          first_read += chunksize;
-                          input_reads.resize(chunksize);
-                          size_t reads_added = 0;
-                          for (size_t i = my_first_read; i < my_first_read + chunksize; ++i)
-                          {
-                              if (i >= reads.size())
-                              {
-                                  break;
-                              }
-                              input_reads[i - my_first_read] = std::move(reads[i]);
-                              reads_added++;
-                          }
-                          input_reads.resize(reads_added);
-                      }
-                      sequentialAlignReads(
-                          graph, paths, input_reads, filter, exact_sequence_matching, graph_sequence_matching,
-                          kmer_sequence_matching, validate_alignments);
-                      {
-                          std::lock_guard<std::mutex> lock(sync2);
-                          // there probably is a smarter way to do this and keep the same order of the
-                          // reads by preallocating output_reads and just moving the unique_ptrs back
-                          for (auto& i : input_reads)
-                          {
-                              output_reads.emplace_back(std::move(i));
-                          }
-                      }
-                  }
-              };
+    std::vector<common::p_Read>::iterator next = reads.begin();
+    const std::size_t step = std::max((reads.size() + threads - 1) / threads, std::size_t(1));
+    std::mutex m;
+    std::vector<common::p_Read> allFilteredReads;
+    bool terminate = false;
+    common::CPU_THREADS(threads).execute(
+        [&]() {
+            std::unique_lock<std::mutex> lock(m);
+            while (reads.end() != next)
+            {
+                const std::size_t ourStep = std::min<std::size_t>(step, std::distance(next, reads.end()));
+                if (ourStep)
+                {
+                    std::vector<common::p_Read>::iterator begin = next;
+                    next += ourStep;
+                    std::vector<common::p_Read>::iterator end = next;
+                    std::vector<common::p_Read> filteredReads;
+                    ASYNC_BLOCK_WITH_CLEANUP([&](bool failure) { terminate |= failure; })
+                    {
+                        if (terminate)
+                        {
+                            LOG()->warn("terminating");
+                            break;
+                        }
+                        common::unlock_guard<std::unique_lock<std::mutex>> unlock(lock);
+                        sequentialAlignReads(
+                            begin, end, graph, paths, filter, exact_sequence_matching, graph_sequence_matching,
+                            kmer_sequence_matching, validate_alignments, filteredReads);
+                    }
+                    std::move(filteredReads.begin(), filteredReads.end(), std::back_inserter(allFilteredReads));
+                }
+            }
+        },
+        std::max(reads.size() / step, std::size_t(1)));
 
-        std::vector<std::thread> workers;
-        for (int t = 0; t < threads; ++t)
-        {
-            workers.emplace_back(worker);
-        }
-        for (auto& w : workers)
-        {
-            w.join();
-        }
-        reads.clear();
-        reads.reserve(output_reads.size());
-        for (auto& r : output_reads)
-        {
-            reads.emplace_back(std::move(r));
-        }
-    }
-    else
-    {
-        sequentialAlignReads(
-            graph, paths, reads, filter, exact_sequence_matching, graph_sequence_matching, kmer_sequence_matching,
-            validate_alignments);
-    }
+    reads.swap(allFilteredReads);
 }

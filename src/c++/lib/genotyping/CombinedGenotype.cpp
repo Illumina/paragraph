@@ -48,13 +48,81 @@ using std::vector;
 namespace genotyping
 {
 
-Genotype combinedGenotype(GenotypeSet const& genotypes)
+Genotype
+combinedGenotype(GenotypeSet const& genotypes, const BreakpointGenotyper* p_genotyper, double depth, int read_length)
 {
     Genotype result;
 
-    std::set<std::string> filters;
+    size_t num_pass_genotypes = countUniqGenotypes(genotypes, true);
+    if (num_pass_genotypes == 0)
+    {
+        int num_fail_genotypes = countUniqGenotypes(genotypes, false);
+        if (num_fail_genotypes == 0)
+        {
+            result.filter = "MISSING";
+        }
+        else if (num_fail_genotypes == 1)
+        {
+            result = reportConsensusGenotypes(genotypes, false);
+        }
+        else
+        {
+            result = genotypeByTotalCounts(genotypes, false, p_genotyper, depth, read_length);
+        }
+    }
+    else if (num_pass_genotypes == 1)
+    {
+        result = reportConsensusGenotypes(genotypes, true);
+    }
+    else
+    {
+        result = genotypeByTotalCounts(genotypes, true, p_genotyper, depth, read_length);
+    }
 
-    // combine GLs
+    if (result.filter.empty())
+    {
+        result.filter = "PASS";
+    }
+
+    return result;
+}
+
+size_t countUniqGenotypes(GenotypeSet const& genotypes, bool pass_only)
+{
+    std::set<GenotypeVector> votes_for;
+    for (auto& bp : genotypes)
+    {
+        if (bp.gt.empty())
+        {
+            continue;
+        }
+
+        if (pass_only)
+        {
+            if (!bp.filter.empty())
+            {
+                continue;
+            }
+        }
+
+        Genotype sorted_bp = bp;
+        std::sort(sorted_bp.gt.begin(), sorted_bp.gt.end());
+        votes_for.insert(sorted_bp.gt);
+    }
+
+    return votes_for.size();
+}
+
+Genotype reportConsensusGenotypes(GenotypeSet const& genotypes, bool pass_only)
+{
+    Genotype result;
+    std::set<string> filters;
+
+    if (!pass_only)
+    {
+        filters.insert("ALL_BAD_BP");
+    }
+
     struct GLInfo
     {
         explicit GLInfo(GenotypeVector gt_, double gl_)
@@ -70,28 +138,32 @@ Genotype combinedGenotype(GenotypeSet const& genotypes)
     result.num_reads = 0;
     result.allele_fractions.clear();
 
-    // count votes for each GT
-    std::map<GenotypeVector, std::list<Genotype>> votes_for;
     for (auto& bp : genotypes)
     {
+
         if (bp.gt.empty())
         {
             filters.insert("MISSING");
             continue;
         }
-        // sort genotype -- this will need to handle phasing
-        // at some point
-        Genotype sorted_bp = bp;
-        std::sort(sorted_bp.gt.begin(), sorted_bp.gt.end());
-        auto v_it = votes_for.find(sorted_bp.gt);
-        if (v_it == votes_for.end())
+
+        if (pass_only)
         {
-            votes_for[sorted_bp.gt] = { bp };
+            if (!bp.filter.empty())
+            {
+                filters.insert("EXIST_BAD_BP");
+                continue;
+            }
         }
-        else
+
+        if (result.gt.empty())
         {
-            v_it->second.push_back(bp);
+            // sort genotype -- this will need to handle phasing at some point
+            Genotype sorted_bp = bp;
+            std::sort(sorted_bp.gt.begin(), sorted_bp.gt.end());
+            result.gt = sorted_bp.gt;
         }
+
         result.num_reads += bp.num_reads;
         if (bp.allele_fractions.size() > result.allele_fractions.size())
         {
@@ -138,77 +210,70 @@ Genotype combinedGenotype(GenotypeSet const& genotypes)
         result.gl_name.push_back(gl.second.gt);
     }
 
-    if (votes_for.size() > 1)
+    result.filter = boost::algorithm::join(filters, ";");
+
+    return result;
+}
+
+Genotype genotypeByTotalCounts(
+    GenotypeSet const& genotypes, bool use_pass_only, const BreakpointGenotyper* p_genotyper, double depth,
+    int read_length)
+{
+    assert(p_genotyper != NULL && depth > 0 && read_length > 0);
+
+    std::set<string> filters;
+    filters.insert("CONFLICT");
+    if (!use_pass_only)
     {
-        filters.insert("CONFLICT");
-        // output most popular GT that is not reference
-        size_t best_bp_votes = 0;
-        size_t second_best_bp_votes = 0;
-        GenotypeVector best_bp;
-        size_t ref_ploidy = 0;
-        for (auto& bp_votes : votes_for)
+        filters.insert("ALL_BAD_BP");
+    }
+
+    // get total count vector
+    std::vector<int> sum_counts;
+    int num_bp = 0;
+    for (auto const& bp : genotypes)
+    {
+        if (use_pass_only)
         {
-            const bool this_bp_is_missing = bp_votes.first.empty();
-            if (this_bp_is_missing)
+            if (!bp.filter.empty())
             {
+                filters.insert("EXIST_BAD_BP");
                 continue;
             }
-
-            const bool this_bp_is_ref
-                = std::all_of(bp_votes.first.begin(), bp_votes.first.end(), [](int32_t g) { return g == 0; });
-            if (this_bp_is_ref)
-            {
-                ref_ploidy = bp_votes.first.size();
-                continue;
-            }
-
-            const size_t this_bp_votes = bp_votes.second.size();
-            // compare vote counts for all cases where we called an allele
-            if (this_bp_votes > best_bp_votes)
-            {
-                second_best_bp_votes = std::max(second_best_bp_votes, best_bp_votes);
-                best_bp_votes = this_bp_votes;
-                best_bp = bp_votes.first;
-            }
-            else
-            {
-                second_best_bp_votes = std::max(second_best_bp_votes, best_bp_votes);
-            }
         }
-        // -> implies also best_bp_votes > 0
-        if (best_bp_votes > second_best_bp_votes)
+
+        if (bp.num_reads == 0)
         {
-            result.gt = best_bp;
+            filters.insert("MISSING");
+            continue;
         }
-        else if (best_bp_votes == 0 && ref_ploidy > 0)
+
+        if (sum_counts.empty())
         {
-            result.gt.empty();
-            result.gt.resize(ref_ploidy, 0);
+            sum_counts.resize(bp.allele_fractions.size(), 0);
         }
         else
         {
-            result.gt.empty();
+            assert(sum_counts.size() == bp.allele_fractions.size());
         }
-    }
-    else if (votes_for.size() == 1)
-    {
-        // everyone voted for the same GT
-        result.gt = votes_for.begin()->first;
-    }
-    else
-    {
-        filters.insert("NOGT");
+        size_t allele_index = 0;
+        for (auto& af : bp.allele_fractions)
+        {
+            sum_counts[allele_index] += std::round(af * bp.num_reads);
+            allele_index++;
+        }
+        num_bp++;
     }
 
-    if (filters.empty())
+    // genotype with mean
+    for (auto& s : sum_counts)
     {
-        result.filter = "PASS";
+        s = std::round((double)s / num_bp);
     }
-    else
-    {
-        result.filter = boost::algorithm::join(filters, ";");
-    }
-
+    const auto input_counts = sum_counts;
+    const auto sum_gt = p_genotyper->genotype(depth, read_length, input_counts);
+    Genotype result = sum_gt;
+    result.filter = boost::algorithm::join(filters, ";");
     return result;
 }
 }

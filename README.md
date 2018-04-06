@@ -624,6 +624,16 @@ It is extracted and re-organized from [an expected output](share/test-data/multi
 *    Some developer documentation about our code analysis and testing process can be found in 
     [doc/linting-and-testing.md](doc/linting-and-testing.md).
 
+*    Procedures for read level alignment validation 
+    [doc/validation-with-simulated-reads.md](doc/validation-with-simulated-reads.md).
+
+*    How we count reads for variants and paths
+    [doc/graph-counting.md](doc/graph-counting.md).
+
+*    Documentation of genotyping model parameters
+    [doc/genotyping-parameters.md](doc/genotyping-parameters.md).
+
+
 ### <a name='Links'></a>Links
 
 *   The [Illumina/Polaris](https://github.com/Illumina/Polaris) repository gives the

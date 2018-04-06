@@ -24,6 +24,7 @@
 // OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "common/Threads.hh"
 #include "graphs/Graph.hh"
 #include "grm/GraphAligner.hh"
 #include "paragraph/Disambiguation.hh"
@@ -149,6 +150,8 @@ public:
         LOG()->set_level(spdlog::level::err);
 
         auto rb_reads = toReadBuffer(reads);
+        // this ensures results will be in predictable order
+        common::CPU_THREADS().reset(1);
         grm::alignReads(init_graph, paths, rb_reads, nullptr, false, true, false, false);
         graph = init_graph;
         paragraph::disambiguateReads(graph, rb_reads, nullptr, nullptr, paths);

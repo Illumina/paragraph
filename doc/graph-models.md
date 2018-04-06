@@ -203,16 +203,19 @@ error parameters for individual events as long as these have a high-enough
 population allele frequency.
 
 ## <a name='WholeVariantGenotyping'></a>Whole Variant Genotyping
-We use the above breakpoint genotyping model to determine the most likely 
-genotype for each breakpoint.
+We use the above breakpoint genotyping model to determine the most likely genotype for each breakpoint.
 
-To report a final genotype for the variant, we follow these conventions: 
+To report a final genotype for the variant, we follow these conventions:
 
-* If all breakpoints have the same most likely genotype, report this genotype as the overall variant genotype. The resulting filter value is *PASS*
-* If some breakpoints have homozygous reference genotype, and the other breakpoints have 
-another consistent non-reference genotype, report this non-reference genotype and label
-the filter as *CONFLICTS*.
-* If none of the above, the genotype is reported as *MISSING* (**./.**) and the filter is set to *CONFLICTS*.
+* If all breakpoints share the same genotype, report this genotype as the variant genotype. If all breakpoints pass the filters, the final variant filter will be *PASS*, otherwise the filter will have a flag of "EXIST_BAD_BP".
+
+* If there are conflicts in breakpoint genotypes, a filter flag "CONFLICT" will be set. And:
+
+  If there are one or more breakpoints that pass the filters, the variant genotype will be re-caculated from the total number of reads covering these passed breakpoints. An "EXIST_BAD_BP" filter flag will be attached.
+
+  If all breakpoints fail the filters, the variant genotype will be re-caculated from the total number of reads covering these breakpoints. An "ALL_BAD_BP" filter flag will be attached.
+
+Please refer to [filter-scheme](doc/filter-scheme.md) for all filter details.
 
 ## <a name='Example'></a>Example
 
@@ -274,10 +277,12 @@ Therefore, the maximum likelihood genotype of this breakpoint is REF/REF.
 
 ### <a name='WholeVariant'></a>Whole Variant
 
-As we have calculated above, genotype of BP1 is REF/REF. 
-If BP2 is also genotyped as REF/REF, then the variant genotype will be REF/REF. 
-The filter flag will be set as *PASS*.
+As we have calculated above, genotype of BP1 is REF/REF.
 
-If BP2 is not REF/REF and BP1 is the reference genotype, then the variant genotype will be the genotype of BP2. However, the filter flag will be set as *CONFLICTS* to indicate that not all breakpoints
-support this genotype. This may happen when for example when we type an event where the 
-start of the of the event is correct but the end is not.
+If BP2 is also genotyped as REF/REF, then the variant genotype will be REF/REF.
+
+If BP1 and BP2 has different genotypes, a filter flag "CONFLICT" will be set. And:
+
+If they all pass the filters or all fail, the variant genotype will be re-caculated from the total number of reads covering the two breakpoints.
+
+If one breakpoint passes the filters and the other one fails, the variant genotype will be set as the same genotype as the passed breakpoint.

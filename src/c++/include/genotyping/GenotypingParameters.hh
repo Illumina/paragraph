@@ -66,6 +66,8 @@ public:
 
     unsigned int numAlleles() { return num_alleles; }
 
+    double coverageTestCutoff() { return coverage_test_cutoff; }
+
     unsigned int minOverlapBases() { return min_overlap_bases; }
 
     std::vector<double>& alleleErrorRates() { return allele_error_rates; }
@@ -113,6 +115,11 @@ private:
      * number of alleles. Same as length of allele_names
      */
     const unsigned int num_alleles;
+
+    /**
+     * cutoff for coverage test p value
+     */
+    double coverage_test_cutoff;
 
     /**
      * allele names from graph input

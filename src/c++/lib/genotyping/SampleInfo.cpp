@@ -56,14 +56,14 @@ namespace genotyping
  * @param filename file name of manifest
  * @return list of sample info records
  */
-std::list<SampleInfo> loadManifest(const std::string& filename)
+Samples loadManifest(const std::string& filename)
 {
     std::ifstream manifest_file(filename.c_str(), std::ifstream::in);
     if (!manifest_file.is_open())
     {
         error("Unable to open manifest: %s", filename.c_str());
     }
-    std::list<SampleInfo> sampleinfo;
+    Samples sampleinfo;
 
     string line;
     vector<string> header;
@@ -81,7 +81,7 @@ std::list<SampleInfo> loadManifest(const std::string& filename)
         {
             common::stringutil::split(line, header, "\t,");
             static const set<string> legal_header_columns = {
-                "id", "path", "paragraph", "idxdepth", "depth", "read length",
+                "id", "path", "index_path", "paragraph", "idxdepth", "depth", "read length",
             };
             size_t j = 0;
             for (auto& h : header)
@@ -116,14 +116,14 @@ std::list<SampleInfo> loadManifest(const std::string& filename)
         genotyping::SampleInfo sid;
         sid.set_sample_name(tokens[header_map["id"]]);
 
-        // use either absolute or relative path
-        if (tokens[header_map["path"]].find("s3://") == 0)
-        {
-            sid.set_filename(tokens[header_map["path"]]);
-        }
-        else
-        {
-            boost::filesystem::path p(tokens[header_map["path"]]);
+        auto find_file = [&sid, &filename](const std::string& bam_filename) -> std::string {
+            if (bam_filename.compare(0, 5, "s3://") == 0 || bam_filename.compare(0, 7, "http://") == 0
+                || bam_filename.compare(0, 8, "https://") == 0)
+            {
+                return bam_filename;
+            }
+
+            boost::filesystem::path p(bam_filename);
             if (!boost::filesystem::is_regular_file(p))
             {
                 p = boost::filesystem::path(filename).parent_path() / p;
@@ -132,7 +132,13 @@ std::list<SampleInfo> loadManifest(const std::string& filename)
             {
                 error("Sample %s: File not found: %s", sid.sample_name().c_str(), p.c_str());
             }
-            sid.set_filename(p.string());
+            return p.string();
+        };
+
+        sid.set_filename(find_file(tokens[header_map["path"]]));
+        if (header_map.count("index_path") != 0u)
+        {
+            sid.set_index_filename(find_file(tokens[header_map["index_path"]]));
         }
 
         double depth = -1;

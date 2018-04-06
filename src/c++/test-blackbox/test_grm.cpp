@@ -31,6 +31,7 @@
 #include <string>
 
 #include "common.hh"
+#include "common/BamReader.hh"
 #include "grmpy/AlignSamples.hh"
 #include "grmpy/CountAndGenotype.hh"
 #include "grmpy/Parameters.hh"
@@ -46,15 +47,24 @@ TEST(Grmpy, GenotypesSingleSwap)
         = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/chr4_graph_typing.manifest";
     std::string genotype_parameter_path
         = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/param.json";
-    std::string output_path = std::string();
     grmpy::Parameters parameters;
-    parameters.load(graph_path, reference_path, manifest_path, output_path, genotype_parameter_path);
-    grmpy::alignSamples(parameters);
-    std::stringstream out_stream;
-    grmpy::countAndGenotype(parameters, &out_stream);
-    std::stringstream* p_sstream = &out_stream;
 
-    std::istream* json_stream = p_sstream;
+    genotyping::Samples samples = genotyping::loadManifest(manifest_path);
+
+    for (auto& sample : samples)
+    {
+        common::BamReader reader(sample.filename(), sample.index_filename(), reference_path);
+
+        alignSingleSample(parameters, graph_path, reference_path, reader, sample);
+    }
+
+    const Json::Value genotype = grmpy::countAndGenotype(graph_path, reference_path, genotype_parameter_path, samples);
+
+    std::stringstream out_stream;
+    Json::StyledStreamWriter writer;
+    writer.write(out_stream, genotype);
+
+    std::istream* json_stream = &out_stream;
     Json::Value result;
     Json::Reader reader;
     reader.parse(*json_stream, result);

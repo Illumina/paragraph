@@ -50,7 +50,7 @@ using namespace graphs;
 class KmerAlignerTest : public Test
 {
 public:
-    vector<Read> reads{ 6 };
+    vector<Read> reads{ 8 };
 
     WalkableGraph graph;
 
@@ -63,6 +63,9 @@ public:
         reads[4].setCoreInfo("f5", "TTTTTTCCCCCCCCTTTTT", "###################");
         // this read won't align uniquely here since we can move the A matches around
         reads[5].setCoreInfo("f6", "AAAAAAAAAAAAAAAAAAA", "###################");
+        // test for full clipping of flank nodes
+        reads[6].setCoreInfo("f7", "TTTTTTCCCCCCCCGGGGG", "###################");
+        reads[7].setCoreInfo("f8", "GGGGGGCCCCCCCCTTTTT", "###################");
 
         Graph init_graph;
         init_graph.header = std::unique_ptr<GraphHeader>(new GraphHeader());
@@ -149,7 +152,7 @@ public:
 
         LOG()->set_level(spdlog::level::err);
 
-        grm::KmerAligner<16> aligner;
+        grm::KmerAligner<10> aligner;
         aligner.setGraph(init_graph, paths);
         for (size_t i = 0; i < reads.size(); ++i)
         {
@@ -196,8 +199,19 @@ TEST_F(KmerAlignerTest, Aligns)
             // this is the repeat one
             "{\"fragmentId\":\"f6\",\"bases\":\"AAAAAAAAAAAAAAAAAAA\",\"quals\":\"###################\",\"chromId\":-1,"
             "\"pos\":-1,\"isFirstMate\":true,\"mateChromId\":-1,\"matePos\":-1,\"graphCigar\":\"0[11M]3[8M]\","
-            "\"graphAlignmentScore\":19,\"graphMappingStatus\":\"BAD_ALIGN\"}" };
-    ASSERT_EQ(6ull, reads.size());
+            "\"graphAlignmentScore\":19,\"graphMappingStatus\":\"BAD_ALIGN\"}",
+            // test for full clipping of flank nodes
+            "{\"fragmentId\":\"f7\",\"bases\":\"CCCCCGGGGGGGGAAAAAA\",\"quals\":\"###################\",\"chromId\":-1,"
+            "\"pos\":-1,\"isFirstMate\":true,\"mateChromId\":-1,\"matePos\":-1,\"graphCigar\":\"2[5S8M]3"
+            "[6M]\",\"graphMapq\":60,\"graphAlignmentScore\":14,\"isGraphAlignmentUnique\":true,"
+            "\"isGraphReverseStrand\":true,\"graphNodesSupported\":[\"Q1\",\"RF\"],\"graphEdgesSupported\":["
+            "\"Q1_RF\"],\"graphSequencesSupported\":[\"Q\"],\"graphMappingStatus\":\"MAPPED\"}",
+            "{\"fragmentId\":\"f8\",\"bases\":\"AAAAAGGGGGGGGCCCCCC\",\"quals\":\"###################\",\"chromId\":-1,"
+            "\"pos\":-1,\"isFirstMate\":true,\"mateChromId\":-1,\"matePos\":-1,\"graphPos\":6,\"graphCigar\":\"0[5M]2["
+            "8M6S]\",\"graphMapq\":60,\"graphAlignmentScore\":13,\"isGraphAlignmentUnique\":true,"
+            "\"isGraphReverseStrand\":true,\"graphNodesSupported\":[\"LF\",\"Q1\"],\"graphEdgesSupported\":["
+            "\"LF_Q1\"],\"graphSequencesSupported\":[\"Q\"],\"graphMappingStatus\":\"MAPPED\"}" };
+    ASSERT_EQ(8ull, reads.size());
     int i = 0;
     for (auto const& read : reads)
     {

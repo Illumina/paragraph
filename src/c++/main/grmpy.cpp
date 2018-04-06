@@ -42,125 +42,199 @@
 
 #include "spdlog/spdlog.h"
 
-#include "grmpy/AlignSamples.hh"
-#include "grmpy/CountAndGenotype.hh"
 #include "grmpy/Parameters.hh"
+#include "grmpy/Workflow.hh"
 
 #include "common/Error.hh"
+#include "common/Program.hh"
 
 using std::string;
 namespace po = boost::program_options;
 
 using namespace grmpy;
 
-int main(int argc, const char* argv[])
+class Options : public common::Options
 {
-    po::options_description desc("Allowed options");
-    desc.add_options()("help,h", "Produce help message.")(
-        "reference,r", po::value<string>(),
-        "Reference genome fasta file.")("graph-spec,g", po::value<string>(), "JSON file describing the graph")(
+public:
+    Options();
+
+    common::Options::Action parse(int argc, const char* argv[]);
+    void postProcess(boost::program_options::variables_map& vm);
+
+    string reference_path;
+    std::vector<std::string> graph_spec_paths;
+    string output_file_path;
+    string output_folder_path;
+    genotyping::Samples manifest;
+    string genotyping_parameter_path;
+    int sample_threads = std::thread::hardware_concurrency();
+    int max_reads_per_event = 10000;
+    float bad_align_frac = 0.8f;
+    bool exact_sequence_matching = true;
+    bool graph_sequence_matching = true;
+    bool kmer_sequence_matching = false;
+    int bad_align_uniq_kmer_len = 0;
+    bool gzip_output = false;
+
+    std::string usagePrefix() const { return "grmpy -r <reference> -g <graphs> -m <manifest> [optional arguments]"; }
+};
+
+Options::Options()
+{
+    namedOptions_.add_options()("help,h", "Produce help message.")(
+        "reference,r", po::value<string>(), "Reference genome fasta file.")(
+        "graph-spec,g", po::value<std::vector<string>>()->multitoken(), "JSON file(s) describing the graph(s)")(
         "genotyping-parameters,G", po::value<string>(), "JSON file with genotyping model parameters")(
         "manifest,m", po::value<string>(), "Manifest of samples with path and bam stats.")(
-        "output,o", po::value<string>(), "Output file name. Will output tabular format to stdout if omitted.")(
-        "max-reads-per-event,M", po::value<int>()->default_value(10000),
+        "output-file,o", po::value<string>(),
+        "Output file name. Will output tabular format to stdout if omitted or '-'.")(
+        "output-folder,O", po::value<string>(),
+        "Output folder path. paragraph will attempt to create "
+        "the folder but not the entire path. Will output to stdout if neither of output-file or "
+        "output-folder provided. If specified, paragraph will produce one output file for each "
+        "input file bearing the same name.")(
+        "max-reads-per-event,M", po::value<int>(&max_reads_per_event)->default_value(max_reads_per_event),
         "Maximum number of reads to process for a single event.")(
-        "bad-align-frac", po::value<float>()->default_value(0.8f),
+        "bad-align-frac", po::value<float>(&bad_align_frac)->default_value(bad_align_frac),
         "Fraction of read that needs to be mapped in order for it to be used.")(
-        "log-level", po::value<string>()->default_value("info"), "Set log level (error, warning, info).")(
-        "sample-threads,t", po::value<int>()->default_value(std::thread::hardware_concurrency()),
+        "exact-sequence-matching",
+        po::value<bool>(&exact_sequence_matching)->default_value(exact_sequence_matching)->implicit_value(true),
+        "Use exact sequence match to find the best candidate among all available paths")(
+        "graph-sequence-matching",
+        po::value<bool>(&graph_sequence_matching)->default_value(graph_sequence_matching)->implicit_value(true),
+        "Enables smith waterman graph alignment")(
+        "kmer-sequence-matching",
+        po::value<bool>(&kmer_sequence_matching)->default_value(kmer_sequence_matching)->implicit_value(true),
+        "Use kmer aligner.")(
+        "bad-align-uniq-kmer-len", po::value<int>(&bad_align_uniq_kmer_len)->default_value(bad_align_uniq_kmer_len),
+        "Kmer length for uniqueness check during read filtering.")(
+        "sample-threads,t", po::value<int>(&sample_threads)->default_value(sample_threads),
         "Number of threads for parallel sample processing.")(
-        "alignment-threads", po::value<int>()->default_value(1), "Number of threads for parallel read alignment.")(
-        "log-file", po::value<string>()->default_value(""), "Log to a file instead of stderr.")(
-        "log-async", po::value<bool>()->default_value(true), "Enable / disable async logging.");
+        "gzip-output,z", po::value<bool>(&gzip_output)->default_value(gzip_output)->implicit_value(true),
+        "gzip-compress output files."
+        "If -O is used, output file names are appended with .gz");
+    unnamedOptions_.add_options()("alignment-threads", po::value<int>()->default_value(1), "Deprecated. Don't use.");
+}
 
-    po::variables_map vm;
-    std::shared_ptr<spdlog::logger> logger;
-    try
+/**
+ * \brief remembers the original argv array and hands over to the base implementation
+ */
+Options::Action Options::parse(int argc, const char* argv[])
+{
+    const std::vector<std::string> allOptions(argv, argv + argc);
+    std::cerr << "argc: " << argc << " argv: " << boost::join(allOptions, " ") << std::endl;
+
+    common::Options::Action ret = common::Options::parse(argc, argv);
+    return ret;
+}
+
+void Options::postProcess(boost::program_options::variables_map& vm)
+{
+    std::shared_ptr<spdlog::logger> logger = LOG();
+
+    if (vm.count("reference"))
     {
-        po::store(po::parse_command_line(argc, argv, desc), vm);
-        po::notify(vm);
-
-        if (vm.empty() || (vm.count("help") != 0u))
-        {
-            std::cerr << desc << std::endl;
-            return 1;
-        }
-
-        initLogging(
-            "Genotyper", vm["log-file"].as<string>().c_str(), vm["log-async"].as<bool>(),
-            vm["log-level"].as<string>().c_str());
-        logger = LOG();
-
-        string reference_path;
-        if (vm.count("reference"))
-        {
-            reference_path = vm["reference"].as<string>();
-            logger->info("Reference path: {}", reference_path);
-            assertFileExists(reference_path);
-        }
-        else
-        {
-            error("Error: Reference genome path is missing.");
-        }
-
-        string graph_path;
-        if (vm.count("graph-spec"))
-        {
-            graph_path = vm["graph-spec"].as<string>();
-            logger->info("Graph path: {}", graph_path);
-            assertFileExists(graph_path);
-        }
-        else
-        {
-            error("Error: Graph spec path is missing.");
-        }
-
-        string manifest_path;
-        if (vm.count("manifest"))
-        {
-            manifest_path = vm["manifest"].as<string>();
-            logger->info("Manifest path: {}", manifest_path);
-            assertFileExists(manifest_path);
-        }
-        else
-        {
-            error("Error: Manifest file is missing.");
-        }
-        string genotyping_parameter_path;
-        if (vm.count("genotyping-parameters"))
-        {
-            genotyping_parameter_path = vm["genotyping-parameters"].as<string>();
-        }
-
-        const string output_path = vm["output"].as<string>();
-
-        logger->info("Loading parameters");
-        Parameters parameters(
-            vm["sample-threads"].as<int>(), vm["alignment-threads"].as<int>(), vm["max-reads-per-event"].as<int>(),
-            vm["bad-align-frac"].as<float>());
-        parameters.load(graph_path, reference_path, manifest_path, output_path, genotyping_parameter_path);
-        logger->info("Done loading parameters");
-
-        logger->info("Running alignments");
-        alignSamples(parameters);
-        logger->info("Done running alignments");
-
-        logger->info("Running genotyper");
-        countAndGenotype(parameters);
-        logger->info("Done running genotyper");
+        reference_path = vm["reference"].as<string>();
+        logger->info("Reference path: {}", reference_path);
+        assertFileExists(reference_path);
     }
-    catch (const std::exception& e)
+    else
     {
-        if (logger)
-        {
-            logger->critical(e.what());
-        }
-        else
-        {
-            std::cerr << e.what() << std::endl;
-        }
-        return 1;
+        error("Error: Reference genome path is missing.");
     }
 
+    if (vm.count("graph-spec") != 0u)
+    {
+        graph_spec_paths = vm["graph-spec"].as<std::vector<string>>();
+        logger->info("Graph spec: {}", boost::join(graph_spec_paths, ","));
+        assertFilesExist(graph_spec_paths.begin(), graph_spec_paths.end());
+        if (vm.count("output-folder"))
+        {
+            // If we're to produce individual output files per input, the input file
+            // paths must have unique file names.
+            assertFileNamesUnique(graph_spec_paths.begin(), graph_spec_paths.end());
+        }
+    }
+
+    if (vm.count("output-file") != 0u)
+    {
+        output_file_path = vm["output-file"].as<string>();
+    }
+    else if (!vm.count("output-folder"))
+    {
+        output_file_path = "-";
+    }
+
+    if (vm.count("output-folder"))
+    {
+        output_folder_path = vm["output-folder"].as<string>();
+        logger->info("Output folder path: {}", output_folder_path);
+        boost::filesystem::create_directory(output_folder_path);
+    }
+
+    if (vm.count("manifest"))
+    {
+        const string manifest_path = vm["manifest"].as<string>();
+        logger->info("Manifest path: {}", manifest_path);
+        assertFileExists(manifest_path);
+        manifest = genotyping::loadManifest(manifest_path);
+        if (graph_spec_paths.empty())
+        {
+            // If no graphs given, all manifest samples must have paragraph column set
+            for (const genotyping::SampleInfo& sample : manifest)
+            {
+                if (sample.get_alignment_data().isNull())
+                {
+                    error(
+                        "Error: No graphs given on the command line and sample '%s' has empty paragraph "
+                        "column in the manifest.",
+                        sample.sample_name().c_str());
+                }
+            }
+        }
+        else if (1 < graph_spec_paths.size())
+        {
+            for (const genotyping::SampleInfo& sample : manifest)
+            {
+                if (!sample.get_alignment_data().isNull())
+                {
+                    error(
+                        "ERROR: Pre-aligned samples are allowed only when genotyping for a single variant. %d "
+                        "graphs provided.",
+                        graph_spec_paths.size());
+                }
+            }
+        }
+    }
+    else
+    {
+        error("Error: Manifest file is missing.");
+    }
+
+    if (vm.count("genotyping-parameters"))
+    {
+        genotyping_parameter_path = vm["genotyping-parameters"].as<string>();
+    }
+
+    if (vm.count("alignment-threads"))
+    {
+        LOG()->warn("--alignment-threads is deprecated and ignored");
+    }
+}
+
+static void runGrmpy(const Options& options)
+{
+    Parameters parameters(
+        options.sample_threads, options.max_reads_per_event, options.bad_align_frac, options.exact_sequence_matching,
+        options.graph_sequence_matching, options.kmer_sequence_matching, options.bad_align_uniq_kmer_len);
+    grmpy::Workflow workflow(
+        options.graph_spec_paths, options.genotyping_parameter_path, options.manifest, options.output_file_path,
+        options.output_folder_path, options.gzip_output, parameters, options.reference_path);
+    workflow.run();
+}
+
+int main(int argc, const char* argv[])
+{
+    common::run(runGrmpy, "Genotyping", argc, argv);
     return 0;
 }

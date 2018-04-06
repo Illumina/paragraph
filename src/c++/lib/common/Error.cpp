@@ -98,6 +98,7 @@ void initLogging(const char* name, const char* filename, bool async, const char*
     }
     DEFAULT_LOGGER_NAME = name;
 
+    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%t] [%l] %v");
     // necessary for MSVC, also seems to avoid a memory leak
     std::atexit(spdlog::drop_all);
 }

@@ -54,7 +54,14 @@ class TestMultiGrmpy(unittest.TestCase):
                 "verbose": False,
                 "quiet": True,
                 "logfile": None,
+                "exact_sequence_matching": True,
+                "graph_sequence_matching": True,
+                "kmer_sequence_matching": False,
+                "bad_align_uniq_kmer_len": 0,
                 "threads": 1,
+                "sample_threads": 1,
+                "genotyping_parameters": None,
+                "max_reads_per_event": 10000,
                 "split_type": "lines",
                 "read_length": 150,
                 "max_ref_node_length": 1000,
@@ -62,14 +69,18 @@ class TestMultiGrmpy(unittest.TestCase):
                 "retrieve_reference_sequence": False,
                 "scratch_dir": None,
                 "keep_scratch": True,
-                "use_em": False
             })
             output_json_path = os.path.join(output_dir, "genotypes.json.gz")
             multigrmpy.run(args)
             with gzip.open(output_json_path, 'rt') as result_json:
                 observed = json.load(result_json)
-                self.assertEqual(observed[0]["samples"]["sample1"]["gt"]["GT"], "S1/S1")
-                self.assertEqual(observed[1]["samples"]["sample2"]["gt"]["GT"], "S1/S1")
+                for item in observed:
+                    if item["graphinfo"]["ID"] == "test-ins":
+                        self.assertEqual(item["samples"]["sample1"]["gt"]["GT"], "S1/S1")
+                        self.assertEqual(item["samples"]["sample2"]["gt"]["GT"], "./.")
+                    if item["graphinfo"]["ID"] == "test-del":
+                        self.assertEqual(item["samples"]["sample1"]["gt"]["GT"], "./.")
+                        self.assertEqual(item["samples"]["sample2"]["gt"]["GT"], "S1/S1")
 
 
 if __name__ == "__main__":

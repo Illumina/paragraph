@@ -44,6 +44,7 @@ namespace genotyping
 GenotypingParameters::GenotypingParameters(const vector<string>& _allele_names)
     : ploidy_(2)
     , num_alleles(_allele_names.size())
+    , coverage_test_cutoff(0.00001)
     , allele_names(_allele_names)
     , min_overlap_bases(16)
     , reference_allele("REF")
@@ -58,26 +59,29 @@ GenotypingParameters::GenotypingParameters(const vector<string>& _allele_names)
 void GenotypingParameters::setPossibleGenotypes()
 {
     vector<GenotypeVector> gts;
-    // generate all possible GTs (as described in the VCF SPEC)
-    const std::function<void(unsigned int, unsigned int, std::vector<uint64_t>)> makeGenotypes
-        = [&makeGenotypes, &gts](unsigned int p, unsigned int n, vector<uint64_t> suffix) {
-              for (unsigned int a = 0; a <= n; ++a)
-              {
-                  if (p == 1)
+    if (num_alleles)
+    {
+        // generate all possible GTs (as described in the VCF SPEC)
+        const std::function<void(unsigned int, unsigned int, std::vector<uint64_t>)> makeGenotypes
+            = [&makeGenotypes, &gts](unsigned int p, unsigned int n, vector<uint64_t> suffix) {
+                  for (unsigned int a = 0; a <= n; ++a)
                   {
-                      auto new_suffix = suffix;
-                      new_suffix.insert(new_suffix.begin(), a);
-                      gts.push_back(new_suffix);
+                      if (p == 1)
+                      {
+                          auto new_suffix = suffix;
+                          new_suffix.insert(new_suffix.begin(), a);
+                          gts.push_back(new_suffix);
+                      }
+                      else if (p > 1)
+                      {
+                          auto new_suffix = suffix;
+                          new_suffix.insert(new_suffix.begin(), a);
+                          makeGenotypes(p - 1, a, new_suffix);
+                      }
                   }
-                  else if (p > 1)
-                  {
-                      auto new_suffix = suffix;
-                      new_suffix.insert(new_suffix.begin(), a);
-                      makeGenotypes(p - 1, a, new_suffix);
-                  }
-              }
-          };
-    makeGenotypes(ploidy_, num_alleles - 1, {});
+              };
+        makeGenotypes(ploidy_, num_alleles - 1, {});
+    }
     possible_genotypes = std::move(gts);
 }
 
@@ -85,12 +89,17 @@ void GenotypingParameters::setFromJson(Json::Value& param_json)
 {
     auto logger = LOG();
     // simple statistic fields
+    bool uniform_het_haplotype_fraction = false;
     for (auto& key : param_json.getMemberNames())
     {
         auto& field = param_json[key];
         if (key == "min_overlap_bases")
         {
             min_overlap_bases = field.asInt();
+        }
+        if (key == "coverage_test_cutoff")
+        {
+            coverage_test_cutoff = field.asDouble();
         }
         else if (key == "reference_allele")
         {
@@ -104,9 +113,13 @@ void GenotypingParameters::setFromJson(Json::Value& param_json)
         {
             other_allele_error_rate = field.asDouble();
         }
-        else if (key == "other_het_haplotype_fraction")
+        else if (key == "het_haplotype_fraction")
         {
-            other_het_haplotype_fraction = field.asDouble();
+            if (field.asString()[0] == '[')
+            {
+                other_het_haplotype_fraction = field.asDouble();
+                uniform_het_haplotype_fraction = true;
+            }
         }
         else if (key == "other_genotype_fraction")
         {
@@ -118,7 +131,8 @@ void GenotypingParameters::setFromJson(Json::Value& param_json)
         }
     }
 
-    if (param_json.isMember("allele_error_rates") || param_json.isMember("het_haplotype_fractions")
+    if (param_json.isMember("allele_error_rates")
+        || (param_json.isMember("het_haplotype_fractions") && !uniform_het_haplotype_fraction)
         || param_json.isMember("genotype_fractions"))
     {
         if (!param_json.isMember("allele_names"))
@@ -140,7 +154,7 @@ void GenotypingParameters::setFromJson(Json::Value& param_json)
                 setAlleleErrorRate(param_json["allele_error_rates"], conversion_index);
             }
 
-            if (param_json.isMember("het_haplotype_fractions"))
+            if (param_json.isMember("het_haplotype_fractions") && !uniform_het_haplotype_fraction)
             {
                 setHetHaplotypeFractions(param_json["het_haplotype_fractions"], conversion_index);
             }

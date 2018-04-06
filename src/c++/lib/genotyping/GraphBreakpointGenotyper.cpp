@@ -73,6 +73,7 @@ void GraphBreakpointGenotyper::runGenotyping()
     }
 
     // compute combined genotype
+    size_t sample_index = 0;
     for (const auto& samplename : sampleNames())
     {
         GenotypeSet all_breakpoint_gts;
@@ -80,7 +81,11 @@ void GraphBreakpointGenotyper::runGenotyping()
         {
             all_breakpoint_gts.add(allelenames, getGenotype(samplename, breakpointname));
         }
-        setGenotype(samplename, "", combinedGenotype(all_breakpoint_gts));
+        auto const& depth_readlength = getDepthAndReadlength(sample_index);
+        setGenotype(
+            samplename, "",
+            combinedGenotype(all_breakpoint_gts, &genotyper, depth_readlength.first, depth_readlength.second));
+        ++sample_index;
     }
 }
 }

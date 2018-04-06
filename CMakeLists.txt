@@ -52,7 +52,7 @@ find_package (Threads REQUIRED)
 set(Boost_USE_STATIC_LIBS        ON)  # only find static libs
 set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME     ON)
-find_package(Boost 1.5 COMPONENTS program_options filesystem system REQUIRED)
+find_package(Boost 1.5 COMPONENTS iostreams program_options filesystem system REQUIRED)
 
 include_directories(${ZLIB_INCLUDE_DIR})
 include_directories(${BZIP2_INCLUDE_DIR})

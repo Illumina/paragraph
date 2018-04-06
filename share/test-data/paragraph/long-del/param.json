@@ -19,7 +19,6 @@
     },
     "reference_allele_error_rate": 0.05,
     "other_allele_error_rate": 0.05,
-    "other_het_haplotype_fraction": 0.5,
     "other_genotype_fraction": 0.33,
     "ploidy": 2
 }

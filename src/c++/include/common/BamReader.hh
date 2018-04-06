@@ -63,9 +63,10 @@ public:
      * Create BAM / CRAM reader. Reference is required to match the
      * reference FASTA file for the BAM/CRAM
      * @param path file path
+     * @param index_path bam/cram index file path (pass an empty string to use default location)
      * @param reference path to FASTA reference
      */
-    explicit BamReader(const std::string& path, const std::string& reference);
+    explicit BamReader(const std::string& path, const std::string& index_path, const std::string& reference);
 
     BamReader(BamReader&&) noexcept;
     BamReader& operator=(BamReader&&) noexcept;

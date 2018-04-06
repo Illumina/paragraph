@@ -31,7 +31,6 @@
 
 import argparse
 import gzip
-import itertools
 import json
 import logging
 import multiprocessing
@@ -41,6 +40,7 @@ import subprocess
 import tempfile
 import traceback
 import re
+import ntpath
 
 import findgrm  # pylint: disable=unused-import
 from grm.helpers import LoggingWriter
@@ -67,6 +67,7 @@ def load_graph_description(args):
                                              split_type=args.split_type,
                                              retrieve_ref_sequence=args.retrieve_reference_sequence,
                                              threads=args.threads)
+            logging.info("Saving: %s.", converted_json_path)
             with gzip.open(converted_json_path, "wt") as converted_json_file:
                 json.dump(event_list, converted_json_file, sort_keys=True, indent=4, separators=(',', ': '))
         except Exception:  # pylint: disable=W0703
@@ -74,8 +75,7 @@ def load_graph_description(args):
             traceback.print_exc(file=LoggingWriter(logging.ERROR))
             raise
         logging.info("Done. Graph Json stored at %s", converted_json_path)
-        args.input = converted_json_path
-    elif extension == ".json" or extension == "json.gz":
+    elif extension == ".json" or extension == ".json.gz":
         if extension == ".json":
             json_file = open(args.input, 'r')
         else:
@@ -99,91 +99,24 @@ def load_graph_description(args):
     else:
         raise Exception("Unknown input file extension %s for %s. Only VCF or JSON is allowed!" %
                         (extension, args.input))
-    return event_list
 
-
-def run_grmpy_single_variant(event_and_args):
-    """
-    Run grmpy for one single variant on all samples with multiple threads
-    return grmpy result as python dict object
-    """
-    event = event_and_args[0]
-    args = event_and_args[1]
     tempfiles = []
-    exception = ""
-    error_log = ""
-    error = False
-    gt_result = {}
 
-    try:
+    logging.info("Saving %d graph json files", len(event_list))
+    graph_id = 0
+    for event in event_list:
         input_json_file = tempfile.NamedTemporaryFile(dir=args.scratch_dir, mode="wt", suffix=".json", delete=False)
         tempfiles.append(input_json_file.name)
         if "graph" in event:
-            json.dump(event["graph"], input_json_file, indent=4, separators=(',', ': '))
+            graph = event["graph"]
+            if "ID" not in graph or not graph["ID"]:
+                graph["ID"] = ntpath.basename(args.input) + ":" + str(graph_id)
+                graph_id += 1
+            json.dump(graph, input_json_file, indent=4, separators=(',', ': '))
         else:
             json.dump(event, input_json_file, indent=4, separators=(',', ': '))
         input_json_file.close()
-        error_log = input_json_file.name + ".output.log"
-        tempfiles.append(error_log)
-
-        grmpy_out_path = input_json_file.name + ".grmpy.json"
-        tempfiles.append(grmpy_out_path)
-        commandline = args.grmpy
-
-        commandline += " -r %s" % pipes.quote(args.reference)
-        commandline += " -m %s" % pipes.quote(args.manifest)
-        commandline += " -g %s" % pipes.quote(input_json_file.name)
-        commandline += " -o %s" % pipes.quote(grmpy_out_path)
-        if args.use_em:
-            commandline += " --useEM"
-        commandline += " --log-file %s" % pipes.quote(error_log)
-        o = subprocess.check_output(commandline, shell=True, stderr=subprocess.STDOUT)
-
-        try:
-            o = o.decode("utf-8")
-        except:  # pylint: disable=bare-except
-            o = str(o)
-
-        for line in o.split("\n"):
-            if line:
-                logging.warning(line)
-
-        with open(grmpy_out_path, "rt") as grmpy_out_file:
-            gt_result = json.load(grmpy_out_file)
-
-    except Exception:  # pylint: disable=broad-except
-        logging.error("Exception when running grmpy on %s", str(event))
-        logging.error('-' * 60)
-        traceback.print_exc(file=LoggingWriter(logging.ERROR))
-        logging.error('-' * 60)
-        exception = traceback.format_exc()
-        error = True
-    except BaseException:  # pylint: disable=broad-except
-        logging.error("Exception when running grmpy on %s", str(event))
-        logging.error('-' * 60)
-        traceback.print_exc(file=LoggingWriter(logging.ERROR))
-        logging.error('-' * 60)
-        exception = traceback.format_exc()
-        error = True
-    finally:
-        if error:
-            try:
-                with open(error_log, "rt") as f:
-                    for line in f:
-                        line = str(line).strip()
-                        logging.error(line)
-            except:  # pylint: disable=bare-except
-                pass
-            gt_result["error"] = {
-                "exception": exception
-            }
-        if not args.keep_scratch:
-            for f in tempfiles:
-                try:
-                    os.remove(f)
-                except:  # pylint: disable=bare-except
-                    pass
-    return gt_result
+    return tempfiles
 
 
 def make_argument_parser():
@@ -206,6 +139,9 @@ def make_argument_parser():
     parser.add_argument("--event-threads", "-t", dest="threads", type=int, default=multiprocessing.cpu_count(),
                         help="Number of events to process in parallel.")
 
+    parser.add_argument("--sample-threads", dest="sample_threads", type=int, default=1,
+                        help="Number of samples to process in parallel.")
+
     parser.add_argument("--keep-scratch", dest="keep_scratch", default=None, action="store_true",
                         help="Do not delete temp files.")
 
@@ -218,6 +154,18 @@ def make_argument_parser():
     parser.add_argument("--logfile", dest="logfile", default=None,
                         help="Write logging information into file rather than to stderr")
 
+    parser.add_argument("--exact-sequence-matching", dest="exact_sequence_matching",
+                        default=False, help="Use path aligner.")
+
+    parser.add_argument("--graph-sequence-matching", dest="graph_sequence_matching",
+                        default=False, help="Use graph aligner.")
+
+    parser.add_argument("--kmer-sequence-matching", dest="kmer_sequence_matching",
+                        default=False, help="Use kmer aligner.")
+
+    parser.add_argument("--bad-align-uniq-kmer-len", dest="bad_align_uniq_kmer_len", default=0,
+                        help="Kmer length for uniqueness check during read filtering.")
+
     verbosity_options = parser.add_mutually_exclusive_group(required=False)
 
     verbosity_options.add_argument("--verbose", dest="verbose", default=False, action="store_true",
@@ -226,13 +174,16 @@ def make_argument_parser():
     verbosity_options.add_argument("--quiet", dest="quiet", default=False, action="store_true",
                                    help="Set logging level to output errors only.")
 
+    verbosity_options.add_argument("--debug", dest="debug", default=False, action="store_true",
+                                   help="Log debug level events.")
+
     stat_options = parser.add_mutually_exclusive_group(required=False)
 
-    stat_options.add_argument("-G", "--genotyping-parameters", dest="genotyping-parameters", default="",
+    stat_options.add_argument("-G", "--genotyping-parameters", dest="genotyping_parameters", default="",
                               type=str, help="JSON string or file with genotyping model parameters.")
 
-    stat_options.add_argument("--useEM", dest="use_em", default=False, action="store_true",
-                              help="Use Expectation-Maximization algorithm in genotyping. Slower but more accurate.")
+    stat_options.add_argument("-M", "--max-reads-per-event", dest="max_reads_per_event", default=0,
+                              type=int, help="Maximum number of reads to process for a single event.")
 
     vcf2json_options = parser.add_mutually_exclusive_group(required=False)
 
@@ -263,15 +214,14 @@ def run(args):
         loglevel = logging.INFO
     elif args.quiet:
         loglevel = logging.ERROR
+    elif args.debug:
+        loglevel = logging.DEBUG
     else:
         loglevel = logging.WARNING
 
-    if not os.path.isdir(args.output):
-        os.makedirs(args.output, exist_ok=True)
-
-    # set default log file
-    if not args.logfile:
-        args.logfile = os.path.join(args.output, "GraphTyping.log")
+    os.makedirs(args.output, exist_ok=True)
+    if args.scratch_dir:
+        os.makedirs(args.scratch_dir, exist_ok=True)
 
     # reinitialize logging
     for handler in logging.root.handlers[:]:
@@ -302,20 +252,45 @@ def run(args):
 
     # prepare input graph description
     try:
-        event_list = load_graph_description(args)
+        graph_files = load_graph_description(args)
+        commandline = "-r %s" % pipes.quote(args.reference)
+        commandline += " -m %s" % pipes.quote(args.manifest)
+        result_json_path = os.path.join(args.output, "genotypes.json.gz")
+        commandline += " -o %s" % pipes.quote(result_json_path)
+        commandline += " -z"
+
+        if args.genotyping_parameters:
+            commandline += " -G %s" % pipes.quote(args.genotyping_parameters)
+        if args.max_reads_per_event:
+            commandline += " -M %s" % pipes.quote(str(args.max_reads_per_event))
+        if args.sample_threads > 1:
+            commandline += " -t %s" % pipes.quote(str(args.sample_threads))
+        if args.exact_sequence_matching:
+            commandline += " --exact-sequence-matching %s" % pipes.quote(str(args.exact_sequence_matching))
+        if args.graph_sequence_matching:
+            commandline += " --graph-sequence-matching %s" % pipes.quote(str(args.graph_sequence_matching))
+        if args.kmer_sequence_matching:
+            commandline += " --kmer-sequence-matching %s" % pipes.quote(str(args.kmer_sequence_matching))
+        if int(args.bad_align_uniq_kmer_len):
+            commandline += " --bad-align-uniq-kmer-len %s" % pipes.quote(str(args.bad_align_uniq_kmer_len))
+
+        commandline += " -g"
+        for graph in graph_files:
+            commandline += " %s" % pipes.quote(graph)
+
+        response_file = tempfile.NamedTemporaryFile(dir=args.scratch_dir, mode="wt", suffix=".txt", delete=False)
+        response_file.write(commandline)
+        response_file.flush()
+
+        commandline = args.grmpy + " --response-file=%s" % pipes.quote(response_file.name)
+
+        logging.info("Starting: %s", commandline)
+
+        subprocess.call(commandline, shell=True, stderr=subprocess.STDOUT)
+
     except Exception:  # pylint: disable=W0703
         traceback.print_exc(file=LoggingWriter(logging.ERROR))
         raise
-
-    # run grmpy
-    with multiprocessing.Pool(args.threads) as pool:
-        results = pool.map(run_grmpy_single_variant, zip(event_list, itertools.repeat(args)))
-
-    logging.info("Finished genotyping. Merging output...")
-    result_json_path = os.path.join(args.output, "genotypes.json.gz")
-    with gzip.open(result_json_path, "wt") as result_json_file:
-        json.dump(results, result_json_file, sort_keys=True, indent=4, separators=(',', ':'))
-        logging.info("ParaGRAPH completed on %d sites.", len(event_list))
 
 
 def main():

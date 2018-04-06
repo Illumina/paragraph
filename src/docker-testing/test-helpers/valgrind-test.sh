@@ -45,7 +45,7 @@ valgrind --leak-check=full --xml=yes \
            -r  ${PARAGRAPH}/share/test-data/paragraph/long-del/chr4_graph_typing.fa \
            -g  ${PARAGRAPH}/share/test-data/paragraph/long-del/chr4_graph_typing.2sample.json \
            -m ${PARAGRAPH}/share/test-data/paragraph/long-del/chr4_graph_typing.manifest \
-           -o t${WORKSPACE}/vg_test.json
+           -o ${WORKSPACE}/vg_test.json
 
 python ${PARAGRAPH_SOURCE}/src/sh/valgrind-check.py ${WORKSPACE}/valgrind3.xml
 

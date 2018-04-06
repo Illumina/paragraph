@@ -32,20 +32,10 @@
  *
  */
 
-#include <fstream>
-#include <string>
-
-#include <boost/filesystem.hpp>
-#include <boost/program_options.hpp>
-
-#include "common/Error.hh"
+#include "grmpy/CountAndGenotype.hh"
 #include "common/JsonHelpers.hh"
 #include "genotyping/GraphBreakpointGenotyper.hh"
 #include "graphs/WalkableGraph.hh"
-#include "grmpy/CountAndGenotype.hh"
-
-namespace po = boost::program_options;
-using namespace common;
 
 namespace grmpy
 {
@@ -53,45 +43,35 @@ namespace grmpy
 /**
  * main function for alignment and genotyping
  *
- * @param parameters Input parameters
- * @param out_stream pointer to the output stream (for testing purpose)
+ * @param graphPath               If empty the alignment data of the first sample is used as graph
+ * @param genotypingParameterPath path to genotyper settings
+ * @param samples                 Collection of samples to genotype. Cannot be empty
  */
-void countAndGenotype(const Parameters& parameters, std::ostream* out_stream)
+Json::Value countAndGenotype(
+    const std::string& graphPath, const std::string& referencePath, const std::string& genotypingParameterPath,
+    const genotyping::Samples& samples)
 {
-    auto logger = LOG();
-    std::unique_ptr<std::ofstream> file_out;
-    const std::string& output_path = parameters.output_path();
-    if (!output_path.empty())
-    {
-        logger->info("Output path: {}", output_path);
-        file_out.reset(new std::ofstream(output_path));
-        out_stream = (std::ostream*)file_out.get();
-        logger->info("Done initializing output");
-    }
-    else
-    {
-        logger->info("Empty output path. Re-direct to std output or specified outstream.");
-    }
-
+    LOG()->info("Running genotyper");
     // Initialize walkable graph
-    Json::Value root = common::getJSON(parameters.graph_path());
+    Json::Value root = graphPath.empty() ? samples.front().get_alignment_data() : common::getJSON(graphPath);
     graphs::Graph graph;
-    graphs::fromJson(root, parameters.reference_path(), graph);
+    graphs::fromJson(root, referencePath, graph);
 
     auto wgraph_ptr = std::make_shared<graphs::WalkableGraph>(graph);
 
     genotyping::GraphBreakpointGenotyper graph_genotyper;
     graph_genotyper.reset(wgraph_ptr);
-    graph_genotyper.setParameters(parameters.genotypingParameterPath());
+    graph_genotyper.setParameters(genotypingParameterPath);
 
-    for (auto& sample_info : parameters.getSamples())
+    for (const genotyping::SampleInfo& sample_info : samples)
     {
         graph_genotyper.addAlignment(sample_info);
     }
 
-    Json::StyledStreamWriter writer;
-    writer.write(*out_stream, graph_genotyper.getGenotypes());
+    Json::Value ret = graph_genotyper.getGenotypes();
 
-    logger->info("Output data written.");
+    LOG()->info("Done running genotyper");
+    return ret;
 }
-}
+
+} // namespace grmpy

@@ -97,12 +97,10 @@ Genotype::operator std::string() const { return toString(); }
 void Genotype::relabel(std::vector<uint64_t> const& new_labels)
 {
     // remap genotypes
-    uint64_t max_al = 0;
     for (auto& g : gt)
     {
         assert(new_labels.size() > g);
         g = new_labels[g];
-        max_al = std::max(g, max_al);
     }
     std::sort(gt.begin(), gt.end());
     // remap labels for GL
@@ -119,7 +117,7 @@ void Genotype::relabel(std::vector<uint64_t> const& new_labels)
 
     // relabel allele fractions
     std::vector<double> new_allele_fractions;
-    new_allele_fractions.resize(max_al + 1, 0ull);
+    new_allele_fractions.resize(new_labels.size(), 0ull);
     for (size_t g = 0; g < allele_fractions.size(); ++g)
     {
         assert(new_labels.size() > g);
@@ -156,11 +154,15 @@ Json::Value Genotype::toJson(vector<string> const& allele_names) const
     }
     if (!filter.empty())
     {
-        json_result["Filter"] = filter;
+        json_result["filter"] = filter;
     }
     if (!gt.empty())
     {
-        json_result["DP"] = num_reads;
+        json_result["num_reads"] = num_reads;
+        if (coverage_test_pvalue != -1)
+        {
+            json_result["coverage_test_pvalue"] = coverage_test_pvalue;
+        }
     }
     return json_result;
 }

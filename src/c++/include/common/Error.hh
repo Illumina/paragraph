@@ -41,7 +41,8 @@
 #include <stdexcept>
 
 // include this here before we redefine error below
-#include "spdlog/spdlog.h"
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 #ifndef ERRMSG_MAX
 #define ERRMSG_MAX 2048
@@ -182,6 +183,11 @@ static inline void assertFileExists(const std::string& path_str)
 {
     // allow S3 paths.
     if (path_str.substr(0, 5) == "s3://")
+    {
+        return;
+    }
+    // allow http(s) paths.
+    if (path_str.substr(0, 7) == "http://" || path_str.substr(0, 8) == "https://")
     {
         return;
     }

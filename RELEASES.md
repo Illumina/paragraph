@@ -1,5 +1,27 @@
 # Paragraph Release Notes / Change Log
 
+# Version 1.2
+
+| Date Y-m-d | Ticket  | Description                                                          |
+|------------|---------|----------------------------------------------------------------------|
+| 2018-04-05 | GT-429  | option to turn off exact and graph aligners in grmpy                 |
+| 2018-04-05 | GT-428  | upgrade htslib to version 1.8                                        |
+| 2018-04-04 | GT-427  | GT-427 multigrmpy to generate graph ID if vc2toparagraph does not provide it|
+| 2018-04-03 | GT-415  | GT-415 use parallel grmpy in multigrmpy                              |
+| 2018-03-22 | GT-414  | Use filter instead of mapping status to decide whether to graph align after kmer aligner|
+| 2018-03-20 | GT-412  | Kmer aligner produces fully clipped nodes at start or end of the alignment|
+| 2018-03-20 | GT-407  | Refined edge filter                                                  |
+| 2018-03-15 | GT-403  | New threading for grmpy                                              |
+| 2018-03-15 | GT-235  | Add documentation for read counting                                  |
+| 2018-03-14 | GT-406  | Combine source and sink softclips with adjacent node CIGAR in KmerAligner|
+| 2018-03-11 | GT-398  | Minor grmpy fix and documentation update                             |
+| 2018-03-07 | GT-394  | graph-level threading to improve efficiency with high-latency file systems|
+| 2018-01-03 | GT-393  | Command line option for simulated reads coverage                     |
+| 2018-01-03 | GT-392  | Reads sometimes out of order in simulated.bam                        |
+| 2018-03-05 | GT-396  | Add command line options to specify location of BAM index separately |
+| 2018-02-28 | GT-388  | Improved genotyping on variants with different breakpoint genotypes  |
+
+
 # Version 1.1
 
 | Date Y-m-d | Ticket  | Description                                                          |

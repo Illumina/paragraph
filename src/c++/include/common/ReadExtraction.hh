@@ -52,6 +52,7 @@ void extractReads(
 /**
  * High-level read extraction interface
  * @param bam_path path to BAM file
+ * @param bam_index_path path to BAM index file (or empty to use default location)
  * @param reference_path path to FASTA reference file
  * @param target_regions list of target regions
  * @param max_reads maximum number of reads per target region to retrieve
@@ -59,8 +60,9 @@ void extractReads(
  * @param avr_fragment_length decides how long to extend beyond target region
  */
 void extractReads(
-    const std::string& bam_path, const std::string& reference_path, std::list<Region> const& target_regions,
-    int max_reads, std::vector<p_Read>& all_reads, int avr_fragment_length = 333);
+    const std::string& bam_path, const std::string& bam_index_path, const std::string& reference_path,
+    std::list<Region> const& target_regions, int max_num_reads, std::vector<p_Read>& all_reads,
+    int avr_fragment_length = 333);
 
 /**
  * Lower-level read extraction interface for specified target region

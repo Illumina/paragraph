@@ -41,6 +41,7 @@
 #include "common.hh"
 
 #include "common/ReadExtraction.hh"
+#include "common/Threads.hh"
 #include "paragraph/Disambiguation.hh"
 #include "paragraph/Parameters.hh"
 
@@ -70,7 +71,10 @@ TEST(Paragraph, AlignsPGHetIns)
     parameters.load(graph_spec_path, reference_path);
 
     common::ReadBuffer all_reads;
-    common::extractReads(bam_path, reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    common::extractReads(
+        bam_path, "", reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    // this ensures results will be in predictable order
+    common::CPU_THREADS().reset(1);
     const auto output = alignAndDisambiguate(parameters, all_reads);
 
     ASSERT_EQ(output["read_counts_by_edge"]["total"].asUInt64(), 30ull);
@@ -85,9 +89,9 @@ TEST(Paragraph, AlignsPGHetIns)
     ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:FWD"].asUInt64(), 8ull);
     ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:REV"].asUInt64(), 7ull);
 
-    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total"].asUInt64(), 15ull);
-    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total:FWD"].asUInt64(), 7ull);
-    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total:REV"].asUInt64(), 8ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total"].asUInt64(), 8ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total:FWD"].asUInt64(), 4ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total:REV"].asUInt64(), 4ull);
 }
 
 TEST(Paragraph, AlignsPGLongDel)
@@ -113,7 +117,10 @@ TEST(Paragraph, AlignsPGLongDel)
     parameters.load(graph_spec_path, reference_path);
 
     common::ReadBuffer all_reads;
-    common::extractReads(bam_path, reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    common::extractReads(
+        bam_path, "", reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    // this ensures results will be in predictable order
+    common::CPU_THREADS().reset(1);
     const auto output = alignAndDisambiguate(parameters, all_reads);
 
     ASSERT_EQ(output["read_counts_by_edge"]["total"].asUInt64(), 203ull);
@@ -126,10 +133,10 @@ TEST(Paragraph, AlignsPGLongDel)
     ASSERT_EQ(output["read_counts_by_node"]["total:FWD"].asUInt64(), 105ull);
     ASSERT_EQ(output["read_counts_by_node"]["total:REV"].asUInt64(), 107ull);
 
-    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total"].asUInt64(), 150ull);
-    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:READS"].asUInt64(), 159ull);
-    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:FWD"].asUInt64(), 78ull);
-    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:REV"].asUInt64(), 81ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total"].asUInt64(), 133ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:READS"].asUInt64(), 141ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:FWD"].asUInt64(), 71ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:REV"].asUInt64(), 70ull);
 
     ASSERT_FALSE(output["read_counts_by_sequence"].isMember("ALT"));
 }
@@ -156,13 +163,15 @@ TEST(Paragraph, CountsClippedReads)
     parameters.load(graph_spec_path, reference_path);
 
     common::ReadBuffer all_reads;
-    common::extractReads(bam_path, reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    common::extractReads(
+        bam_path, "", reference_path, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
+    // this ensures results will be in predictable order
+    common::CPU_THREADS().reset(1);
     const auto output = alignAndDisambiguate(parameters, all_reads);
 
     ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total"].asUInt64(), 12ull);
     ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:FWD"].asUInt64(), 6ull);
     ASSERT_EQ(output["read_counts_by_sequence"]["REF"]["total:REV"].asUInt64(), 6ull);
 
-    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total"].asUInt64(), 1ull);
-    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total:REV"].asUInt64(), 1ull);
+    ASSERT_EQ(output["read_counts_by_sequence"]["ALT"]["total"].asUInt64(), 0ull);
 }

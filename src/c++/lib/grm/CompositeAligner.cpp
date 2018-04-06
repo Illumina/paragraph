@@ -79,7 +79,7 @@ void CompositeAligner::setGraph(graphs::Graph const& graph, Json::Value const& p
 #endif
 }
 
-void CompositeAligner::alignRead(common::Read& read)
+void CompositeAligner::alignRead(common::Read& read, ReadFilter filter)
 {
     ++attempted_;
     if (exactPathMatching_)
@@ -110,11 +110,20 @@ void CompositeAligner::alignRead(common::Read& read)
         }
     }
 
+    // Filter here if filter is set. This allows second-chance alignment with graph aligner
+    if (read.graph_mapping_status() == reads::MAPPED && filter && filter(read))
+    {
+        read.set_graph_mapping_status(reads::MappingStatus::BAD_ALIGN);
+        // increment filtered count if we are not using graph aligner
+        filtered_ += !graphMatching_;
+    }
+
     if (read.graph_mapping_status() != reads::MAPPED && graphMatching_)
     {
         graphAligner_.alignRead(read);
         // graph aligner always produces a mapping, It just does not set the status for some reason
         read.set_graph_mapping_status(reads::MappingStatus::MAPPED);
+
         if (read.graph_mapping_status() == reads::MAPPED)
         {
 #ifdef _DEBUG
@@ -123,6 +132,12 @@ void CompositeAligner::alignRead(common::Read& read)
                 = graphs::decodeFromString(read.graph_pos(), read.graph_cigar(), read.bases(), *graph_);
 #endif
             ++mappedSw_;
+        }
+
+        if (filter && filter(read))
+        {
+            read.set_graph_mapping_status(reads::MappingStatus::BAD_ALIGN);
+            ++filtered_;
         }
     }
 }

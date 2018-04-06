@@ -19,3 +19,4 @@ cppcheck-result
 /.gitignore
 /.cproject
 /.project
+/.pydevproject

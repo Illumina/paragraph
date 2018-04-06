@@ -36,6 +36,7 @@
 
 #include <list>
 
+#include "genotyping/BreakpointGenotyper.hh"
 #include "genotyping/Genotype.hh"
 #include "genotyping/GenotypeSet.hh"
 
@@ -43,17 +44,46 @@ namespace genotyping
 {
 
 /**
- * Function to combine breakpoint genotypes to variant genotypes.
- * Default implementation of this will use voting as follows:
+ * Function to combine breakpoint genotypes to variant genotypes with voting scheme:
  *
- * If all GTs agree, will use consensus
- * If there is disagreement, the most popular non-reference GT will be chosen.
+ * If all PASS GTs agree, will use consensus
+ * If all FAIL GTs agree, will use consensus and tag filter as ALL_BAD_BP
+ * If PASS GTs disagree, use total counts from PASS GTs to re-genotype and tag as CONFLICT
+ * If all FAIL GTs and disagree, use all total counts to re-genotype and tag as ALL_BAD_BP + CONFLICT
  *
- * Reference allele is assumed to be 0
- *
- * @param genotypes set of genotypes
- *
- * @return consensus GT
+ * @param genotypes Set of genotypes
+ * @param genotyper Breakpoint genotyper for additional genotyping
+ * @param depth Depth of this sample
+ * @param read_length Read length of this sample
+ * @return final GT
  */
-Genotype combinedGenotype(GenotypeSet const& genotypes);
+Genotype combinedGenotype(
+    GenotypeSet const& genotypes, const BreakpointGenotyper* p_genotyper = NULL, double depth = 0, int read_length = 0);
+
+/**
+ * Count number of unique genotypes in the genotype set
+ * @param genotypes Set of genotypes
+ * @param pass_only If true, only use pass genotypes
+ * @return Count
+ */
+size_t countUniqGenotypes(GenotypeSet const& genotypes, bool pass_only);
+
+/**
+ * @param genotypes Set of genotypes
+ * @param pass_only If ture, only use pass genotypes
+ * @return Final GT
+ */
+Genotype reportConsensusGenotypes(GenotypeSet const& genotypes, bool pass_only);
+
+/**
+ * @param genotypes Set of genotypes
+ * @param pass_only If ture, only use pass genotypes
+ * @param genotyper Breakpoint genotyper class
+ * @param depth Depth of this sample
+ * @param read_length Read length of this sample
+ * @return Final GT from total counts
+ */
+Genotype genotypeByTotalCounts(
+    GenotypeSet const& genotypes, bool use_pass_only, const BreakpointGenotyper* p_genotyper, double depth,
+    int read_length);
 };

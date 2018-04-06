@@ -38,50 +38,33 @@ class Parameters
 {
 public:
     explicit Parameters(
-        int sample_threads = 1, int alignment_threads = 1, int max_reads = 10000, float bad_align_frac = 0.8)
-        : sample_threads_(sample_threads)
-        , alignment_threads_(alignment_threads)
+        int threads = 1, int max_reads = 10000, float bad_align_frac = 0.8, bool exact_sequence_matching = true,
+        bool graph_sequence_matching = true, bool kmer_sequence_matching = false, int bad_align_uniq_kmer_len = 0)
+        : threads_(threads)
         , max_reads_(max_reads)
         , bad_align_frac_(bad_align_frac)
+        , exact_sequence_matching_(exact_sequence_matching)
+        , graph_sequence_matching_(graph_sequence_matching)
+        , kmer_sequence_matching_(kmer_sequence_matching)
+        , bad_align_uniq_kmer_len_(bad_align_uniq_kmer_len)
     {
     }
 
-    void load(
-        std::string const& graph_path, std::string const& reference_path, std::string const& manifest_path,
-        std::string const& output_path, std::string const& genotyping_parameter_path);
-
-    /**
-     * Input/output paths
-     */
-    int sample_threads() const { return sample_threads_; }
-    int alignment_threads() const { return alignment_threads_; }
+    int threads() const { return threads_; }
     int max_reads() const { return max_reads_; }
     float bad_align_frac() const { return bad_align_frac_; }
-    const std::string& graph_path() const { return graph_path_; }
-    const std::string& reference_path() const { return reference_path_; }
-    const std::string& manifest_path() const { return manifest_path_; }
-    const std::string& output_path() const { return output_path_; }
-
-    const std::string& genotypingParameterPath() const { return genotyping_parameter_path_; }
-
-    /**
-     * Manifest data
-     */
-    std::list<genotyping::SampleInfo> const& getSamples() const { return samples_; }
-    std::list<genotyping::SampleInfo>& getSamples() { return samples_; }
+    bool exact_sequence_matching() const { return exact_sequence_matching_; }
+    bool graph_sequence_matching() const { return graph_sequence_matching_; }
+    bool kmer_sequence_matching() const { return kmer_sequence_matching_; }
+    int bad_align_uniq_kmer_len() const { return bad_align_uniq_kmer_len_; }
 
 private:
-    int sample_threads_ = 1;
-    int alignment_threads_ = 1;
+    int threads_ = 1;
     int max_reads_ = 10000;
     float bad_align_frac_ = 0.8;
-    std::string graph_path_;
-    std::string reference_path_;
-    std::string manifest_path_;
-    std::string output_path_;
-
-    std::list<genotyping::SampleInfo> samples_;
-
-    std::string genotyping_parameter_path_;
+    bool exact_sequence_matching_;
+    bool graph_sequence_matching_;
+    bool kmer_sequence_matching_;
+    int bad_align_uniq_kmer_len_ = 0;
 };
 }

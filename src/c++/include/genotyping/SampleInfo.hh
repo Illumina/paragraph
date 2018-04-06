@@ -58,6 +58,8 @@ public:
     void set_sample_name(std::string const& sample_name) { sample_name_ = sample_name; }
     std::string const& filename() const { return filename_; }
     void set_filename(std::string const& filename) { filename_ = filename; }
+    std::string const& index_filename() const { return index_filename_; }
+    void set_index_filename(std::string const& index_filename) { index_filename_ = index_filename; }
 
     /**
      * Getters / setters for BAM statistics
@@ -76,10 +78,13 @@ public:
 private:
     std::string sample_name_;
     std::string filename_;
+    std::string index_filename_;
     unsigned int read_length_ = 0;
     double autosome_depth_ = 0.0;
     Json::Value alignment_data_ = Json::nullValue;
 };
+
+typedef std::vector<SampleInfo> Samples;
 
 /**
  * Load manifest file. A manifest contains
@@ -92,5 +97,5 @@ private:
  * @param filename file name of manifest
  * @return list of sample info records
  */
-std::list<SampleInfo> loadManifest(const std::string& filename);
+Samples loadManifest(const std::string& filename);
 };

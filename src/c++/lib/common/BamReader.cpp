@@ -168,7 +168,7 @@ struct BamReader::BamReaderImpl
         }
 
         // Load the index
-        hts_idx_ptr_ = sam_index_load(hts_file_ptr_, path.c_str());
+        hts_idx_ptr_ = sam_index_load2(hts_file_ptr_, path.c_str(), index_path.empty() ? NULL : index_path.c_str());
 
         if (hts_idx_ptr_ == nullptr)
         {
@@ -213,6 +213,7 @@ struct BamReader::BamReaderImpl
     }
 
     std::string file_path;
+    std::string index_path;
     std::string reference_path;
 
     // Pointer to the input BAM/CRAM file itself.
@@ -230,19 +231,18 @@ struct BamReader::BamReaderImpl
     std::unordered_map<std::string, int> header_contig_map;
 };
 
-/**
- * Create BAM / CRAM reader. Reference is required to match the
- * reference FASTA file for the BAM/CRAM
- * @param path file path
- * @param reference path to FASTA reference
- */
-BamReader::BamReader(const std::string& path, const std::string& reference)
+BamReader::BamReader(const std::string& path, const std::string& index_path, const std::string& reference)
     : _impl(new BamReaderImpl())
 {
     assertFileExists(path);
+    if (!index_path.empty())
+    {
+        assertFileExists(index_path);
+    }
     assertFileExists(reference);
     assertFileExists(reference + ".fai");
     _impl->file_path = path;
+    _impl->index_path = index_path;
     _impl->reference_path = reference;
     _impl->open(_impl->file_path, _impl->reference_path);
 }

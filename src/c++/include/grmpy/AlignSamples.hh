@@ -34,16 +34,13 @@
 
 #pragma once
 
-#include "Parameters.hh"
-
-#include <iostream>
+#include "common/ReadExtraction.hh"
+#include "grmpy/Parameters.hh"
 
 namespace grmpy
 {
-/**
- * main function for alignment
- *
- * @param parameters parameters for genotyping
- */
-void alignSamples(Parameters& parameters);
+
+void alignSingleSample(
+    const Parameters& parameters, const std::string& graphPath, const std::string& referencePath,
+    common::BamReader& reader, genotyping::SampleInfo& sample);
 }

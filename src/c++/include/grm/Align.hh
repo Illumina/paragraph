@@ -33,12 +33,11 @@
 
 #include "common/ReadExtraction.hh"
 #include "graphs/WalkableGraph.hh"
+#include "grm/Filter.hh"
 #include "json/json.h"
 
 namespace grm
 {
-typedef std::function<bool(common::Read&)> ReadFilter;
-
 static const Json::Value NO_PATHS = Json::objectValue;
 
 /**

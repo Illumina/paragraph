@@ -79,6 +79,11 @@ struct Genotype
     std::vector<double> allele_fractions;
 
     /**
+     * tail probability of coverage (all alleles)
+     */
+    double coverage_test_pvalue = -1;
+
+    /**
      *  count of reads (from all edges)
      */
     int num_reads = 0;
@@ -89,7 +94,7 @@ struct Genotype
     std::string filter;
 
     /**
-     * relabel genotypes
+     * relabel index-based genotypes with given new labels
      */
     void relabel(std::vector<uint64_t> const& new_labels);
 

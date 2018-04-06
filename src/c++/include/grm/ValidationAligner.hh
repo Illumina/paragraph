@@ -57,7 +57,7 @@ public:
 
     using AlignerT::setGraph;
 
-    void alignRead(common::Read& read);
+    void alignRead(common::Read& read, ReadFilter filter);
     const AlignerT& base() const { return *this; }
     static unsigned mismapped() { return mismapped_; }
     static unsigned repeats() { return repeats_; }

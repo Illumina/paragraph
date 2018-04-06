@@ -73,6 +73,11 @@ private:
     unsigned int ploidy_;
 
     /**
+     * cutoff for coverage test p value
+     */
+    double coverage_test_cutoff_;
+
+    /**
      *  genotyping specific stats
      */
     int32_t min_overlap_bases_; // Minimum number of bases that a high-confidence alignment must overlap a node.

@@ -186,9 +186,9 @@ private:
         const Path& path, std::size_t pos, bool is_reverse_match, const std::string& bases,
         const std::string& rev_bases, common::Read& read) const;
     int buildCigar(
-        int start, bool is_reverse_match, const std::string& rev_bases, const std::string& bases,
-        typename Path::NodeStarts::const_iterator start_node, const Path& path, std::string& cigar,
-        int& alignment_score) const;
+        int start, std::string::const_iterator itSeq, std::size_t length_left,
+        typename Path::NodeStarts::const_iterator start_node, const Path& path, std::size_t leftClip,
+        const std::size_t rightClip, std::string& cigar, int& alignment_score) const;
     void pickBest(
         const std::string& bases, const std::string& rvBases, const Candidates& candidates, common::Read& read) const;
 };
@@ -378,36 +378,9 @@ template <typename It> int calculateSoftClip(It& itRef, It& itSeq, std::size_t& 
  *         clipped, an empty CIGAR is returned
  */
 std::string makeCigarBit(
-    std::string::const_iterator itRef, std::string::const_iterator& itSeq, std::size_t length, const bool first,
-    const bool last, int& pos)
+    std::string::const_iterator itRef, std::string::const_iterator& itSeq, std::size_t length, int& pos, int& matches)
 {
     std::string ret;
-    if (first)
-    {
-        int clip = calculateSoftClip(itRef, itSeq, length);
-        if (clip)
-        {
-            ret += std::to_string(clip) + 'S';
-            pos += clip;
-        }
-    }
-
-    int endClip = 0;
-    if (last)
-    {
-        std::reverse_iterator<std::string::const_iterator> ritRef(itRef + length);
-        std::reverse_iterator<std::string::const_iterator> ritSeq(itSeq + length);
-        endClip = calculateSoftClip(ritRef, ritSeq, length);
-    }
-
-    if (!length)
-    {
-        if (endClip)
-        {
-            ret += std::to_string(endClip) + 'S';
-        }
-        return ret;
-    }
 
     char lastOp = 0;
     std::size_t lastOpLen = 0;
@@ -419,6 +392,10 @@ std::string makeCigarBit(
             if (lastOpLen)
             {
                 ret += std::to_string(lastOpLen) + lastOp;
+                if ('M' == lastOp)
+                {
+                    matches += lastOpLen;
+                }
             }
             lastOp = op;
             lastOpLen = 0;
@@ -427,11 +404,10 @@ std::string makeCigarBit(
     if (lastOpLen)
     {
         ret += std::to_string(lastOpLen) + lastOp;
-    }
-
-    if (endClip)
-    {
-        ret += std::to_string(endClip) + 'S';
+        if ('M' == lastOp)
+        {
+            matches += lastOpLen;
+        }
     }
 
     return ret;
@@ -439,15 +415,12 @@ std::string makeCigarBit(
 
 template <unsigned KMER_LENGTH>
 int KmerAligner<KMER_LENGTH>::KmerAlignerImpl::buildCigar(
-    int start, bool is_reverse_match, const std::string& rev_bases, const std::string& bases,
-    typename Path::NodeStarts::const_iterator start_node, const Path& path, std::string& cigar,
-    int& alignment_score) const
+    int start, std::string::const_iterator itSeq, std::size_t length_left,
+    typename Path::NodeStarts::const_iterator start_node, const Path& path, std::size_t leftClip,
+    const std::size_t rightClip, std::string& cigar, int& alignment_score) const
 {
     alignment_score = 0;
-    auto length_left = bases.size();
     auto this_start = (size_t)((start));
-    std::list<uint64_t> graph_nodes_traversed;
-    std::string::const_iterator itSeq = (is_reverse_match ? rev_bases : bases).begin();
     while (start_node != path.starts.end() && length_left > 0)
     {
         auto this_length = length_left;
@@ -460,19 +433,49 @@ int KmerAligner<KMER_LENGTH>::KmerAlignerImpl::buildCigar(
         {
             const auto this_node_length = node_lengths_.find(path.node_ids[start_node->second])->second;
             assert(this_start + this_length <= this_node_length);
-            graph_nodes_traversed.push_back(start_node->second);
-            const bool first = cigar.empty();
-            const std::string bit = makeCigarBit(
-                path.path_sequence.begin() + this_start + start_node->first, itSeq, this_length, first,
-                this_length == length_left, start);
-            cigar += std::to_string(path.node_ids[start_node->second]) + "[" + bit + "]";
+            std::string::const_iterator itRef = path.path_sequence.begin() + this_start + start_node->first;
+            int matches = 0;
+            const std::string bit = makeCigarBit(itRef, itSeq, this_length, start, matches);
+            cigar += std::to_string(path.node_ids[start_node->second]) + "[";
+            if (leftClip)
+            {
+                cigar += std::to_string(leftClip) + "S";
+                leftClip = 0;
+            }
+
+            cigar += bit;
+
+            if (rightClip && this_length == length_left)
+            {
+                cigar += std::to_string(rightClip) + "S";
+            }
+
+            cigar += "]";
+            alignment_score += matches;
         }
-        alignment_score += this_length;
         length_left -= this_length;
         start_node = next_step;
         this_start = 0;
     }
+    LOG()->debug(cigar);
     return start;
+}
+
+typename Path::NodeStarts::const_iterator findStartNode(const Path& path, std::size_t pos)
+{
+    // lower bound returns first node after start unless pos matches exactly, make sure path is not empty
+    assert(path.starts.size() >= 1);
+    typename Path::NodeStarts::const_iterator ret = path.starts.lower_bound(pos);
+    if (ret == path.starts.end())
+    {
+        ret = std::prev(path.starts.end());
+    }
+    else if (ret->first > pos)
+    {
+        ret = std::prev(ret);
+    }
+
+    return ret;
 }
 
 template <unsigned KMER_LENGTH>
@@ -480,23 +483,28 @@ bool KmerAligner<KMER_LENGTH>::KmerAlignerImpl::updateAlignment(
     const Path& path, std::size_t pos, bool is_reverse_match, const std::string& bases, const std::string& rev_bases,
     common::Read& read) const
 {
-    typename Path::NodeStarts::const_iterator start_node = path.starts.lower_bound(pos);
-    if (start_node == path.starts.end())
-    {
-        assert(path.starts.size() >= 1);
-        start_node = std::prev(path.starts.end());
-    }
-    else if (start_node->first > pos)
-    {
-        start_node = std::prev(start_node);
-    }
+    std::string::const_iterator itSeq = (is_reverse_match ? rev_bases : bases).begin();
+    std::string::const_iterator itRef = path.path_sequence.begin() + pos;
+    std::size_t length = bases.size();
+    const int leftClip = calculateSoftClip(itRef, itSeq, length);
+    LOG()->debug("updateAlignment leftClip={}", leftClip);
+    pos += leftClip;
 
+    std::reverse_iterator<std::string::const_iterator> ritRef(itRef + length);
+    std::reverse_iterator<std::string::const_iterator> ritSeq(itSeq + length);
+    const int rightClip = calculateSoftClip(ritRef, ritSeq, length);
+
+    typename Path::NodeStarts::const_iterator start_node = findStartNode(path, pos);
     assert(start_node != path.starts.end());
+
     std::string cigar;
+
     int alignment_score = 0;
     // buildCigar might introduce soft clips at the start
     int start = buildCigar(
-        pos - start_node->first, is_reverse_match, rev_bases, bases, start_node, path, cigar, alignment_score);
+        pos - start_node->first, itSeq, length, start_node, path, leftClip, rightClip, cigar, alignment_score);
+
+    LOG()->debug("updateAlignment cigar={}", cigar);
 
     read.set_graph_pos(start);
 
@@ -635,4 +643,6 @@ template <unsigned KMER_LENGTH> void KmerAligner<KMER_LENGTH>::alignRead(common:
 
 template class KmerAligner<16>;
 // template class KmerAligner<32>;
+// for unit tests
+template class KmerAligner<10>;
 }

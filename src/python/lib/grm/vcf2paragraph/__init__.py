@@ -298,7 +298,7 @@ def run_vcf2paragraph(event_and_args):
     result = {}
 
     try:
-        logging.info(event)
+        logging.debug(event)
 
         # prepare input
         tf = tempfile.NamedTemporaryFile(

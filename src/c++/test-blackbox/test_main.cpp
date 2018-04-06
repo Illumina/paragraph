@@ -50,7 +50,10 @@ int main(int argc, char** argv)
     // determine base path
     char* bn = dirname(argv[0]);
     char actualpath[PATH_MAX + 1];
-    realpath(bn, actualpath);
+    if (!realpath(bn, actualpath))
+    {
+        exit(1);
+    }
 
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 

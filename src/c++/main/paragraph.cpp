@@ -33,21 +33,16 @@
  *
  */
 
-#include <fstream>
 #include <iostream>
-#include <map>
-#include <string>
-#include <vector>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
 #include "common/Error.hh"
-#include "common/ReadExtraction.hh"
+#include "common/StringUtil.hh"
 
-#include "paragraph/Disambiguation.hh"
 #include "paragraph/Parameters.hh"
+#include "paragraph/Workflow.hh"
 
 namespace po = boost::program_options;
 
@@ -56,22 +51,13 @@ using std::cerr;
 using std::endl;
 using std::string;
 
-void dumpOutput(const std::string& output, std::ostream& os, const std::string& file)
-{
-    os << output;
-    if (!os)
-    {
-        error("ERROR: Failed to write output to '%s' error: '%s'", file.c_str(), std::strerror(errno));
-    }
-}
-
 int main(int argc, char const* argv[])
 {
     po::options_description desc("Allowed options");
     desc.add_options()("help,h", "produce help message")(
         "bam,b", po::value<std::vector<string>>()->multitoken(),
         "Input BAM file(s) for read extraction. We align all reads to all graphs.")(
-        "graph-spec,g", po::value<std::vector<string>>()->multitoken(), "JSON file(s) describing the graph")(
+        "graph-spec,g", po::value<std::vector<string>>()->multitoken(), "JSON file(s) describing the graph(s)")(
         "output-file,o", po::value<string>(),
         "Output file name. Will output to stdout if '-' or neither of output-file or output-folder provided.")(
         "output-folder,O", po::value<string>(),
@@ -140,9 +126,28 @@ int main(int argc, char const* argv[])
         logger = LOG();
 
         std::vector<string> bam_paths;
+        std::vector<string> bam_index_paths;
         if (vm.count("bam") != 0u)
         {
-            bam_paths = vm["bam"].as<std::vector<string>>();
+            const auto& tmp_bam_paths = vm["bam"].as<std::vector<string>>();
+
+            for (const auto& bam_path : tmp_bam_paths)
+            {
+                auto bai_sep_index = bam_path.rfind('#');
+                if (bai_sep_index != string::npos)
+                {
+                    const auto bam_file_path = bam_path.substr(0, bai_sep_index);
+                    const auto bai_file_path = bam_path.substr(bai_sep_index + 1);
+                    bam_paths.push_back(bam_file_path);
+                    bam_index_paths.push_back(bai_file_path);
+                }
+                else
+                {
+                    bam_paths.push_back(bam_path);
+                    bam_index_paths.push_back("");
+                }
+            }
+
             logger->info("Input BAM(s): {}", boost::join(bam_paths, ","));
             assertFilesExist(bam_paths.begin(), bam_paths.end());
         }
@@ -169,7 +174,6 @@ int main(int argc, char const* argv[])
             error("ERROR: File with variant specification is missing.");
         }
 
-        std::ofstream outputFileStream;
         string output_file_path;
         if (vm.count("output-file") != 0u)
         {
@@ -178,24 +182,6 @@ int main(int argc, char const* argv[])
         else if (!vm.count("output-folder"))
         {
             output_file_path = "-";
-        }
-        if (!output_file_path.empty())
-        {
-            if ("-" != output_file_path)
-            {
-                logger->info("Output file path: {}", output_file_path);
-                outputFileStream.open(output_file_path);
-                if (!outputFileStream)
-                {
-                    error(
-                        "ERROR: Failed to open output file '%s'. Error: '%s'", output_file_path.c_str(),
-                        std::strerror(errno));
-                }
-            }
-            else
-            {
-                logger->info("Output to stdout");
-            }
         }
 
         string output_folder_path;
@@ -260,75 +246,20 @@ int main(int argc, char const* argv[])
             output_options |= Parameters::output_options::ALL;
         }
 
-        std::vector<common::BamReader> readers;
-        for (const auto& bam_path : bam_paths)
-        {
-            logger->info("Opening {} with {}", bam_path, reference_path);
-            readers.push_back(common::BamReader(bam_path, reference_path));
-        }
+        Parameters parameters(
+            vm["max-reads-per-event"].as<int>(), vm["variant-min-reads"].as<int>(), vm["variant-min-frac"].as<float>(),
+            vm["bad-align-frac"].as<float>(), output_options, vm["exact-sequence-matching"].as<bool>(),
+            vm["graph-sequence-matching"].as<bool>(), vm["kmer-sequence-matching"].as<bool>(),
+            vm["validate-alignments"].as<bool>());
 
-        Json::FastWriter fastWriter;
-        for (auto graph_spec_path : graph_spec_paths)
-        {
-            Parameters parameters(
-                vm["max-reads-per-event"].as<int>(), vm["variant-min-reads"].as<int>(),
-                vm["variant-min-frac"].as<float>(), vm["bad-align-frac"].as<float>(), output_options,
-                vm["exact-sequence-matching"].as<bool>(), vm["graph-sequence-matching"].as<bool>(),
-                vm["kmer-sequence-matching"].as<bool>(), vm["validate-alignments"].as<bool>());
+        parameters.set_threads(vm["threads"].as<int>());
+        parameters.set_kmer_len(vm["bad-align-uniq-kmer-len"].as<int>());
+        parameters.set_remove_nonuniq_reads(vm["bad-align-nonuniq"].as<bool>());
 
-            parameters.set_threads(vm["threads"].as<int>());
-            parameters.set_kmer_len(vm["bad-align-uniq-kmer-len"].as<int>());
-            parameters.set_remove_nonuniq_reads(vm["bad-align-nonuniq"].as<bool>());
-
-            logger->info("Loading parameters {}", graph_spec_path);
-            parameters.load(graph_spec_path, reference_path, target_regions);
-            logger->info("Done loading parameters");
-
-            common::ReadBuffer all_reads;
-            for (common::BamReader& reader : readers)
-            {
-                common::extractReads(reader, parameters.target_regions(), (int)parameters.max_reads(), all_reads);
-            }
-
-            Json::Value output_json = alignAndDisambiguate(parameters, all_reads);
-            if (bam_paths.size() == 1)
-            {
-                output_json["bam"] = bam_paths.front();
-            }
-            else
-            {
-                output_json["bam"] = Json::arrayValue;
-                for (const auto& bam_path : bam_paths)
-                {
-                    output_json["bam"].append(bam_path);
-                }
-            }
-
-            const std::string output = fastWriter.write(output_json);
-
-            if ("-" == output_file_path)
-            {
-                dumpOutput(output, std::cout, "standard output");
-            }
-            else if (!output_file_path.empty())
-            {
-                dumpOutput(output, outputFileStream, output_file_path);
-            }
-
-            if (!output_folder_path.empty())
-            {
-                boost::filesystem::path inputPath(graph_spec_path);
-                boost::filesystem::path outputPath = boost::filesystem::path(output_folder_path) / inputPath.filename();
-                std::ofstream ofs(outputPath.string());
-                if (!ofs)
-                {
-                    error(
-                        "ERROR: Failed to open output file '%s'. Error: '%s'", outputPath.string().c_str(),
-                        std::strerror(errno));
-                }
-                dumpOutput(output, ofs, outputPath.string());
-            }
-        }
+        Workflow workflow(
+            1 != bam_paths.size(), bam_paths, bam_index_paths, graph_spec_paths, output_file_path, output_folder_path,
+            parameters, reference_path, target_regions);
+        workflow.run();
     }
     catch (const std::exception& e)
     {

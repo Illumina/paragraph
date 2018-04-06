@@ -27,20 +27,23 @@
 #pragma once
 
 #include <string>
+#include <utility>
 
 namespace idxdepth
 {
 class Parameters
 {
 public:
-    explicit Parameters(std::string const& bam_path, std::string const& reference_path)
-        : bam_path_(bam_path)
-        , reference_path_(reference_path)
+    explicit Parameters(std::string bam_path, std::string bam_index_path, std::string reference_path)
+        : bam_path_(std::move(bam_path))
+        , bam_index_path_(std::move(bam_index_path))
+        , reference_path_(std::move(reference_path))
         , threads_(1)
     {
     }
 
     const std::string& bam_path() const { return bam_path_; }
+    const std::string& bam_index_path() const { return bam_index_path_; }
     const std::string& reference_path() const { return reference_path_; }
 
     const std::string& include_regex() const { return include_regex_; }
@@ -55,6 +58,7 @@ public:
 
 private:
     std::string bam_path_;
+    std::string bam_index_path_;
     std::string reference_path_;
     std::string include_regex_;
     std::string autosome_regex_;

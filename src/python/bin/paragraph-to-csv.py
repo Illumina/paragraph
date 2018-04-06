@@ -13,7 +13,7 @@
 #
 # January 2018
 #
-# Extract major information from paragraph JSON and output as csv format
+# Extract variant genotypes from paragraph JSON and output as csv format
 #
 # Usage:
 #   python3 paragraph-to-csv.py <paragraph json> [options]
@@ -75,7 +75,7 @@ def run(args):
         if "samples" not in event:
             continue
         if "population" in event:
-            header += "\tHWE\tCR\tMinorAF"
+            header += "\tHWE\tCallRate\tPassRate\tMinorAF"
         for sample in event["samples"]:
             header += "\t" + sample
             samples.append(sample)
@@ -93,23 +93,46 @@ def run(args):
             line = event["graphinfo"]["ID"]
         if not line:
             line = "."
+
         if "population" in event:
-            line += "\t" + str(event["population"]["hwe"]) + "\t" + \
-                str(event["population"]["call_rate"]) + "\t" + str(min(event["population"]["allele_frequencies"]))
+            pop_json = event["population"]
+            pop_stat = []
+            for k in ["hwe", "call_rate"]:
+                if k in pop_json:
+                    pop_stat.append(pop_json[k])
+                else:
+                    pop_stat.append("NA")
+            # calculate pass rate
+            num_pass = 0
+            num_samples = 0
+            for sample in samples:
+                num_samples += 1
+                sample_stat = event["samples"][sample]["gt"]["GT"]
+                if "filter" in sample_stat:
+                    if sample_stat["filter"] == "PASS":
+                        num_pass += 1
+            if num_samples:
+                pop_stat.append(num_pass / num_samples)
+            else:
+                pop_stat.append("NA")
+            # AF
+            if "allele_frequencies" in pop_json:
+                if pop_json["allele_frequencies"]:
+                    pop_stat.append(min(pop_json["allele_frequencies"]))
+            else:
+                pop_stat.append("NA")
+            line += "\t" + '\t'.join(map(str, pop_stat))
+
         for sample in samples:
-            gt = event["samples"][sample]["gt"]["GT"]
-            line += "\t" + gt
+            gt_json = event["samples"][sample]["gt"]
+            sample_stat = [gt_json["GT"]]
             if not args.genotype_only:
-                if "Filter" not in event["samples"][sample]["gt"]:
-                    gfilter = "."
-                else:
-                    gfilter = event["samples"][sample]["gt"]["Filter"]
-                line += ":" + gfilter
-                if "DP" in event["samples"][sample]["gt"]:
-                    depth = int(event["samples"][sample]["gt"]["DP"])
-                else:
-                    depth = 0
-                line += ":" + str(depth)
+                for k in ["filter", "num_reads"]:
+                    if k in gt_json:
+                        sample_stat.append(gt_json[k])
+                    else:
+                        sample_stat.append(".")
+            line += "\t" + ':'.join(map(str, sample_stat))
         output_lines.append(line)
 
     if args.output:

@@ -22,18 +22,27 @@ ifeq (,$(REFERENCE_FA))
 $(error "REFERENCE_FA must point to whole genome fasta")
 endif
 
+ifeq (,$(COVERAGE_DEPTH))
+$(error "COVERAGE_DEPTH is required")
+endif
+
 
 $(REFERENCE_FA).fai:
 	echo $@ is required to exist. && exit 2
 
 EAGLE/Makefile:
-	configureEAGLE.pl   --run-info=$(EAGLE_SHARE)/RunInfo/RunInfo_PairedReadsBarcode8x32Tiles.xml    --reference-genome=$(GRAPH_FA)   --variant-list=$(EAGLE_SHARE)/Variants/None.vcf   --coverage-depth=30   --genome-mutator-options="--organism-ploidy=2"
+	configureEAGLE.pl \
+	--run-info=$(EAGLE_SHARE)/RunInfo/RunInfo_PairedReadsBarcode8x32Tiles.xml \
+	--reference-genome=$(GRAPH_FA) \
+	--variant-list=$(EAGLE_SHARE)/Variants/None.vcf \
+	--coverage-depth=$(COVERAGE_DEPTH) \
+	--genome-mutator-options="--organism-ploidy=2"
 
 EAGLE/eagle.bam: EAGLE/Makefile
 	$(MAKE) -C EAGLE bam
 
 simulated.bam: EAGLE/eagle.bam $(REFERENCE_FA).fai
-	$(EXEC_PATH)/swapReference.sh $^ |samtools view -Sb - >$@.tmp && mv $@.tmp $@
+	$(EXEC_PATH)/swapReference.sh $^ |samtools view -Sb - |samtools sort - >$@.tmp && mv $@.tmp $@
 
 simulated.bam.bai: simulated.bam
 	samtools index $<

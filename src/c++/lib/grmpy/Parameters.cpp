@@ -28,16 +28,4 @@
 
 namespace grmpy
 {
-
-void Parameters::load(
-    std::string const& graph_path, std::string const& reference_path, std::string const& manifest_path,
-    std::string const& output_path, std::string const& genotyping_parameter_path)
-{
-    graph_path_ = graph_path;
-    reference_path_ = reference_path;
-    manifest_path_ = manifest_path;
-    output_path_ = output_path;
-    samples_ = genotyping::loadManifest(manifest_path);
-    genotyping_parameter_path_ = genotyping_parameter_path;
-}
 }

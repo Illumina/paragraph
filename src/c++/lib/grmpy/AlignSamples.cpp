@@ -33,7 +33,7 @@
  */
 #include <iostream>
 
-#include "common/ReadExtraction.hh"
+#include "genotyping/SampleInfo.hh"
 #include "grmpy/AlignSamples.hh"
 
 #include "paragraph/Disambiguation.hh"
@@ -49,7 +49,9 @@ namespace grmpy
  * Run single sample alignment
  * @param sample sample data structure
  */
-void alignSingleSample(const Parameters& parameters, genotyping::SampleInfo& sample)
+void alignSingleSample(
+    const Parameters& parameters, const std::string& graphPath, const std::string& referencePath,
+    common::BamReader& reader, genotyping::SampleInfo& sample)
 {
     auto logger = LOG();
     // set up paragraph aligner
@@ -58,82 +60,20 @@ void alignSingleSample(const Parameters& parameters, genotyping::SampleInfo& sam
     paragraph::Parameters paragraph_parameters(
         parameters.max_reads(),
         parameters.max_reads() + 1, // disable variants: min reads for a variant > max reads we read
-        0.01, parameters.bad_align_frac(), output_options, true);
-    paragraph_parameters.set_threads(parameters.alignment_threads());
+        0.01, parameters.bad_align_frac(), output_options, parameters.exact_sequence_matching(),
+        parameters.graph_sequence_matching(), parameters.kmer_sequence_matching(), false);
+    paragraph_parameters.set_threads(parameters.threads());
+    paragraph_parameters.set_kmer_len(parameters.bad_align_uniq_kmer_len());
 
-    logger->info("Loading parameters for sample %s", sample.sample_name());
-    paragraph_parameters.load(parameters.graph_path(), parameters.reference_path());
+    logger->info("Loading parameters for sample {}", sample.sample_name());
+    paragraph_parameters.load(graphPath, referencePath);
     logger->info("Done loading parameters");
 
     common::ReadBuffer all_reads;
-    common::extractReads(
-        sample.filename(), parameters.reference_path(), paragraph_parameters.target_regions(), parameters.max_reads(),
-        all_reads);
+
+    common::extractReads(reader, paragraph_parameters.target_regions(), parameters.max_reads(), all_reads);
     Json::Value output = paragraph::alignAndDisambiguate(paragraph_parameters, all_reads);
     output["bam"] = sample.filename();
     sample.set_alignment_data(output);
-}
-
-/**
- * main function for alignment
- *
- * @param parameters parameters for genotyping
- */
-void alignSamples(Parameters& parameters)
-{
-    struct AlignTask
-    {
-        explicit AlignTask(genotyping::SampleInfo& si_)
-            : si(si_)
-        {
-        }
-        genotyping::SampleInfo& si;
-    };
-
-    std::list<AlignTask> tasks;
-    for (auto& si : parameters.getSamples())
-    {
-        if (!si.get_alignment_data().isNull())
-        {
-            continue;
-        }
-        tasks.emplace_back(si);
-    }
-
-    auto next = tasks.begin();
-    std::mutex tasks_mutex;
-
-    auto align_worker = [&parameters, &tasks, &next, &tasks_mutex]() {
-        bool work_left = true;
-        while (work_left)
-        {
-            auto this_task = tasks.end();
-            {
-                std::lock_guard<std::mutex> tasks_lock(tasks_mutex);
-                if (next == tasks.end())
-                {
-                    work_left = false;
-                }
-                else
-                {
-                    this_task = next++;
-                }
-            }
-            if (this_task != tasks.end())
-            {
-                alignSingleSample(parameters, this_task->si);
-            }
-        }
-    };
-
-    std::list<std::thread> workers;
-    for (int thread = 0; thread < std::min((int)tasks.size(), std::min(1, parameters.sample_threads())); ++thread)
-    {
-        workers.emplace_back(align_worker);
-    }
-    for (auto& worker : workers)
-    {
-        worker.join();
-    }
 }
 }

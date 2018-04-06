@@ -24,8 +24,10 @@
 // OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "genotyping/BreakpointGenotyper.hh"
 #include "genotyping/CombinedGenotype.hh"
 #include "genotyping/Genotype.hh"
+#include "genotyping/GenotypingParameters.hh"
 #include "gtest/gtest.h"
 
 #include <string>
@@ -87,43 +89,24 @@ TEST(CombinedGenotype, GenotypeConflictNoConsensus)
 
     Genotype gt1;
     gt1.gt = { 0, 1 };
-    gt1.gl_name = { { 0, 0 }, { 0, 1 }, { 1, 1 } };
-    gt1.gl = { -10, -0.1, -10 };
+    gt1.num_reads = 10;
+    gt1.allele_fractions = { 0.5, 0.5 };
 
     Genotype gt2;
     gt2.gt = { 1, 1 };
-    gt2.gl_name = { { 1, 1 }, { 0, 1 }, { 0, 0 } };
-    gt2.gl = { 0.1, -10, -10 };
+    gt2.num_reads = 10;
+    gt2.allele_fractions = { 0, 1 };
 
     GenotypeSet gs;
     gs.add(alleles, gt1);
     gs.add(alleles, gt2);
 
-    const Genotype combined_genotype = combinedGenotype(gs);
+    GenotypingParameters param(alleles);
+    BreakpointGenotyper genotyper(&param);
 
-    EXPECT_EQ("./.", combined_genotype.toString());
-    EXPECT_EQ("CONFLICT", combined_genotype.filter);
-}
-
-TEST(CombinedGenotype, GenotypeConflictWithReference)
-{
-    const vector<string> alleles{ "REF", "ALT" };
-
-    Genotype gt1;
-    gt1.gt = { 0, 0 };
-    gt1.gl_name = { { 0, 1 }, { 0, 0 }, { 1, 1 } };
-    gt1.gl = { -10, -0.1, -10 };
-
-    Genotype gt2;
-    gt2.gt = { 0, 1 };
-    gt2.gl_name = { { 0, 1 }, { 1, 1 }, { 0, 0 } };
-    gt2.gl = { 0.1, -10, -10 };
-
-    GenotypeSet gs;
-    gs.add(alleles, gt1);
-    gs.add(alleles, gt2);
-
-    const Genotype combined_genotype = combinedGenotype(gs);
+    const double read_depth = 10.0;
+    const int32_t read_length = 100;
+    const Genotype combined_genotype = combinedGenotype(gs, &genotyper, read_depth, read_length);
 
     EXPECT_EQ("0/1", combined_genotype.toString());
     EXPECT_EQ("CONFLICT", combined_genotype.filter);

@@ -5,6 +5,8 @@
 #
 # Author: Roman Petrovski <rpetrovski@illumina.com>
 
+set -euo pipefail
+
 
 INPUT_BAM=$1
 INPUT_FAI=$2

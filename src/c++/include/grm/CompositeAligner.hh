@@ -35,6 +35,7 @@
 
 #pragma once
 
+#include "grm/Filter.hh"
 #include "grm/GraphAligner.hh"
 #include "grm/KmerAligner.hh"
 #include "grm/PathAligner.hh"
@@ -59,9 +60,10 @@ public:
     CompositeAligner& operator=(CompositeAligner&& rhs) noexcept = delete;
 
     void setGraph(graphs::Graph const& graph, Json::Value const& paths);
-    void alignRead(common::Read& read);
+    void alignRead(common::Read& read, ReadFilter filter);
 
     unsigned attempted() const { return attempted_; }
+    unsigned filtered() const { return filtered_; }
     unsigned mappedExactly() const { return mappedExactly_; }
     unsigned mappedKmers() const { return mappedKmers_; }
     unsigned mappedSw() const { return mappedSw_; }
@@ -78,6 +80,7 @@ private:
     grm::PathAligner pathAligner_;
 
     unsigned attempted_ = 0;
+    unsigned filtered_ = 0;
     unsigned mappedExactly_ = 0;
     unsigned mappedKmers_ = 0;
     unsigned mappedSw_ = 0;

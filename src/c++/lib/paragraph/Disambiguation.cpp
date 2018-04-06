@@ -732,7 +732,7 @@ void disambiguateReads(
  * @param output_reads pass a pointer to a vector to retrieve all reads
  * @return results as JSON value
  */
-Json::Value alignAndDisambiguate(Parameters& parameters, common::ReadBuffer& all_reads)
+Json::Value alignAndDisambiguate(const Parameters& parameters, common::ReadBuffer& all_reads)
 {
     auto logger = LOG();
 
@@ -833,9 +833,30 @@ Json::Value alignAndDisambiguate(Parameters& parameters, common::ReadBuffer& all
             {
                 if (previous_mapping != nullptr && previous_node_id == node_id1 && node_mapping.node_id == node_id2)
                 {
-                    return previous_mapping->matched() >= (unsigned)std::min(previous_mapping->referenceSpan(), 16)
-                        && node_mapping.mapping.matched()
-                        >= (unsigned)std::min(node_mapping.mapping.referenceSpan(), 16);
+                    int min_node_overlap = read.bases().length() / 10 + 1;
+                    bool status
+                        = (previous_mapping->matched()
+                               >= (unsigned)std::min(previous_mapping->referenceSpan(), min_node_overlap)
+                           && node_mapping.mapping.matched()
+                               >= (unsigned)std::min(node_mapping.mapping.referenceSpan(), min_node_overlap));
+
+#ifdef DISABLE_ADDITIONAL_EDGE_FILTER
+                    return status;
+#else
+                    if (status) // require softclip shorter than half of query length. Filter for cigars like 2[1M15S]
+                    {
+                        status = (previous_mapping->querySpan() < previous_mapping->referenceSpan() * 2)
+                            && (node_mapping.mapping.querySpan() < node_mapping.mapping.referenceSpan() * 2);
+                    }
+                    if (status) // require minimum overlap for one node. Filter for cigars like 2[1M]
+                    {
+                        int node1_length = wgraph.node(node1)->sequence().length();
+                        int node2_length = wgraph.node(node2)->sequence().length();
+                        status = (previous_mapping->matched() >= (unsigned)std::min(node1_length, min_node_overlap))
+                            && (node_mapping.mapping.matched() >= (unsigned)std::min(node2_length, min_node_overlap));
+                    }
+                    return status;
+#endif
                 }
 
                 previous_mapping = &node_mapping.mapping;

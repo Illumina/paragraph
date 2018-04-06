@@ -71,10 +71,10 @@ ValidationAligner<AlignerT>::ValidationAligner(AlignerT&& aligner, const graphs:
     }
 }
 
-template <typename AlignerT> void ValidationAligner<AlignerT>::alignRead(common::Read& read)
+template <typename AlignerT> void ValidationAligner<AlignerT>::alignRead(common::Read& read, ReadFilter filter)
 {
     ++total_;
-    AlignerT::alignRead(read);
+    AlignerT::alignRead(read, filter);
 
     if (read.graph_mapping_status() == reads::MAPPED)
     {

@@ -46,6 +46,7 @@ namespace genotyping
 BreakpointGenotyper::BreakpointGenotyper(GenotypingParameters* param)
     : n_alleles_(param->numAlleles())
     , ploidy_(param->ploidy())
+    , coverage_test_cutoff_(param->coverageTestCutoff())
     , min_overlap_bases_(param->minOverlapBases())
     , possible_genotypes(param->possibleGenotypes())
 {
@@ -127,6 +128,20 @@ Genotype BreakpointGenotyper::genotype(double read_depth, int32_t read_length, c
     for (unsigned int al = 0; al < n_alleles_; ++al)
     {
         result.allele_fractions[al] = ((double)read_counts[al]) / total_num_reads;
+    }
+
+    // compute coverage test p value
+    const poisson_distribution<> coverage_distribution(lambda);
+    double coverage_test_pvalue = cdf(coverage_distribution, total_num_reads);
+    if (coverage_test_pvalue > 0.5)
+    {
+        coverage_test_pvalue = 1 - coverage_test_pvalue;
+    }
+    result.coverage_test_pvalue = coverage_test_pvalue;
+
+    if (coverage_test_pvalue < coverage_test_cutoff_)
+    {
+        result.filter = "DEPTH";
     }
 
     return result;

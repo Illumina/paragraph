@@ -61,20 +61,25 @@ using std::string;
 int main(int argc, char const* argv[])
 {
     po::options_description desc("Allowed options");
-    desc.add_options()("help,h", "produce help message")("bam,b", po::value<string>(), "BAM / CRAM input file")(
-        "output,o", po::value<string>(), "Output file name. Will output to stdout if omitted.")(
-        "output-bins,O", po::value<string>(),
-        "Output binned coverage in tsv format.")("reference,r", po::value<string>(), "FASTA with reference genome")(
-        "include-regex,I", po::value<string>()->default_value(""), "Regex to identify contigs to include")(
-        "autosome-regex", po::value<string>()->default_value("(chr)?[1-9][0-9]?"),
-        "Regex to identify autosome chromosome names (default: '(chr)?[1-9][0-9]?'")(
-        "sex-chromosome-regex", po::value<string>()->default_value("(chr)?[XY]?"),
-        "Regex to identify sex chromosome names (default: '(chr)?[XY]?'")(
-        "threads", po::value<int>()->default_value(std::thread::hardware_concurrency()),
-        "Number of threads to use for parallel alignment.")(
-        "log-level", po::value<string>()->default_value("info"), "Set log level (error, warning, info).")(
-        "log-file", po::value<string>()->default_value(""), "Log to a file instead of stderr.")(
-        "log-async", po::value<bool>()->default_value(true), "Enable / disable async logging.");
+    // clang-format off
+    desc.add_options()
+            ("help,h", "produce help message")
+            ("bam,b", po::value<string>(), "BAM / CRAM input file")
+            ("bam-index", po::value<string>()->default_value(""), "BAM / CRAM index file when not at default location.")
+            ("output,o", po::value<string>(), "Output file name. Will output to stdout if omitted.")
+            ("output-bins,O", po::value<string>(), "Output binned coverage in tsv format.")
+            ("reference,r", po::value<string>(), "FASTA with reference genome")
+            ("include-regex,I", po::value<string>()->default_value(""), "Regex to identify contigs to include")
+            ("autosome-regex", po::value<string>()->default_value("(chr)?[1-9][0-9]?"),
+             "Regex to identify autosome chromosome names (default: '(chr)?[1-9][0-9]?'")
+            ("sex-chromosome-regex", po::value<string>()->default_value("(chr)?[XY]?"),
+             "Regex to identify sex chromosome names (default: '(chr)?[XY]?'")
+            ("threads", po::value<int>()->default_value(std::thread::hardware_concurrency()),
+             "Number of threads to use for parallel estimation.")
+            ("log-level", po::value<string>()->default_value("info"), "Set log level (error, warning, info).")
+            ("log-file", po::value<string>()->default_value(""), "Log to a file instead of stderr.")
+            ("log-async", po::value<bool>()->default_value(true), "Enable / disable async logging.");
+    // clang-format on
 
     po::variables_map vm;
     std::shared_ptr<spdlog::logger> logger;
@@ -105,6 +110,7 @@ int main(int argc, char const* argv[])
         {
             error("ERROR: File with variant specification is missing.");
         }
+        const string bam_index_path = vm["bam-index"].as<string>();
 
         string reference_path;
         if (vm.count("reference") != 0u)
@@ -132,7 +138,7 @@ int main(int argc, char const* argv[])
             logger->info("Output path for binned coverage: {}", output_path_bins);
         }
 
-        Parameters parameters(bam_path, reference_path);
+        Parameters parameters(bam_path, bam_index_path, reference_path);
         parameters.set_include_regex(vm["include-regex"].as<string>());
         parameters.set_autosome_regex(vm["autosome-regex"].as<string>());
         parameters.set_sex_chromosome_regex(vm["sex-chromosome-regex"].as<string>());
