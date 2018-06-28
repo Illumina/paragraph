@@ -49,11 +49,10 @@ void Parameters::load(
     reference_path_ = reference_path;
 
     Json::Value root;
-    Json::Reader reader;
     std::ifstream graph_desc(graph_path);
-    reader.parse(graph_desc, root);
+    graph_desc >> root;
 
-    // compatiability with graph key
+    // compatibility with graph key
     if (root.isMember("graph"))
     {
         for (auto& key_name : root["graph"].getMemberNames())
@@ -86,6 +85,14 @@ void Parameters::load(
     if (root.isMember("max_reads"))
     {
         max_reads_ = root["max_reads"].asUInt64();
+    }
+
+    for (auto& node : description_["nodes"])
+    {
+        if (node.isMember("sequence") && node["sequence"].asString().size() > longest_alt_insertion_)
+        {
+            longest_alt_insertion_ = node["sequence"].asString().size();
+        }
     }
 }
 }

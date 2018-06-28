@@ -42,6 +42,8 @@
 
 #include "common/Program.hh"
 
+// #define PROGRAM_TRACE_OPTIONS
+
 namespace common
 {
 
@@ -66,7 +68,7 @@ Options::Options()
         "log-async", bpo::value<bool>(&logAsync_)->default_value(false), "Enable / disable async logging.");
 }
 
-Options::Action Options::parse(int argc, const char* const argv[])
+Options::Action Options::parse(const char* moduleName, int argc, const char* const argv[])
 {
     try
     {
@@ -94,7 +96,9 @@ Options::Action Options::parse(int argc, const char* const argv[])
                           << std::endl;
                 return ABORT;
             }
-            std::cerr << "--response-file: " << ss.str() << std::endl;
+#ifdef PROGRAM_TRACE_OPTIONS
+            LOG()->info("--response-file: {}", ss.str());
+#endif
             // Split the file content
             boost::char_separator<char> sep(" \n\r");
             std::string ResponsefileContents(ss.str());
@@ -118,6 +122,7 @@ Options::Action Options::parse(int argc, const char* const argv[])
         {
             return VERSION;
         }
+        initLogging(moduleName, logFile().c_str(), logAsync(), logLevel().c_str());
         postProcess(vm_);
     }
     catch (const boost::program_options::multiple_values& e)

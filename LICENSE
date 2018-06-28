@@ -48,8 +48,6 @@ respective source files / tarballs):
     Copyright Iowa State University 2009-2014
     Distributed under the Boost Software License, Version 1.0.
     (See http://www.boost.org/LICENSE_1_0.txt)
-*   Protobuf is copyright 2014, Google Inc.
-    See https://github.com/google/protobuf/blob/master/LICENSE and the LICENSE file inside external/protobuf-cpp-3.3.0.tar.gz.
 *   Google Test and Google Mock are copyright 2008, Google Inc., see https://github.com/google/googletest/blob/master/googletest/LICENSE
     and https://github.com/google/googletest/blob/master/googlemock/LICENSE.
     See also the LICENSE files contained in external/googletest-release-1.8.0.tar.gz.

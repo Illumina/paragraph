@@ -58,6 +58,8 @@ using std::vector;
 namespace genotyping
 {
 
+using graphtools::Graph;
+
 GraphGenotyper::GraphGenotyper()
     : _impl(new GraphGenotyperImpl())
 {
@@ -69,11 +71,11 @@ GraphGenotyper::~GraphGenotyper() = default;
  * Set the graph we genotype on
  * @param graph our graph to genotype
  */
-void GraphGenotyper::reset(std::shared_ptr<graphs::WalkableGraph> graph)
+void GraphGenotyper::reset(Graph const* graph)
 {
     // reset all counts
     _impl.reset(new GraphGenotyperImpl());
-    _impl->graph = std::move(graph);
+    _impl->graph = graph;
 
     // work out allele and edge names
     const auto bp_map = createBreakpointMap(*_impl->graph);
@@ -82,7 +84,7 @@ void GraphGenotyper::reset(std::shared_ptr<graphs::WalkableGraph> graph)
     {
         _impl->breakpointnames.push_back(bp.first);
         auto const& bp_info = bp.second;
-        for (auto const& an : bp_info.alleleNames())
+        for (auto const& an : bp_info.canonicalAlleleNames())
         {
             allele_names.insert(an);
         }
@@ -94,7 +96,7 @@ void GraphGenotyper::reset(std::shared_ptr<graphs::WalkableGraph> graph)
 /**
  * @return the graph (asserts if no graph is set)
  */
-graphs::WalkableGraph const& GraphGenotyper::getGraph() const
+Graph const& GraphGenotyper::getGraph() const
 {
     assert(_impl->graph);
     return *_impl->graph;
@@ -120,6 +122,7 @@ void GraphGenotyper::addAlignment(SampleInfo const& sampleinfo)
         breakpoint.second.addCounts(alignment);
     }
     _impl->depths.emplace_back(depth, read_length);
+    _impl->sexes.emplace_back(sampleinfo.sex());
 
     // extract extra information and check we have the same event
     if (alignment.isMember("eventinfo"))
@@ -160,6 +163,32 @@ void GraphGenotyper::addAlignment(SampleInfo const& sampleinfo)
             }
             _impl->basic_info["graphinfo"]["ID"] = event_id;
         }
+
+        if (!_impl->basic_info.isMember("breakpointinfo"))
+        {
+            _impl->basic_info["breakpointinfo"] = Json::arrayValue;
+
+            // write edge + allele map
+            const auto& breakpoint_map = _impl->breakpoint_maps.back();
+            for (const auto& breakpoint : breakpoint_map)
+            {
+                Json::Value value = Json::objectValue;
+
+                value["name"] = breakpoint.first;
+                value["mapped_alleles"] = Json::objectValue;
+                for (const auto& allele : breakpoint.second.allAlleleNames())
+                {
+                    const auto& canonical_allele = breakpoint.second.getCanonicalAlleleName(allele);
+                    if (canonical_allele != allele)
+                    {
+                        value["mapped_alleles"][allele] = canonical_allele;
+                    }
+                }
+
+                _impl->basic_info["breakpointinfo"].append(value);
+            }
+        }
+
         // load basic json info for output
         vector<string> copied_keys = { "target_regions", "sequencenames" };
         for (auto& key : copied_keys)
@@ -259,7 +288,7 @@ Json::Value GraphGenotyper::getGenotypes()
                     {
                         breakpoint_json["counts"]["edges"][bp_edgename] = breakpoint_it->second.getCount(bp_edgename);
                     }
-                    for (const auto& bp_allelename : breakpoint_it->second.alleleNames())
+                    for (const auto& bp_allelename : breakpoint_it->second.canonicalAlleleNames())
                     {
                         breakpoint_json["counts"]["alleles"][bp_allelename]
                             = breakpoint_it->second.getCount(bp_allelename);
@@ -383,4 +412,9 @@ std::pair<double, int> const& GraphGenotyper::getDepthAndReadlength(size_t sampl
 {
     return _impl->depths[sample_index];
 }
+
+/**
+ * Get sex integer for a sample
+ */
+SampleInfo::Sex GraphGenotyper::getSampleSex(size_t sample_index) const { return _impl->sexes[sample_index]; };
 }

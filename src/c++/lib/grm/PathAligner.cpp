@@ -24,207 +24,149 @@
 // OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+/**
+ * \brief Align / seed reads via graph kmer index
+ *
+ * \file PathAligner.cpp
+ * \author Peter Krusche
+ * \email pkrusche@illumina.com
+ *
+ */
+
 #include "grm/PathAligner.hh"
-#include "common/Genetics.hh"
+#include "graphalign/GraphAlignmentOperations.hh"
+#include "graphalign/KmerIndex.hh"
+#include "graphcore/Path.hh"
+#include "graphcore/PathOperations.hh"
+#include "graphutils/SequenceOperations.hh"
+
+#include "common/Alignment.hh"
+
+#include <algorithm>
+#include <list>
+
+#include <boost/range/adaptor/filtered.hpp>
 
 #include "common/Error.hh"
 
 namespace grm
 {
 
-struct PathAligner::PathAlignerImpl
+struct ExactMatch
 {
-    struct Path
-    {
-        std::string path_id;
-        std::string sequence_id;
-        std::string path_sequence;
-        std::map<size_t, size_t> starts;
-        std::vector<std::string> node_names;
-        std::vector<uint64_t> node_ids;
-    };
-
-    std::list<Path> paths;
-    std::unordered_map<uint64_t, size_t> node_lengths;
+    size_t qpos;
+    graphtools::Path path;
+    bool isReverse;
 };
 
-PathAligner::PathAligner()
-    : _impl(new PathAlignerImpl())
+struct PathAligner::Impl
 {
-}
+    int32_t kmerSize = 32;
+    std::unique_ptr<graphtools::KmerIndex> pKmerIndex;
+};
 
+PathAligner::PathAligner(int32_t kmer_size)
+    : impl_(new Impl())
+{
+    impl_->kmerSize = kmer_size;
+}
 PathAligner::~PathAligner() = default;
+PathAligner::PathAligner(PathAligner&& rhs) noexcept = default;
+PathAligner& PathAligner::operator=(PathAligner&& rhs) noexcept = default;
 
-PathAligner::PathAligner(PathAligner&& rhs) noexcept
-    : _impl(std::move(rhs._impl))
+void PathAligner::setGraph(graphtools::Graph const* g, std::list<graphtools::Path> const&)
 {
+    impl_->pKmerIndex.reset(new graphtools::KmerIndex(*g, impl_->kmerSize));
 }
 
-PathAligner& PathAligner::operator=(PathAligner&& rhs) noexcept
+void PathAligner::alignRead(common::Read& read)
 {
-    _impl = std::move(rhs._impl);
-    return *this;
-}
+    ++attempted_;
 
-/**
- * Set the graph to align to
- * @param g a graph
- * @param paths list of paths
- */
-void PathAligner::setGraph(graphs::Graph const& g, Json::Value const& paths)
-{
-    std::unordered_map<std::string, uint64_t> node_id_map;
+    const auto kmer_length = impl_->pKmerIndex->kmerLength();
 
-    for (const auto& n : g.nodes)
+    const size_t read_length = read.bases().size();
+    if (read_length < kmer_length)
     {
-        assert(node_id_map.count(n.second->name()) == 0);
-        node_id_map[n.second->name()] = n.first;
-        _impl->node_lengths[n.first] = n.second->sequence().size();
+        return;
     }
 
-    for (const auto& p : paths)
+    std::list<ExactMatch> matches;
+    for (int strand = 0; strand < 2; ++strand)
     {
-        assert(p.isMember("nodes"));
-        assert(p.isMember("path_id"));
-        assert(p.isMember("sequence"));
+        const bool is_reverse_strand = strand != 0;
+        const std::string& read_bases = is_reverse_strand ? graphtools::reverseComplement(read.bases()) : read.bases();
 
-        PathAlignerImpl::Path path;
-        path.path_id = p["path_id"].asString();
-        path.sequence_id = p["sequence"].asString();
-        for (const auto& n : p["nodes"])
+        for (size_t pos = 0; pos + kmer_length <= read_bases.size(); ++pos)
         {
-            const auto node_name = n.asString();
-            const auto node_id = node_id_map[node_name];
-            path.starts.emplace(path.path_sequence.size(), path.node_ids.size());
-            auto node = g.nodes.find(node_id);
-            assert(node != g.nodes.cend());
-            path.path_sequence += node->second->sequence();
-            path.node_ids.push_back(node_id);
-            path.node_names.push_back(node_name);
-        }
-        _impl->paths.emplace_back(path);
-    }
-}
+            const std::string kmer = read_bases.substr(pos, kmer_length);
 
-/**
- * Align a read to the graph and update the graph_* fields.
- *
- * We will align both the forward and the reverse strand and return
- * the alignment which is unique, or with the better score, or default
- * to the forward strand.
- *
- * @param read read structure
- */
-void PathAligner::alignRead(common::Read& read) const
-{
-    bool is_mapped = false;
-    for (const auto& path : _impl->paths)
+            if (impl_->pKmerIndex->numPaths(kmer) == 1)
+            {
+                size_t qpos = pos;
+                const auto extended
+                    = graphtools::extendPathMatching(impl_->pKmerIndex->getPaths(kmer).front(), read_bases, qpos);
+                matches.push_back(ExactMatch{ qpos, extended, is_reverse_strand });
+                pos = matches.back().qpos + matches.back().path.length();
+            }
+        }
+    }
+
+    if (!matches.empty())
     {
-        auto match_pos_1 = path.path_sequence.find(read.bases());
-
-        bool is_reverse_match = false;
-        const auto rev_bases = common::reverseComplement(read.bases());
-        if (match_pos_1 == std::string::npos)
-        {
-            match_pos_1 = path.path_sequence.find(rev_bases);
-            if (match_pos_1 != std::string::npos)
-            {
-                is_reverse_match = true;
-            }
-        }
-
-        if (match_pos_1 == std::string::npos)
-        {
-            // no exact match
-            continue;
-        }
-
-        auto start_node = path.starts.lower_bound(match_pos_1);
-        if (start_node == path.starts.end())
-        {
-            assert(path.starts.size() >= 1);
-            start_node = std::prev(path.starts.end());
-        }
-        else if (start_node->first > match_pos_1)
-        {
-            start_node = std::prev(start_node);
-        }
-        assert(start_node != path.starts.end());
-
-        const auto start = static_cast<google::protobuf::int32>(match_pos_1 - start_node->first);
-        auto length_left = read.bases().size();
-        auto this_start = (size_t)start;
-        std::string cigar;
-        int alignment_score = 0;
-        std::list<uint64_t> graph_nodes_traversed;
-        while (start_node != path.starts.end() && length_left > 0)
-        {
-            auto this_length = length_left;
-            auto next_step = std::next(start_node);
-            if (next_step != path.starts.end())
-            {
-                this_length = std::min(length_left, next_step->first - start_node->first - this_start);
-            }
-
-            if (this_length > 0)
-            {
-                const auto this_node_length = _impl->node_lengths[path.node_ids[start_node->second]];
-                assert(this_start + this_length <= this_node_length);
-                graph_nodes_traversed.push_back(start_node->second);
-                cigar += std::to_string(path.node_ids[start_node->second]) + "[" + std::to_string(this_length) + "M]";
-            }
-            alignment_score += this_length;
-
-            length_left -= this_length;
-            start_node = next_step;
-            this_start = 0;
-        }
-
-        if (is_mapped)
-        {
-            // check if this path maps our read somewhere else
-            if ((is_reverse_match != read.is_reverse_strand()) != read.is_graph_reverse_strand()
-                || start != read.graph_pos() || cigar != read.graph_cigar())
-            {
-                read.set_graph_mapq(0);
-                read.set_is_graph_alignment_unique(false);
-                break;
-            }
-            continue;
-        }
-
-        read.set_graph_pos(start);
-        size_t reverse_strand_match_pos = std::string::npos;
-        if (is_reverse_match)
-        {
-            // we don't need to update reverse_strand_match_pos: the match
-            // already is on the reverse strand because we didn't find one forward
-            // and second matches to the reverse strand are checked below.
-            read.set_bases(rev_bases);
-            read.set_is_graph_reverse_strand(!read.is_reverse_strand());
-        }
-        else
-        {
-            // check if read also matches on the reverse strand
-            reverse_strand_match_pos = path.path_sequence.find(rev_bases);
-            read.set_is_graph_reverse_strand(read.is_reverse_strand());
-        }
-        read.set_graph_cigar(cigar);
-        read.set_graph_alignment_score(alignment_score);
-
-        const auto match_pos_2 = path.path_sequence.find(read.bases(), match_pos_1 + 1);
-        if (match_pos_2 != std::string::npos || reverse_strand_match_pos != std::string::npos)
-        {
-            read.set_graph_mapq(0);
-            read.set_is_graph_alignment_unique(false);
-        }
-        else
-        {
-            read.set_graph_mapq(60);
-            read.set_is_graph_alignment_unique(true);
-        }
-        read.set_graph_mapping_status(reads::MAPPED);
-        is_mapped = true;
+        ++anchored_;
     }
+    using boost::adaptors::filtered;
+    auto filtered_mems
+        = matches | filtered([read_length](ExactMatch const& mem) -> bool { return mem.path.length() == read_length; });
+
+    if (filtered_mems.empty())
+    {
+        return;
+    }
+
+    auto const& mem_to_translate = filtered_mems.front();
+
+    if (mem_to_translate.isReverse)
+    {
+        read.set_bases(graphtools::reverseComplement(read.bases()));
+        read.set_is_graph_reverse_strand(true);
+    }
+    else
+    {
+        read.set_is_graph_reverse_strand(false);
+    }
+
+    std::string cigar;
+    if (mem_to_translate.qpos > 0)
+    {
+        cigar += std::to_string(mem_to_translate.qpos) + "S";
+    }
+    cigar += std::to_string(mem_to_translate.path.length()) + "M";
+    if (mem_to_translate.qpos + mem_to_translate.path.length() < read_length)
+    {
+        cigar += std::to_string(read_length - mem_to_translate.qpos - mem_to_translate.path.length()) + "S";
+    }
+    graphtools::Alignment linearAlignment(0, cigar);
+    graphtools::GraphAlignment graphAlignment
+        = graphtools::projectAlignmentOntoGraph(linearAlignment, mem_to_translate.path);
+
+    read.set_graph_alignment_score(mem_to_translate.path.length());
+    read.set_graph_cigar(graphAlignment.generateCigar());
+    read.set_graph_pos(mem_to_translate.path.startPosition());
+
+    read.set_graph_mapping_status(common::Read::MAPPED);
+    if (std::next(filtered_mems.begin()) != filtered_mems.end())
+    {
+        read.set_is_graph_alignment_unique(false);
+        read.set_graph_mapq(0);
+    }
+    else
+    {
+        read.set_is_graph_alignment_unique(true);
+        read.set_graph_mapq(60);
+    }
+
+    ++mapped_;
 }
 }

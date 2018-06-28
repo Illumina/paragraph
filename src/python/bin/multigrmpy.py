@@ -18,8 +18,6 @@
 #   To run ParaGRAPH on large-scale sites and samples, please refer to the Snakemake template at doc/multi-samples.md
 # Output will be one JSON for all samples with genotyping information
 #
-# Use multiparagraph.py as template
-#
 # Usage:
 #
 # For usage instructions run with option --help
@@ -40,12 +38,13 @@ import subprocess
 import tempfile
 import traceback
 import re
-import ntpath
+import pysam
 
 import findgrm  # pylint: disable=unused-import
 from grm.helpers import LoggingWriter
 from grm.vcf2paragraph import convert_vcf_to_json
 from grm.graph_templates import make_graph
+from grm.vcfgraph import vcfupdate
 
 
 def load_graph_description(args):
@@ -61,12 +60,22 @@ def load_graph_description(args):
         logging.info("Input is a vcf. Converting to JSON with graph description...")
         try:
             converted_json_path = os.path.join(args.output, "variants.json.gz")
-            event_list = convert_vcf_to_json(args.input, args.reference, read_length=args.read_length,
-                                             max_ref_node_length=args.max_ref_node_length,
-                                             graph_type=args.graph_type,
-                                             split_type=args.split_type,
-                                             retrieve_ref_sequence=args.retrieve_reference_sequence,
-                                             threads=args.threads)
+            header, records, event_list = convert_vcf_to_json(
+                args.input, args.reference, read_length=args.read_length,
+                max_ref_node_length=args.max_ref_node_length,
+                graph_type=args.graph_type,
+                split_type=args.split_type,
+                retrieve_ref_sequence=args.retrieve_reference_sequence,
+                threads=args.threads,
+                alt_splitting=args.alt_splitting,
+                alt_paths=True)
+
+            vcf_with_event_ids_path = os.path.join(args.output, "variants.vcf.gz")
+            logging.info("Saving: %s.", vcf_with_event_ids_path)
+            with pysam.VariantFile(vcf_with_event_ids_path, 'w', header=header) as vcf_with_event_ids_file:
+                for record in [record for record_block in records for record in record_block]:
+                    vcf_with_event_ids_file.write(record)
+
             logging.info("Saving: %s.", converted_json_path)
             with gzip.open(converted_json_path, "wt") as converted_json_file:
                 json.dump(event_list, converted_json_file, sort_keys=True, indent=4, separators=(',', ': '))
@@ -89,7 +98,7 @@ def load_graph_description(args):
                     try:
                         event["type"], event["graph"] = make_graph(args.reference, event)
                     except Exception:  # pylint: disable=W0703
-                        logging.error("Fail to make graph for JSON event.")
+                        logging.error("Failed to make graph for JSON event.")
                         traceback.print_exc(file=LoggingWriter(logging.ERROR))
                         raise
                     num_converted_event += 1
@@ -101,7 +110,6 @@ def load_graph_description(args):
                         (extension, args.input))
 
     tempfiles = []
-
     logging.info("Saving %d graph json files", len(event_list))
     graph_id = 0
     for event in event_list:
@@ -110,8 +118,14 @@ def load_graph_description(args):
         if "graph" in event:
             graph = event["graph"]
             if "ID" not in graph or not graph["ID"]:
-                graph["ID"] = ntpath.basename(args.input) + ":" + str(graph_id)
-                graph_id += 1
+                if "ID" in event:
+                    graph["ID"] = event["ID"]
+                else:
+                    graph["ID"] = os.path.basename(args.input) + ":" + str(graph_id)
+
+            # graph id gives index into original events s.t. we can find them even if
+            # only some of them have an ID already
+            graph_id += 1
             json.dump(graph, input_json_file, indent=4, separators=(',', ': '))
         else:
             json.dump(event, input_json_file, indent=4, separators=(',', ': '))
@@ -133,14 +147,19 @@ def make_argument_parser():
 
     parser.add_argument("-o", "--output", help="Output directory.", type=str, dest="output", required=True)
 
+    parser.add_argument("-A", "--write-alignments", dest="write_alignments",
+                        help="Write alignment JSON files into the output folder (large!).",
+                        default=False, action="store_true")
+
+    parser.add_argument("--infer-read-haplotypes", dest="infer_read_haplotypes",
+                        help="Infer read haplotype paths",
+                        default=False, action="store_true")
+
     parser.add_argument("-r", "--reference-sequence", help="Reference genome fasta file.",
                         type=str, dest="reference", required=True)
 
-    parser.add_argument("--event-threads", "-t", dest="threads", type=int, default=multiprocessing.cpu_count(),
+    parser.add_argument("--threads", "-t", dest="threads", type=int, default=multiprocessing.cpu_count(),
                         help="Number of events to process in parallel.")
-
-    parser.add_argument("--sample-threads", dest="sample_threads", type=int, default=1,
-                        help="Number of samples to process in parallel.")
 
     parser.add_argument("--keep-scratch", dest="keep_scratch", default=None, action="store_true",
                         help="Do not delete temp files.")
@@ -154,17 +173,20 @@ def make_argument_parser():
     parser.add_argument("--logfile", dest="logfile", default=None,
                         help="Write logging information into file rather than to stderr")
 
-    parser.add_argument("--exact-sequence-matching", dest="exact_sequence_matching",
-                        default=False, help="Use path aligner.")
-
     parser.add_argument("--graph-sequence-matching", dest="graph_sequence_matching",
                         default=False, help="Use graph aligner.")
+
+    parser.add_argument("--klib-sequence-matching", dest="klib_sequence_matching",
+                        default=False, help="Use klib smith waterman aligner.")
 
     parser.add_argument("--kmer-sequence-matching", dest="kmer_sequence_matching",
                         default=False, help="Use kmer aligner.")
 
     parser.add_argument("--bad-align-uniq-kmer-len", dest="bad_align_uniq_kmer_len", default=0,
                         help="Kmer length for uniqueness check during read filtering.")
+
+    parser.add_argument("--no-alt-splitting", dest="alt_splitting", default=True, action="store_false",
+                        help="Keep long insertion sequences in the graph rather than trimming them at the read / padding length.")
 
     verbosity_options = parser.add_mutually_exclusive_group(required=False)
 
@@ -187,14 +209,15 @@ def make_argument_parser():
 
     vcf2json_options = parser.add_mutually_exclusive_group(required=False)
 
-    vcf2json_options.add_argument("--vcf-split", default="lines", dest="split_type", choices=["lines", "full", "by_id"],
+    vcf2json_options.add_argument("--vcf-split", default="lines", dest="split_type", choices=["lines", "full", "by_id", "superloci"],
                                   help="Mode for splitting the input VCF: lines (default) -- one graph per record ;"
                                   " full -- one graph for the whole VCF ;"
-                                  " by_id -- use the VCF id column to group adjacent records")
+                                  " by_id -- use the VCF id column to group adjacent records ;"
+                                  " superloci -- split VCF into blocks where records are separated by at least read-length characters")
     vcf2json_options.add_argument("-p", "--read-length", dest="read_length", default=150, type=int,
-                                  help="Read length -- this can be used to add reference padding for disambiguation.")
+                                  help="Read length -- this is used to add reference padding when converting VCF to graphs.")
 
-    vcf2json_options.add_argument("-l", "--max-ref-node-length", dest="max_ref_node_length", type=int, default=1000,
+    vcf2json_options.add_argument("-l", "--max-ref-node-length", dest="max_ref_node_length", type=int, default=300,
                                   help="Maximum length of reference nodes before they get padded and truncated.")
 
     vcf2json_options.add_argument("--retrieve-reference-sequence", help="Retrieve reference sequence for REF nodes",
@@ -230,7 +253,7 @@ def run(args):
 
     # check format of manifest
     with open(args.manifest) as manifest_file:
-        headers = {"id": False, "path": False, "idxdepth": False, "depth": False, "read length": False}
+        headers = {"id": False, "path": False, "idxdepth": False, "depth": False, "read length": False, "sex": False}
         for line in manifest_file:
             if line.startswith("#"):
                 line = line[1:]
@@ -238,9 +261,7 @@ def run(args):
             fields = re.split('\t|,', line)
             for field in fields:
                 if field not in headers:
-                    header_str = ""
-                    for h in headers:
-                        header_str += h + ","
+                    header_str = ",".join(headers)
                     raise Exception("Illegal header name %s. Allowed headers:\n%s" % (field, header_str))
                 headers[field] = True
             if not headers["id"] or not headers["path"]:
@@ -251,11 +272,11 @@ def run(args):
             break
 
     # prepare input graph description
+    result_json_path = os.path.join(args.output, "genotypes.json.gz")
     try:
         graph_files = load_graph_description(args)
-        commandline = "-r %s" % pipes.quote(args.reference)
+        commandline = " -r %s" % pipes.quote(args.reference)
         commandline += " -m %s" % pipes.quote(args.manifest)
-        result_json_path = os.path.join(args.output, "genotypes.json.gz")
         commandline += " -o %s" % pipes.quote(result_json_path)
         commandline += " -z"
 
@@ -263,20 +284,41 @@ def run(args):
             commandline += " -G %s" % pipes.quote(args.genotyping_parameters)
         if args.max_reads_per_event:
             commandline += " -M %s" % pipes.quote(str(args.max_reads_per_event))
-        if args.sample_threads > 1:
-            commandline += " -t %s" % pipes.quote(str(args.sample_threads))
-        if args.exact_sequence_matching:
-            commandline += " --exact-sequence-matching %s" % pipes.quote(str(args.exact_sequence_matching))
+        if args.threads > 1:
+            commandline += " -t %s" % pipes.quote(str(args.threads))
         if args.graph_sequence_matching:
             commandline += " --graph-sequence-matching %s" % pipes.quote(str(args.graph_sequence_matching))
+        if args.klib_sequence_matching:
+            commandline += " --klib-sequence-matching %s" % pipes.quote(str(args.klib_sequence_matching))
         if args.kmer_sequence_matching:
             commandline += " --kmer-sequence-matching %s" % pipes.quote(str(args.kmer_sequence_matching))
         if int(args.bad_align_uniq_kmer_len):
             commandline += " --bad-align-uniq-kmer-len %s" % pipes.quote(str(args.bad_align_uniq_kmer_len))
+        if args.write_alignments:
+            alignment_directory = os.path.join(args.output, "alignments")
+            os.makedirs(alignment_directory, exist_ok=True)
+            if not os.path.isdir(alignment_directory):
+                raise Exception(f"Cannot create alignment output directory: {alignment_directory}")
+            commandline += " --alignment-output-folder !%s" % pipes.quote(alignment_directory)
+        if args.infer_read_haplotypes:
+            commandline += " --infer-read-haplotypes"
+
+        if args.verbose:
+            commandline += " --log-level=info"
+        elif args.quiet:
+            commandline += " --log-level=error"
+        elif args.debug:
+            commandline += " --log-level=debug"
+        else:
+            commandline += " --log-level=warning"
+
+        grmpy_log = pipes.quote(os.path.join(args.output, "grmpy.log"))
+        commandline += " --log-file " + grmpy_log
+        commandline += " --log-async no"
 
         commandline += " -g"
         for graph in graph_files:
-            commandline += " %s" % pipes.quote(graph)
+            commandline += "\n%s" % pipes.quote(graph)
 
         response_file = tempfile.NamedTemporaryFile(dir=args.scratch_dir, mode="wt", suffix=".txt", delete=False)
         response_file.write(commandline)
@@ -286,8 +328,20 @@ def run(args):
 
         logging.info("Starting: %s", commandline)
 
-        subprocess.call(commandline, shell=True, stderr=subprocess.STDOUT)
+        subprocess.check_call(commandline, shell=True, stderr=subprocess.STDOUT)
 
+    except Exception:  # pylint: disable=W0703
+        traceback.print_exc(file=LoggingWriter(logging.ERROR))
+        raise
+
+    try:
+        if args.input.endswith("vcf") or args.input.endswith("vcf.gz"):
+            grmpyOutput = vcfupdate.read_grmpy(result_json_path)
+            result_vcf_path = os.path.join(args.output, "genotypes.vcf.gz")
+            vcf_input_path = os.path.join(args.output, "variants.vcf.gz")
+            if not os.path.exists(vcf_input_path) or not os.path.isfile(vcf_input_path):
+                vcf_input_path = args.input
+            vcfupdate.update_vcf_from_grmpy(vcf_input_path, grmpyOutput, result_vcf_path)
     except Exception:  # pylint: disable=W0703
         traceback.print_exc(file=LoggingWriter(logging.ERROR))
         raise

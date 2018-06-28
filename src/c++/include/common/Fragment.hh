@@ -31,7 +31,7 @@
 #include <string>
 #include <unordered_set>
 
-#include "graphs/GraphCoordinates.hh"
+#include "graphcore/GraphCoordinates.hh"
 
 namespace common
 {
@@ -53,7 +53,7 @@ public:
      * @param coordinates coordinates and graph for length calculation
      * @param read read information
      */
-    void addRead(graphs::GraphCoordinates const& coordinates, Read const& read);
+    void addRead(graphtools::GraphCoordinates const& coordinates, Read const& read);
 
     std::string get_fragment_id() const { return fragment_id; }
     int get_n_reads() const { return n_reads; }
@@ -93,6 +93,6 @@ typedef std::list<std::unique_ptr<common::Fragment>> FragmentList;
  * @param output_list output list for fragments
  */
 void readsToFragments(
-    graphs::GraphCoordinates const& coordinates, common::ReadBuffer const& reads,
+    graphtools::GraphCoordinates const& coordinates, common::ReadBuffer const& reads,
     std::list<std::unique_ptr<Fragment>>& output_list);
 }

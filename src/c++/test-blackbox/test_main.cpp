@@ -33,12 +33,13 @@
  *
  */
 
-#include <google/protobuf/stubs/common.h>
+#include <cstdlib>
 #include <libgen.h>
-#include <stdlib.h>
+#include <limits.h>
 #include <string>
 
 #include "common.hh"
+#include "common/Error.hh"
 #include "gtest/gtest.h"
 
 GTestEnvironment* g_testenv = nullptr;
@@ -46,6 +47,8 @@ GTestEnvironment* g_testenv = nullptr;
 int main(int argc, char** argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
+
+    // initLogging("test_blackbox", "", false, "trace");
 
     // determine base path
     char* bn = dirname(argv[0]);
@@ -55,13 +58,8 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-    GOOGLE_PROTOBUF_VERIFY_VERSION;
-
     ::testing::AddGlobalTestEnvironment(g_testenv = new GTestEnvironment(actualpath));
     int res = RUN_ALL_TESTS();
-
-    // Optional:  Delete all global objects allocated by libprotobuf.
-    google::protobuf::ShutdownProtobufLibrary();
 
     return res;
 }

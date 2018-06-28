@@ -1,2 +1,2 @@
 #id	path	depth	read length
-SWAPS	swaps.bam	150	150
+SWAPS	swaps.bam	600	150

@@ -34,14 +34,19 @@
  */
 
 #include "grm/CompositeAligner.hh"
-#include "graphs/GraphMapping.hh"
-#include "graphs/GraphMappingOperations.hh"
+
+#ifdef _DEBUG
+#include "graphalign/GraphAlignment.hh"
+#include "graphalign/GraphAlignmentOperations.hh"
+#endif
+
 using namespace grm;
 
 CompositeAligner::CompositeAligner(
-    bool exactPathMatching, bool graphMatching, bool kmerMatching, unsigned grapAlignmentflags)
-    : exactPathMatching_(exactPathMatching)
+    bool pathMatching, bool graphMatching, bool klibMatching, bool kmerMatching, unsigned grapAlignmentflags)
+    : pathMatching_(pathMatching)
     , graphMatching_(graphMatching)
+    , klibMatching_(klibMatching)
     , kmerMatching_(kmerMatching)
     , grapAlignmentflags_(grapAlignmentflags)
 {
@@ -49,95 +54,130 @@ CompositeAligner::CompositeAligner(
 
 CompositeAligner::~CompositeAligner() = default;
 
-CompositeAligner::CompositeAligner(CompositeAligner&& rhs) noexcept
-    : exactPathMatching_(rhs.exactPathMatching_)
-    , graphMatching_(rhs.graphMatching_)
-    , kmerMatching_(rhs.kmerMatching_)
-    , grapAlignmentflags_(rhs.grapAlignmentflags_)
-    , graphAligner_(std::move(rhs.graphAligner_))
-    , kmerAligner_(std::move(rhs.kmerAligner_))
-    , pathAligner_(std::move(rhs.pathAligner_))
-{
-}
+CompositeAligner::CompositeAligner(CompositeAligner&& rhs) noexcept = default;
 
-void CompositeAligner::setGraph(graphs::Graph const& graph, Json::Value const& paths)
+void CompositeAligner::setGraph(graphtools::Graph const* graph, std::list<graphtools::Path> const& paths)
 {
-    if (exactPathMatching_)
+    if (pathMatching_)
     {
         pathAligner_.setGraph(graph, paths);
     }
+
     if (graphMatching_)
     {
         graphAligner_.setGraph(graph);
     }
+
+    if (klibMatching_)
+    {
+        klibAligner_.setGraph(graph, paths);
+    }
+
     if (kmerMatching_)
     {
         kmerAligner_.setGraph(graph, paths);
     }
 #ifdef _DEBUG
-    graph_ = std::unique_ptr<graphs::WalkableGraph>(new graphs::WalkableGraph(graph));
+    graph_ = graph;
 #endif
 }
 
 void CompositeAligner::alignRead(common::Read& read, ReadFilter filter)
 {
     ++attempted_;
-    if (exactPathMatching_)
+
+    if (pathMatching_)
     {
         pathAligner_.alignRead(read);
-        if (read.graph_mapping_status() == reads::MAPPED)
+        if (read.graph_mapping_status() == common::Read::MAPPED)
         {
 #ifdef _DEBUG
             // check a valid alignment was produced
-            graphs::GraphMapping mapping
-                = graphs::decodeFromString(read.graph_pos(), read.graph_cigar(), read.bases(), *graph_);
+            graphtools::GraphAlignment mapping
+                = graphtools::decodeGraphAlignment(read.graph_pos(), read.graph_cigar(), graph_);
 #endif
-            ++mappedExactly_;
+            ++mappedPath_;
         }
+        anchoredPath_ = pathAligner_.anchored();
     }
 
-    if (read.graph_mapping_status() != reads::MAPPED && kmerMatching_)
+    // Filter here if filter is set. This allows second-chance alignment with kmer + graph aligner
+    if (read.graph_mapping_status() == common::Read::MAPPED && filter && filter(read))
+    {
+        read.set_graph_mapping_status(common::Read::BAD_ALIGN);
+        // increment filtered count if we are not using graph aligner
+        filtered_ += !kmerMatching_ && !klibMatching_ && !graphMatching_;
+    }
+
+    if (read.graph_mapping_status() != common::Read::MAPPED && kmerMatching_)
     {
         kmerAligner_.alignRead(read);
-        if (read.graph_mapping_status() == reads::MAPPED)
+        if (read.graph_mapping_status() == common::Read::MAPPED)
         {
 #ifdef _DEBUG
             // check a valid alignment was produced
-            graphs::GraphMapping mapping
-                = graphs::decodeFromString(read.graph_pos(), read.graph_cigar(), read.bases(), *graph_);
+            graphtools::GraphAlignment mapping
+                = graphtools::decodeGraphAlignment(read.graph_pos(), read.graph_cigar(), graph_);
 #endif
-            ++mappedKmers_;
+            if (filter && filter(read))
+            {
+                read.set_graph_mapping_status(common::Read::BAD_ALIGN);
+                // increment filtered count if we are not trying to align further
+                filtered_ += !klibMatching_ && !graphMatching_;
+            }
+            else
+            {
+                ++mappedKmers_;
+            }
         }
     }
 
-    // Filter here if filter is set. This allows second-chance alignment with graph aligner
-    if (read.graph_mapping_status() == reads::MAPPED && filter && filter(read))
+    if (read.graph_mapping_status() != common::Read::MAPPED && klibMatching_)
     {
-        read.set_graph_mapping_status(reads::MappingStatus::BAD_ALIGN);
-        // increment filtered count if we are not using graph aligner
-        filtered_ += !graphMatching_;
+        klibAligner_.alignRead(read);
+        // Filter here if filter is set. This allows second-chance alignment with graph aligner
+        if (read.graph_mapping_status() == common::Read::MAPPED)
+        {
+#ifdef _DEBUG
+            // check a valid alignment was produced
+            graphtools::GraphAlignment mapping
+                = graphtools::decodeGraphAlignment(read.graph_pos(), read.graph_cigar(), graph_);
+#endif
+            if (filter && filter(read))
+            {
+                read.set_graph_mapping_status(common::Read::BAD_ALIGN);
+                // increment filtered count if we are not using graph aligner
+                filtered_ += !graphMatching_;
+            }
+            else
+            {
+                ++mappedKlib_;
+            }
+        }
     }
 
-    if (read.graph_mapping_status() != reads::MAPPED && graphMatching_)
+    if (read.graph_mapping_status() != common::Read::MAPPED && graphMatching_)
     {
         graphAligner_.alignRead(read);
         // graph aligner always produces a mapping, It just does not set the status for some reason
-        read.set_graph_mapping_status(reads::MappingStatus::MAPPED);
+        read.set_graph_mapping_status(common::Read::MAPPED);
 
-        if (read.graph_mapping_status() == reads::MAPPED)
+        if (read.graph_mapping_status() == common::Read::MAPPED)
         {
 #ifdef _DEBUG
             // check a valid alignment was produced
-            graphs::GraphMapping mapping
-                = graphs::decodeFromString(read.graph_pos(), read.graph_cigar(), read.bases(), *graph_);
+            graphtools::GraphAlignment mapping
+                = graphtools::decodeGraphAlignment(read.graph_pos(), read.graph_cigar(), graph_);
 #endif
-            ++mappedSw_;
-        }
-
-        if (filter && filter(read))
-        {
-            read.set_graph_mapping_status(reads::MappingStatus::BAD_ALIGN);
-            ++filtered_;
+            if (filter && filter(read))
+            {
+                read.set_graph_mapping_status(common::Read::BAD_ALIGN);
+                ++filtered_;
+            }
+            else
+            {
+                ++mappedSw_;
+            }
         }
     }
 }

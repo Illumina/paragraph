@@ -103,7 +103,7 @@ std::string const& VariantCandidateList::getReference() const { return _impl->re
  */
 int64_t VariantCandidateList::addRefVarObservation(RefVar rv, bool is_rev, int64_t left_boundary, int pqual)
 {
-    // update reference information
+    // update reference information -- "." indicates reference support for entire span of RefVar
     if (rv.end >= rv.start && rv.alt == ".")
     {
         for (auto pos = (size_t)rv.start; pos < std::min(_impl->reference.size(), (const unsigned long)rv.end + 1);
@@ -120,7 +120,7 @@ int64_t VariantCandidateList::addRefVarObservation(RefVar rv, bool is_rev, int64
         variant::rightShift(_impl->reference, rv);
         rightmost = std::max(rv.start, rv.end);
         variant::leftShift(_impl->reference, rv, left_boundary);
-        variant::trimLeft(_impl->reference, rv, false);
+        variant::trimLeft(_impl->reference.substr(rv.start, rv.end - rv.start + 1), rv, false);
 
         // add as non-ref obs
         for (auto pos = (size_t)rv.start; pos < std::min(_impl->reference.size(), (size_t)rightmost + 1); ++pos)
@@ -238,7 +238,7 @@ std::list<Variant*> VariantCandidateList::getVariants() const
  * @param coverage coverage JSON. If entries are present already, this function will append
  */
 void VariantCandidateList::appendCoverage(
-    graphs::GraphCoordinates const& coords, std::string const& node_name, Json::Value& coverage) const
+    graphtools::GraphCoordinates const& coords, std::string const& node_name, Json::Value& coverage) const
 {
     static const std::list<std::string> fields = {
         "cpos",      "node",      "offset", "base",     "ref",      "ref:FWD", "ref:REV",    "other",

@@ -1,7 +1,6 @@
 [
     {
         "chrom": "chr",
-        "commandline": "/Users/pkrusche/workspace/grm.py-build/bin/paragraph -r ../grm.py/data/multiparagraph/dummy.fa -b ../grm.py/data/multiparagraph/reads.bam -g /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpzvanvgp6.json -o /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpzvanvgp6.json.output.json --log-file /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpzvanvgp6.json.output.log --threads 1",
         "del_len": 40,
         "desc": "short deletion",
         "end": 80,
@@ -32,15 +31,15 @@
             "fragment_statistics": {
                 "mean_graph": null,
                 "mean_linear": null,
-                "median_graph": 0,
-                "median_linear": 0,
+                "median_graph": 0.0,
+                "median_linear": 0.0,
                 "multi_read": 0,
                 "paired_read": 0,
                 "problematic_graph": 0,
                 "problematic_linear": 4,
                 "single_read": 4,
-                "variance_graph": 0,
-                "variance_linear": 0
+                "variance_graph": 0.0,
+                "variance_linear": 0.0
             },
             "nodes": [
                 {
@@ -85,11 +84,7 @@
                 "LF_RF": 2,
                 "LF_RF:FWD": 2,
                 "LF_RF:READS": 2,
-                "LF_RF:REV": 0,
-                "total": 4,
-                "total:FWD": 4,
-                "total:READS": 4,
-                "total:REV": 0
+                "LF_RF:REV": 0
             },
             "read_counts_by_node": {
                 "LF": 4,
@@ -103,11 +98,7 @@
                 "RF": 2,
                 "RF:FWD": 2,
                 "RF:READS": 2,
-                "RF:REV": 0,
-                "total": 4,
-                "total:FWD": 4,
-                "total:READS": 4,
-                "total:REV": 0
+                "RF:REV": 0
             },
             "read_counts_by_sequence": {
                 "DEL": {
@@ -123,7 +114,6 @@
                     "total:REV": 0
                 }
             },
-            "reference": "../grm.py/data/multiparagraph/dummy.fa",
             "sequencenames": [
                 "REF",
                 "DEL"
@@ -140,7 +130,6 @@
     },
     {
         "chrom": "chr",
-        "commandline": "/Users/pkrusche/workspace/grm.py-build/bin/paragraph -r ../grm.py/data/multiparagraph/dummy.fa -b ../grm.py/data/multiparagraph/reads.bam -g /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmp3bk5qiia.json -o /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmp3bk5qiia.json.output.json --log-file /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmp3bk5qiia.json.output.log --threads 1",
         "del_len": 40,
         "desc": "short swap",
         "end": 80,
@@ -185,15 +174,15 @@
             "fragment_statistics": {
                 "mean_graph": null,
                 "mean_linear": null,
-                "median_graph": 0,
-                "median_linear": 0,
+                "median_graph": 0.0,
+                "median_linear": 0.0,
                 "multi_read": 0,
                 "paired_read": 0,
                 "problematic_graph": 0,
                 "problematic_linear": 6,
                 "single_read": 6,
-                "variance_graph": 0,
-                "variance_linear": 0
+                "variance_graph": 0.0,
+                "variance_linear": 0.0
             },
             "nodes": [
                 {
@@ -260,11 +249,7 @@
                 "LF_RF": 2,
                 "LF_RF:FWD": 2,
                 "LF_RF:READS": 2,
-                "LF_RF:REV": 0,
-                "total": 6,
-                "total:FWD": 6,
-                "total:READS": 6,
-                "total:REV": 0
+                "LF_RF:REV": 0
             },
             "read_counts_by_node": {
                 "INS": 1,
@@ -282,11 +267,7 @@
                 "RF": 3,
                 "RF:FWD": 3,
                 "RF:READS": 3,
-                "RF:REV": 0,
-                "total": 6,
-                "total:FWD": 6,
-                "total:READS": 6,
-                "total:REV": 0
+                "RF:REV": 0
             },
             "read_counts_by_sequence": {
                 "DEL": {
@@ -308,7 +289,6 @@
                     "total:REV": 0
                 }
             },
-            "reference": "../grm.py/data/multiparagraph/dummy.fa",
             "sequencenames": [
                 "REF",
                 "DEL",
@@ -327,7 +307,6 @@
     },
     {
         "chrom": "chr",
-        "commandline": "/Users/pkrusche/workspace/grm.py-build/bin/paragraph -r ../grm.py/data/multiparagraph/dummy.fa -b ../grm.py/data/multiparagraph/reads.bam -g /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpoabbwmuu.json -o /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpoabbwmuu.json.output.json --log-file /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpoabbwmuu.json.output.log --threads 1",
         "del_len": 70,
         "desc": "long deletion",
         "end": 110,
@@ -375,15 +354,15 @@
             "fragment_statistics": {
                 "mean_graph": null,
                 "mean_linear": null,
-                "median_graph": 0,
-                "median_linear": 0,
+                "median_graph": 0.0,
+                "median_linear": 0.0,
                 "multi_read": 0,
                 "paired_read": 0,
                 "problematic_graph": 0,
                 "problematic_linear": 0,
                 "single_read": 0,
-                "variance_graph": 0,
-                "variance_linear": 0
+                "variance_graph": 0.0,
+                "variance_linear": 0.0
             },
             "nodes": [
                 {
@@ -443,7 +422,6 @@
             "read_counts_by_edge": {},
             "read_counts_by_node": {},
             "read_counts_by_sequence": {},
-            "reference": "../grm.py/data/multiparagraph/dummy.fa",
             "sequencenames": [
                 "REF",
                 "DEL"
@@ -461,7 +439,6 @@
     },
     {
         "chrom": "chr",
-        "commandline": "/Users/pkrusche/workspace/grm.py-build/bin/paragraph -r ../grm.py/data/multiparagraph/dummy.fa -b ../grm.py/data/multiparagraph/reads.bam -g /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpao7fs61s.json -o /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpao7fs61s.json.output.json --log-file /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpao7fs61s.json.output.log --threads 1",
         "del_len": 70,
         "desc": "long swap",
         "end": 110,
@@ -523,15 +500,15 @@
             "fragment_statistics": {
                 "mean_graph": null,
                 "mean_linear": null,
-                "median_graph": 0,
-                "median_linear": 0,
+                "median_graph": 0.0,
+                "median_linear": 0.0,
                 "multi_read": 0,
                 "paired_read": 0,
                 "problematic_graph": 0,
                 "problematic_linear": 0,
                 "single_read": 0,
-                "variance_graph": 0,
-                "variance_linear": 0
+                "variance_graph": 0.0,
+                "variance_linear": 0.0
             },
             "nodes": [
                 {
@@ -605,7 +582,6 @@
             "read_counts_by_edge": {},
             "read_counts_by_node": {},
             "read_counts_by_sequence": {},
-            "reference": "../grm.py/data/multiparagraph/dummy.fa",
             "sequencenames": [
                 "REF",
                 "DEL",
@@ -625,7 +601,6 @@
     },
     {
         "chrom": "chr",
-        "commandline": "/Users/pkrusche/workspace/grm.py-build/bin/paragraph -r ../grm.py/data/multiparagraph/dummy.fa -b ../grm.py/data/multiparagraph/reads.bam -g /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpdd7gzhk0.json -o /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpdd7gzhk0.json.output.json --log-file /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpdd7gzhk0.json.output.log --threads 1",
         "del_len": 0,
         "desc": "ins",
         "end": 40,
@@ -656,15 +631,15 @@
             "fragment_statistics": {
                 "mean_graph": null,
                 "mean_linear": null,
-                "median_graph": 0,
-                "median_linear": 0,
+                "median_graph": 0.0,
+                "median_linear": 0.0,
                 "multi_read": 0,
                 "paired_read": 0,
                 "problematic_graph": 0,
                 "problematic_linear": 4,
                 "single_read": 4,
-                "variance_graph": 0,
-                "variance_linear": 0
+                "variance_graph": 0.0,
+                "variance_linear": 0.0
             },
             "nodes": [
                 {
@@ -713,11 +688,7 @@
                 "LF_RF": 2,
                 "LF_RF:FWD": 2,
                 "LF_RF:READS": 2,
-                "LF_RF:REV": 0,
-                "total": 4,
-                "total:FWD": 4,
-                "total:READS": 4,
-                "total:REV": 0
+                "LF_RF:REV": 0
             },
             "read_counts_by_node": {
                 "INS": 1,
@@ -731,11 +702,7 @@
                 "RF": 3,
                 "RF:FWD": 3,
                 "RF:READS": 3,
-                "RF:REV": 0,
-                "total": 4,
-                "total:FWD": 4,
-                "total:READS": 4,
-                "total:REV": 0
+                "RF:REV": 0
             },
             "read_counts_by_sequence": {
                 "INS": {
@@ -751,7 +718,6 @@
                     "total:REV": 0
                 }
             },
-            "reference": "../grm.py/data/multiparagraph/dummy.fa",
             "sequencenames": [
                 "REF",
                 "INS"

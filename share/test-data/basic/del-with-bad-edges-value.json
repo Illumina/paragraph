@@ -10,10 +10,6 @@
       "sequence": "NNNNN"
     },
     {
-      "name": "sink",
-      "sequence": "NNNNN"
-    },
-    {
       "name": "ref-SimpleDeletion:1-40",
       "references": "SimpleDeletion:1-40",
       "sequences": [
@@ -33,6 +29,10 @@
       "sequences": [
         "REF"
       ]
+    },
+    {
+      "name": "sink",
+      "sequence": "NNNNN"
     }
   ],
   "paths": [

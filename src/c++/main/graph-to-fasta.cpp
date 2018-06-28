@@ -43,31 +43,26 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
-#include "common/Error.hh"
 #include "common/Region.hh"
-#include "graphs/WalkableGraph.hh"
+#include "grm/GraphInput.hh"
 #include "json/json.h"
+
+#include "common/Error.hh"
 
 namespace po = boost::program_options;
 
 void dumpPath(
-    const graphs::WalkableGraph& wg, const std::unordered_map<std::string, const Json::Value&>& nodes,
-    const Json::Value& path,
-    //    const TargetRegion& targetRegion,
-    std::ostream& os, const std::string& file)
+    const graphtools::Graph& graph, const std::unordered_map<std::string, const Json::Value&>& nodes,
+    const graphtools::Path& path, std::ostream& os, const std::string& file)
 {
-    assert(path.isMember("nodes"));
-    assert(path.isMember("path_id"));
-    assert(path.isMember("sequence"));
-    std::string path_id = path["path_id"].asString();
-    std::replace(path_id.begin(), path_id.end(), '|', '-');
+    std::string path_id = path.encode();
     std::string cigar;
     std::string sequence;
     common::Region lastRegion;
     //    std::string dbg;
-    for (const auto& n : path["nodes"])
+    for (const auto& n : path.nodeIds())
     {
-        const auto nodeName = n.asString();
+        const auto nodeName = graph.nodeName(n);
         //        dbg += nodeName + ' ';
         if ("source" == nodeName || "sink" == nodeName)
         {
@@ -76,7 +71,7 @@ void dumpPath(
         const auto& node = nodes.find(nodeName);
         assert(node != nodes.cend());
 
-        const std::string& s = wg.node(nodeName)->sequence();
+        const std::string& s = graph.nodeSeq(n);
 
         sequence += s;
         if (node->second.isMember("reference"))
@@ -128,11 +123,9 @@ void dumpPathContigs(
     //                     TargetRegion& targetRegion,
     std::ostream& os, const std::string& file)
 {
-    const Json::Value& paths = root["paths"];
+    const Json::Value& pathsIn = root["paths"];
     // Initialize the graph aligner.
-    graphs::Graph graph;
-    graphs::fromJson(root, referencePath, graph);
-    graphs::WalkableGraph wg(graph);
+    graphtools::Graph graph = grm::graphFromJson(root, referencePath);
 
     std::unordered_map<std::string, const Json::Value&> nodes;
 
@@ -143,10 +136,12 @@ void dumpPathContigs(
         nodes.emplace(nodeName, n);
     }
 
+    const std::list<graphtools::Path> paths = grm::pathsFromJson(&graph, pathsIn);
+
     for (const auto& path : paths)
     {
         dumpPath(
-            wg, nodes, path,
+            graph, nodes, path,
             // targetRegion,
             os, file);
     }
@@ -256,9 +251,8 @@ int main(int argc, char const* argv[])
         {
             LOG()->info("Loading parameters {}", graph_spec_path);
             Json::Value root;
-            Json::Reader reader;
             std::ifstream graph_desc(graph_spec_path);
-            reader.parse(graph_desc, root);
+            graph_desc >> root;
 
             if ("-" == output_file_path)
             {

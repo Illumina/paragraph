@@ -35,11 +35,13 @@
 
 #pragma once
 
+#include <list>
 #include <map>
 #include <string>
 
 #include "common/Read.hh"
-#include "graphs/Graph.hh"
+#include "graphcore/Graph.hh"
+#include "graphcore/Path.hh"
 
 namespace grm
 {
@@ -51,7 +53,7 @@ namespace grm
 template <typename AlignerT> class ValidationAligner : private AlignerT
 {
 public:
-    ValidationAligner(AlignerT&& aligner, const graphs::Graph& graph, Json::Value const& paths);
+    ValidationAligner(AlignerT&& aligner, const graphtools::Graph* graph, std::list<graphtools::Path> const& paths);
 
     virtual ~ValidationAligner() { ; }
 

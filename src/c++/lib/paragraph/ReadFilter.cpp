@@ -42,6 +42,8 @@
 namespace paragraph
 {
 
+using graphtools::Graph;
+
 /**
  * Read filter interface
  */
@@ -56,6 +58,7 @@ public:
             auto f_result = f->filterRead(read);
             if (f_result.first)
             {
+                LOG()->trace("filtered:{}", f_result.second);
                 return f_result;
             }
         }
@@ -75,7 +78,7 @@ private:
  * @return a read filter
  */
 std::unique_ptr<ReadFilter>
-createReadFilter(graphs::WalkableGraph const* graph, bool remove_nonuniq, double bad_align_frac, int32_t kmer_len)
+createReadFilter(Graph const* graph, bool remove_nonuniq, double bad_align_frac, int32_t kmer_len)
 {
     std::unique_ptr<ReadFilter> filters(new ReadFilterChain());
 

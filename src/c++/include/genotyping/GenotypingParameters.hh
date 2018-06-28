@@ -51,7 +51,7 @@ public:
      * Given allele names from graph, set default parameters
      * @param _allele_names Vector of allele names
      */
-    explicit GenotypingParameters(const std::vector<std::string>& _allele_names);
+    explicit GenotypingParameters(const std::vector<std::string>& _allele_names, unsigned int ploidy = 2);
 
     /**
      * Use parameters from external JSON to override default parameters
@@ -62,29 +62,29 @@ public:
     /**
      * getters for genotypers
      */
-    unsigned int ploidy() { return ploidy_; }
+    unsigned int ploidy() const { return ploidy_; }
 
-    unsigned int numAlleles() { return num_alleles; }
+    unsigned int numAlleles() const { return num_alleles; }
 
-    double coverageTestCutoff() { return coverage_test_cutoff; }
+    double coverageTestCutoff() const { return coverage_test_cutoff; }
 
-    unsigned int minOverlapBases() { return min_overlap_bases; }
+    unsigned int minOverlapBases() const { return min_overlap_bases; }
 
-    std::vector<double>& alleleErrorRates() { return allele_error_rates; }
+    const std::vector<double>& alleleErrorRates() const { return allele_error_rates; }
 
-    std::vector<double>& hetHaplotypeFractions() { return het_haplotype_fractions; }
+    const std::vector<double>& hetHaplotypeFractions() const { return het_haplotype_fractions; }
 
-    std::map<GenotypeVector, double>& genotypeFractions() { return genotype_fractions; }
+    const std::map<GenotypeVector, double>& genotypeFractions() const { return genotype_fractions; }
 
-    double otherAlleleErrorRate() { return other_allele_error_rate; }
+    double otherAlleleErrorRate() const { return other_allele_error_rate; }
 
-    double otherHetHaplotypeFraction() { return other_het_haplotype_fraction; }
+    double otherHetHaplotypeFraction() const { return other_het_haplotype_fraction; }
 
-    std::vector<GenotypeVector>& possibleGenotypes() { return possible_genotypes; };
+    const std::vector<GenotypeVector>& possibleGenotypes() const { return possible_genotypes; };
 
 private:
     /**
-     * Set the vector of all possible unphased genotypes from alleles and ploidy.
+     * Set the vector of all possible unphased genotypes from stored alleles and ploidy.
      */
     void setPossibleGenotypes();
 
@@ -114,7 +114,7 @@ private:
     /**
      * number of alleles. Same as length of allele_names
      */
-    const unsigned int num_alleles;
+    unsigned int num_alleles;
 
     /**
      * cutoff for coverage test p value
@@ -124,7 +124,7 @@ private:
     /**
      * allele names from graph input
      */
-    const std::vector<std::string> allele_names;
+    std::vector<std::string> allele_names;
 
     /**
      * number of offset bases for poission lambda calculation
@@ -132,7 +132,7 @@ private:
     unsigned int min_overlap_bases;
 
     /**
-     * all possible genotypes
+     * all possible genotypes under given ploidy_
      */
     std::vector<GenotypeVector> possible_genotypes;
 

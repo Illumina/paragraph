@@ -36,18 +36,30 @@
 #pragma once
 
 #include "common/Read.hh"
-#include "graphs/GraphPath.hh"
-#include "graphs/WalkableGraph.hh"
+#include "graphcore/Path.hh"
+#include "graphcore/PathFamily.hh"
 #include <memory>
 
 namespace paragraph
 {
 
+typedef std::pair<graphtools::PathFamily, int> PhasingFamily;
+
 /**
- * Function to return paths supported by reads on a graph
+ * Summarize phasing evidence from read/pair alignments
  * @param graph the graph
- * @param reads read buffer
- * @return set of graph paths
+ * @param reads aligned reads
+ * @return Number of fragments directly phasing together each path family
  */
-std::list<graphs::GraphPath> findHaplotypes(graphs::WalkableGraph const& graph, common::ReadBuffer const& reads);
+std::vector<PhasingFamily> getPhasingFamilies(graphtools::Graph* graph, common::ReadBuffer const& reads);
+
+/**
+ * Add paths based on read-supported haplotypes to graph and output JSON
+ * @param reads
+ * @param[out] graph
+ * @param[out] paths
+ * @param[out] output
+ */
+void addHaplotypePaths(
+    common::ReadBuffer const& reads, graphtools::Graph& graph, Json::Value& paths, Json::Value& output);
 }

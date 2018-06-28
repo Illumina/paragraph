@@ -7,33 +7,19 @@
   "nodes": [
     {
       "name": "LF",
-      "reference": "chr6:62832517-62832616",
-      "sequences": [
-        "REF",
-        "ALT"
-      ]
+      "reference": "chr6:62832517-62832616"
     },
     {
       "name": "DEL",
-      "reference": "chr6:62832617-62832842",
-      "sequences": [
-        "REF"
-      ]
+      "reference": "chr6:62832617-62832842"
     },
     {
       "name": "INS",
-      "sequence": "ACGTGTCTTATATTATAAAACTGCACGTTATACCT",
-      "sequences": [
-        "ALT"
-      ]
+      "sequence": "ACGTGTCTTATATTATAAAACTGCACGTTATACCT"
     },
     {
       "name": "RF",
-      "reference": "chr6:62832843-62832943",
-      "sequences": [
-        "REF",
-        "ALT"
-      ]
+      "reference": "chr6:62832843-62832943"
     }
   ],
   "edges": [
@@ -43,19 +29,31 @@
     },
     {
       "from": "LF",
-      "to": "DEL"
+      "to": "DEL",
+      "sequences": [
+        "REF"
+      ]
     },
     {
       "from": "LF",
-      "to": "INS"
+      "to": "INS",
+      "sequences": [
+        "ALT"
+      ]
     },
     {
       "from": "DEL",
-      "to": "RF"
+      "to": "RF",
+      "sequences": [
+        "REF"
+      ]
     },
     {
       "from": "INS",
-      "to": "RF"
+      "to": "RF",
+      "sequences": [
+        "ALT"
+      ]
     }
   ],
   "target_regions": [

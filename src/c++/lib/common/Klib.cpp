@@ -33,17 +33,22 @@
  *
  */
 
-#include "Klib.hh"
+#include "common/Klib.hh"
 #include "KlibImpl.hh"
 
 namespace common
 {
 
 KlibAlignment::KlibAlignment()
+    : _impl(new KlibAlignmentImpl())
 {
-    _impl = new KlibAlignmentImpl();
-    _impl->valid_result = false;
     setParameters(AlignmentParameters());
+}
+
+KlibAlignment::KlibAlignment(KlibAlignment&& that)
+    : _impl(that._impl)
+{
+    that._impl = nullptr;
 }
 
 KlibAlignment::~KlibAlignment() { delete _impl; }
@@ -64,8 +69,8 @@ void KlibAlignment::getParameters(AlignmentParameters& ap)
     {
         ap.subs_mat[i] = _impl->mat[i];
     }
-    ap.gapo = _impl->gapo;
-    ap.gape = _impl->gape;
+    ap.gapo = static_cast<uint8_t>(_impl->gapo);
+    ap.gape = static_cast<uint8_t>(_impl->gape);
 }
 
 /**
@@ -74,7 +79,7 @@ void KlibAlignment::getParameters(AlignmentParameters& ap)
 void KlibAlignment::setRef(const char* seq)
 {
     _impl->valid_result = false;
-    _impl->reflen = strlen(seq);
+    _impl->reflen = static_cast<int>(strlen(seq));
     _impl->ref = std::shared_ptr<uint8_t>(new uint8_t[_impl->reflen], [](uint8_t* p) { delete[] p; });
     translate(seq, _impl->ref.get(), _impl->reflen);
 }
@@ -87,10 +92,10 @@ void KlibAlignment::setQuery(const char* seq)
     if (_impl->qprofile)
     {
         free(_impl->qprofile);
-        _impl->qprofile = NULL;
+        _impl->qprofile = nullptr;
     }
     _impl->valid_result = false;
-    _impl->altlen = strlen(seq);
+    _impl->altlen = static_cast<int>(strlen(seq));
     _impl->alt = std::shared_ptr<uint8_t>(new uint8_t[_impl->altlen], [](uint8_t* p) { delete[] p; });
     translate(seq, _impl->alt.get(), _impl->altlen);
 }
@@ -116,11 +121,11 @@ void KlibAlignment::getCigar(int& r0, int& r1, int& a0, int& a1, std::string& ci
     {
         this->update();
     }
-    r0 = _impl->result.qb;
-    r1 = _impl->result.qe;
-    a0 = _impl->result.tb;
-    a1 = _impl->result.te;
-    cig = makeCigar(_impl->result.tb, _impl->result.te, _impl->altlen, _impl->cigar_len, _impl->cigar);
+    r0 = _impl->result.tb;
+    r1 = _impl->result.te;
+    a0 = _impl->result.qb;
+    a1 = _impl->result.qe;
+    cig = makeCigar(_impl->result.qb, _impl->result.qe, _impl->altlen, _impl->cigar_len, _impl->cigar);
 }
 
 /**
@@ -132,10 +137,10 @@ void KlibAlignment::getCigar(int& r0, int& r1, int& a0, int& a1, int& n_cigar, u
     {
         this->update();
     }
-    r0 = _impl->result.qb;
-    r1 = _impl->result.qe;
-    a0 = _impl->result.tb;
-    a1 = _impl->result.te;
+    r0 = _impl->result.tb;
+    r1 = _impl->result.te;
+    a0 = _impl->result.qb;
+    a1 = _impl->result.qe;
     n_cigar = _impl->cigar_len;
     cigar = _impl->cigar;
 }
@@ -146,21 +151,21 @@ void KlibAlignment::getCigar(int& r0, int& r1, int& a0, int& a1, int& n_cigar, u
 void KlibAlignment::update()
 {
     _impl->result = ksw_align(
-        _impl->reflen, _impl->ref.get(), _impl->altlen, _impl->alt.get(), 5, _impl->mat, _impl->gapo, _impl->gape,
+        _impl->altlen, _impl->alt.get(), _impl->reflen, _impl->ref.get(), 5, _impl->mat, _impl->gapo, _impl->gape,
         KSW_XSTART, // add flags here
         &(_impl->qprofile));
 
     if (_impl->cigar)
     {
         free(_impl->cigar);
-        _impl->cigar = NULL;
+        _impl->cigar = nullptr;
         _impl->cigar_len = 0;
     }
 
     ksw_global(
-        _impl->result.qe - _impl->result.qb + 1, _impl->ref.get() + _impl->result.qb,
-        _impl->result.te - _impl->result.tb + 1, _impl->alt.get() + _impl->result.tb, 5, _impl->mat, _impl->gapo,
-        _impl->gape, _impl->altlen, &_impl->cigar_len, &_impl->cigar);
+        _impl->result.qe - _impl->result.qb + 1, _impl->alt.get() + _impl->result.qb,
+        _impl->result.te - _impl->result.tb + 1, _impl->ref.get() + _impl->result.tb, 5, _impl->mat, _impl->gapo,
+        _impl->gape, _impl->reflen, &_impl->cigar_len, &_impl->cigar);
 
     _impl->valid_result = true;
 }

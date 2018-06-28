@@ -24,42 +24,37 @@
 // OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "graphs/GraphMapping.hh"
-
 #include "gtest/gtest.h"
 
-#include "graphs/Graph.hh"
-#include "graphs/GraphBuilders.hh"
-#include "graphs/GraphMappingOperations.hh"
+#include "graphalign/GraphAlignmentOperations.hh"
+#include "graphcore/GraphBuilders.hh"
 
 #include "paragraph/ReadFilter.hh"
 
 using std::string;
 using std::vector;
 
-using namespace graphs;
+using namespace graphtools;
 
 TEST(ReadFilter, FilterNonUniq)
 {
-    Graph graph;
-    makeDeletionGraph("AAAA", "TTGG", "TTTT", graph);
-    WalkableGraph wgraph(graph);
+    Graph graph = makeDeletionGraph("AAAA", "TTGG", "TTTT");
 
     const string query1 = "AAAATTCCC";
     common::Read read1("read1", query1, string(query1.size(), '#'));
     read1.set_graph_cigar("0[4M]1[2M3S]");
     read1.set_graph_alignment_score(6);
-    read1.set_graph_mapping_status(reads::MAPPED);
+    read1.set_graph_mapping_status(common::Read::MAPPED);
     read1.set_is_graph_alignment_unique(false);
 
     const string query2 = "AAAATTGG";
     common::Read read2("read2", query2, string(query2.size(), '#'));
     read2.set_graph_cigar("0[4M]1[4M]");
     read2.set_graph_alignment_score(8);
-    read2.set_graph_mapping_status(reads::MAPPED);
+    read2.set_graph_mapping_status(common::Read::MAPPED);
     read2.set_is_graph_alignment_unique(true);
 
-    auto read_filter = paragraph::createReadFilter(&wgraph, true, 0.0, 0);
+    auto read_filter = paragraph::createReadFilter(&graph, true, 0.0, 0);
 
     const auto read1_result = read_filter->filterRead(read1);
     const auto read2_result = read_filter->filterRead(read2);
@@ -72,25 +67,23 @@ TEST(ReadFilter, FilterNonUniq)
 
 TEST(ReadFilter, FilterBadAlign)
 {
-    Graph graph;
-    makeDeletionGraph("AAAA", "GGGG", "TTTT", graph);
-    WalkableGraph wgraph(graph);
+    Graph graph = makeDeletionGraph("AAAA", "GGGG", "TTTT");
 
     const string query1 = "AAAACCCCCCCC";
     common::Read read1("read1", query1, string(query1.size(), '#'));
-    read1.set_graph_cigar("0[4M]1[8S]");
+    read1.set_graph_cigar("0[4M8S]");
     read1.set_graph_alignment_score(4);
-    read1.set_graph_mapping_status(reads::MAPPED);
+    read1.set_graph_mapping_status(common::Read::MAPPED);
     read1.set_is_graph_alignment_unique(true);
 
     const string query2 = "AAAAGCCCCCCC";
     common::Read read2("read2", query2, string(query2.size(), '#'));
     read2.set_graph_cigar("0[4M]1[1M7S]");
     read2.set_graph_alignment_score(5);
-    read2.set_graph_mapping_status(reads::MAPPED);
+    read2.set_graph_mapping_status(common::Read::MAPPED);
     read2.set_is_graph_alignment_unique(true);
 
-    auto read_filter = paragraph::createReadFilter(&wgraph, true, 0.4, 0);
+    auto read_filter = paragraph::createReadFilter(&graph, true, 0.4, 0);
 
     const auto read1_result = read_filter->filterRead(read1);
     const auto read2_result = read_filter->filterRead(read2);
@@ -103,16 +96,14 @@ TEST(ReadFilter, FilterBadAlign)
 
 TEST(ReadFilter, FilterKmers)
 {
-    Graph graph;
-    makeDeletionGraph("AGAG", "TTGG", "TTT", graph);
-    WalkableGraph wgraph(graph);
-    auto read_filter = paragraph::createReadFilter(&wgraph, false, 0.0, 3);
+    Graph graph = makeDeletionGraph("AGAG", "TTGG", "TTT");
+    auto read_filter = paragraph::createReadFilter(&graph, false, 0.0, 3);
     {
         const string query = "AGAGTT";
         common::Read read("read", query, string(query.size(), '#'));
         read.set_graph_cigar("0[4M]1[2M]");
         read.set_graph_alignment_score(6);
-        read.set_graph_mapping_status(reads::MAPPED);
+        read.set_graph_mapping_status(common::Read::MAPPED);
 
         const auto read_result = read_filter->filterRead(read);
         ASSERT_TRUE(read_result.first);
@@ -123,7 +114,7 @@ TEST(ReadFilter, FilterKmers)
         common::Read read("read", query, string(query.size(), '#'));
         read.set_graph_cigar("0[4M]2[3M]");
         read.set_graph_alignment_score(7);
-        read.set_graph_mapping_status(reads::MAPPED);
+        read.set_graph_mapping_status(common::Read::MAPPED);
 
         const auto read_result = read_filter->filterRead(read);
         ASSERT_FALSE(read_result.first);
@@ -133,16 +124,14 @@ TEST(ReadFilter, FilterKmers)
 
 TEST(ReadFilter, FilterKmersSnpMismatch)
 {
-    Graph graph;
-    makeSimpleSwapGraph("AGAG", "T", "C", "ACAC", graph);
-    WalkableGraph wgraph(graph);
-    auto read_filter = paragraph::createReadFilter(&wgraph, false, 0.0, 4);
+    Graph graph = makeSwapGraph("AGAG", "T", "C", "ACAC");
+    auto read_filter = paragraph::createReadFilter(&graph, false, 0.0, 4);
     {
         const string query = "AGAGGACAC";
         common::Read read("read", query, string(query.size(), '#'));
         read.set_graph_cigar("0[4M]1[1X]3[4M]");
         read.set_graph_alignment_score(8);
-        read.set_graph_mapping_status(reads::MAPPED);
+        read.set_graph_mapping_status(common::Read::MAPPED);
 
         const auto read_result = read_filter->filterRead(read);
         ASSERT_EQ(true, read_result.first);
@@ -153,7 +142,7 @@ TEST(ReadFilter, FilterKmersSnpMismatch)
         common::Read read("read", query, string(query.size(), '#'));
         read.set_graph_cigar("0[4M]1[1M]3[4M]");
         read.set_graph_alignment_score(8);
-        read.set_graph_mapping_status(reads::MAPPED);
+        read.set_graph_mapping_status(common::Read::MAPPED);
 
         const auto read_result = read_filter->filterRead(read);
         ASSERT_FALSE(read_result.first);
@@ -164,7 +153,7 @@ TEST(ReadFilter, FilterKmersSnpMismatch)
         common::Read read("read", query, string(query.size(), '#'));
         read.set_graph_cigar("0[4M]2[1X]3[4M]");
         read.set_graph_alignment_score(8);
-        read.set_graph_mapping_status(reads::MAPPED);
+        read.set_graph_mapping_status(common::Read::MAPPED);
 
         const auto read_result = read_filter->filterRead(read);
         ASSERT_TRUE(read_result.first);
@@ -175,7 +164,7 @@ TEST(ReadFilter, FilterKmersSnpMismatch)
         common::Read read("read", query, string(query.size(), '#'));
         read.set_graph_cigar("0[4M]2[1M]3[4M]");
         read.set_graph_alignment_score(8);
-        read.set_graph_mapping_status(reads::MAPPED);
+        read.set_graph_mapping_status(common::Read::MAPPED);
 
         const auto read_result = read_filter->filterRead(read);
         ASSERT_FALSE(read_result.first);

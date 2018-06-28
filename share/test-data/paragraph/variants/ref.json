@@ -1,0 +1,82 @@
+{
+    "nodes": [
+        {
+            "name": "A",
+            "reference": "chr5:850-999"
+        },        
+        {
+            "name": "REF",
+            "reference": "chr5:1000-1010"
+        },        
+        {
+            "name": "ALT",
+            "position": "chr5:1000-1010",
+            "sequence": "TTTTT"
+        },
+        {
+            "name": "C",
+            "reference": "chr5:1001-1100"
+        },        
+        {
+            "name": "D",
+            "reference": "chr5:1101-1200"
+        }
+    ],
+    "edges": [
+        {
+            "from": "A",
+            "name": "A_Alt",
+            "to": "ALT"
+        },
+        {
+            "from": "A",
+            "name": "A_Ref",
+            "to": "REF"
+        },
+        {
+            "from": "ALT",
+            "name": "Alt_C",
+            "to": "C"
+        },
+        {
+            "from": "ALT",
+            "name": "Alt_D",
+            "to": "D"
+        },
+        {
+            "from": "REF",
+            "name": "Ref_C",
+            "to": "C"
+        },
+        {
+            "from": "REF",
+            "name": "Ref_D",
+            "to": "D"
+        }
+    ],
+    "variants": {
+        "REF": [
+            {
+                "alt": "",
+                "start": 0,
+                "end": 1
+            },
+            {
+                "alt": "C",
+                "start": 7,
+                "end": 7
+            }
+            
+        ],
+        "ALT": [
+            {
+                "alt": "G",
+                "start": 6,
+                "end": 5
+            }
+        ]
+    },
+    "sequencenames": [
+    ],
+    "model_name": "Test graph for variant insertion"
+}

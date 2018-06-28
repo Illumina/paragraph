@@ -19,7 +19,7 @@
  */
 
 #include "genotyping/BreakpointFinder.hh"
-#include "graphs/WalkableGraph.hh"
+#include "graphcore/Graph.hh"
 #include "json/json.h"
 
 #include <map>
@@ -32,17 +32,25 @@
 
 namespace genotyping
 {
+
+using graphtools::Graph;
+
 struct GraphGenotyper::GraphGenotyperImpl
 {
     /**
      * Our graph
      */
-    std::shared_ptr<graphs::WalkableGraph> graph;
+    Graph const* graph;
 
     /**
      *  depths per sample
      */
     std::vector<std::pair<double, int>> depths;
+
+    /**
+     * sex information per sample
+     */
+    std::vector<SampleInfo::Sex> sexes;
 
     /**
      *  Read counts for each sample

@@ -1,5 +1,40 @@
 # Paragraph Release Notes / Change Log
 
+# Version 2.0
+
+| Date Y-m-d | Ticket  | Description                                                          |
+|------------|---------|----------------------------------------------------------------------|
+| 2018-06-27 | GT-490  | Paragraph 2.0 release; disable Poisson depth test by default         |
+| 2018-06-27 | GT-495  | Improved output of phasing information and paths                     |
+| 2018-06-26 | GT-402  | support genotyping on male chrX                                      |
+| 2018-06-07 | GT-496  | -A still causes grmpy to run out of memory                           |
+| 2018-06-06 | GT-492  | -A causes grmpy to run out of memory                                 |
+| 2018-05-31 | GT-491  | paragraph fails to compile with boost 1.53                           |
+| 2018-05-31 | GT-484  | Output VCF with new genotypes as computed by grmpy                   |
+| 2018-05-31 | GT-477  | Add features to output alignment in multigrmpy and perform superlocus VCF splitting |
+| 2018-05-30 | GT-485  | Running GiaB VCF with klib alignment produces error message          |
+| 2018-05-24 | GT-473  | Round floating point numbers in json output                          |
+| 2018-05-24 | GT-471  | Report read-counts for path families instead of paths                |
+| 2018-05-24 | GT-476  | some command line parameters ignored in paragraph                    |
+| 2018-05-23 | GT-474  | support for command line location of graphtools source tree          |
+| 2018-05-16 | GT-436  | post-process bad KmerAlignment results with smith waterman           |
+| 2018-05-16 | GT-451  | Add path family based phasing and haplotype reconstruction           |
+| 2018-05-15 | GT-445  | Add path aligner to produce faster alignments for exact matches      |
+| 2018-05-14 | GT-462  | Minor fixes to vcf2paragraph.py for paralog graphs                   |
+| 2018-05-10 | GT-463  | vcf2paragraph fails to produce alt paths                             |
+| 2018-05-09 | GT-459  | Update to graph-tools 0.2.x                                          |
+| 2018-04-23 | GT-450  | Local align Klib introducess odd soft clip                           |
+| 2018-04-25 | GT-454  | harmonize output options between paragraph and grmpy                 |
+| 2018-04-20 | GT-446  | Fix variant extraction due to bug in cigarToRefVar                   |
+| 2018-04-20 | GT-449  | performance lost due to recent merge making bam/cram open for each graph instead of once per thead-file |
+| 2018-04-19 | GT-447  | Fix multigrampy event ID                                             |
+| 2018-04-16 | GT-439  | Fix logging + verbosity for multigrmpy.py                            |
+| 2018-04-16 | GT-438  | Fix high memory usage in grmpy and paragraph                         |
+| 2018-04-13 | GT-435  | Add support to vcf2paragraph.py for symbolic INS allele in SV VCFs   |
+| 2018-04-13 | GT-437  | Fix multithreading race conditions                                   |
+| 2018-04-11 | GT-353  | Refactor to use graph-tools library rather than protobuf             |
+| 2018-04-07 | GT-417  | Refactor VCF to graph conversion                                     |
+
 # Version 1.2
 
 | Date Y-m-d | Ticket  | Description                                                          |
@@ -29,14 +64,14 @@
 | 2018-02-21 | GT-374  | support for read-level validation                                    |
 | 2018-02-19 | GT-379  | configure tool for installation                                      |
 | 2018-02-15 | GT-373  | Speedup bam processing by keeping the file open between the graphs   |
-| 2018-02-15 | GT-369  | Paragraph can align reads from multiple BAM files                    | 
-| 2018-02-15 | GT-365  | Add functionality to extract read-supported haplotype paths          | 
-| 2018-02-09 | GT-360  | Add kmer-based aligner to paragraph                                  | 
-| 2018-02-09 | GT-310  | Introduce kmer-based readfiltering, improve bad_align filter         | 
-| 2018-02-07 | GT-294  | Add internal statistics function library, Gaussian fitting           | 
-| 2018-02-06 | GT-352  | Support in paragraph for running multiple graphs in one go           | 
-| 2018-02-04 | GT-345  | Refactor CMake sources, split out dependency compile process         | 
-| 2018-02-01 | GT-306  | Improve build process, allow linking against paragraph as a library  | 
+| 2018-02-15 | GT-369  | Paragraph can align reads from multiple BAM files                    |
+| 2018-02-15 | GT-365  | Add functionality to extract read-supported haplotype paths          |
+| 2018-02-09 | GT-360  | Add kmer-based aligner to paragraph                                  |
+| 2018-02-09 | GT-310  | Introduce kmer-based readfiltering, improve bad_align filter         |
+| 2018-02-07 | GT-294  | Add internal statistics function library, Gaussian fitting           |
+| 2018-02-06 | GT-352  | Support in paragraph for running multiple graphs in one go           |
+| 2018-02-04 | GT-345  | Refactor CMake sources, split out dependency compile process         |
+| 2018-02-01 | GT-306  | Improve build process, allow linking against paragraph as a library  |
 | 2018-02-01 | GT-318  | Genotyping parameters from external JSON                             |
 | 2018-01-29 | GT-316  | Add graph validation statistics in output JSON                       |
 | 2018-01-16 | GT-315  | Refactor genotyping code to allow joint genotyping inside `grmpy`    |

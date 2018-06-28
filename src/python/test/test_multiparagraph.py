@@ -66,15 +66,18 @@ class TestMultiParagraph(unittest.TestCase):
         import multiparagraph
         multiparagraph.run(args)
 
-        with open(os.path.join(self.test_data_dir, "expected.json"), "rt") as f:
+        expected_fn = os.path.join(self.test_data_dir, "expected.json")
+        with open(expected_fn, "rt") as f:
             expected = json.load(f)
 
         with open(output_file.name, "rt") as f:
             observed = json.load(f)
 
         for x in expected:
-            del x["graph"]["reference"]
-            del x["commandline"]
+            if "reference" in x["graph"]:
+                del x["graph"]["reference"]
+            if "commandline" in x["graph"]:
+                del x["commandline"]
         for x in observed:
             del x["graph"]["bam"]
             del x["graph"]["reference"]
@@ -90,6 +93,7 @@ class TestMultiParagraph(unittest.TestCase):
             d = difflib.Differ()
             diff = d.compare(expected, observed)
             print("\n".join(diff))
+            print(f"Difference between observed ({output_file.name}) and expected ({expected_fn})", file=sys.stderr)
         self.assertEqual(expected, observed)
         os.remove(output_file.name)
 

@@ -23,8 +23,8 @@ GRMPY_ROOT = os.path.abspath(os.path.join(
 class TestVCF2Paragraph(unittest.TestCase):
     def setUp(self):
         self.test_data_dir = os.path.join(GRMPY_ROOT, "share", "test-data", "paragraph")
-        self.test_haplo_vcfs = sorted(
-            glob.glob(self.test_data_dir + "/simple/*.vcf"))
+        self.test_haplo_vcfs = sorted(glob.glob(self.test_data_dir + "/simple/*.vcf"))
+        self.test_haplo_vcfs = sorted(glob.glob(self.test_data_dir + "/haplo-complex/*.vcf"))
         self.test_haplo_vcfs += sorted(glob.glob(self.test_data_dir +
                                                  "/pg-het-ins/*.vcf"))
         self.test_haplo_vcfs += sorted(glob.glob(self.test_data_dir +
@@ -32,6 +32,9 @@ class TestVCF2Paragraph(unittest.TestCase):
 
         self.test_allele_vcfs = sorted(glob.glob(self.test_data_dir + "/pg-complex/*.vcf"))
         self.test_allele_vcfs += sorted(glob.glob(os.path.join(GRMPY_ROOT, "share", "test-data", "genotyping_test_2", "chr*.vcf")))
+
+        self.test_insertion_vcfs = sorted(glob.glob(self.test_data_dir + "/insertions/*.vcf"))
+
         hg19_locations = [
             "/Users/pkrusche/workspace/human_genome/hg19.fa",
             "/illumina/sync/igenomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/genome.fa",
@@ -75,18 +78,15 @@ class TestVCF2Paragraph(unittest.TestCase):
             tf1.close()
             try:
                 expected_json = x.replace(".vcf", ".json")
-                if "pg-het-ins" in x or "long-del" in x:
-                    padding = "-p 150"
-                else:
-                    padding = "-p 83"
-                subprocess.check_call("python3 %s %s %s -r %s %s" % (
-                    quote(self.vcf2paragraph), quote(
-                        x), tf1.name, self.hg19, padding
-                ), shell=True)
                 subprocess.check_call(
-                    "python -mjson.tool %s > %s" % (tf1.name, tf1.name + ".pp.json"), shell=True)
-                subprocess.check_call("diff --ignore-matching-lines='.*model_name.*' %s %s" %
-                                      (tf1.name + ".pp.json", expected_json), shell=True)
+                    f"python3 {quote(self.vcf2paragraph)} {quote(x)} {tf1.name} -r {self.hg19}",
+                    shell=True)
+                subprocess.check_call(
+                    f"python3 -mjson.tool --sort-keys {tf1.name} > {tf1.name + '.pp.json'}",
+                    shell=True)
+                subprocess.check_call(
+                    f"diff --ignore-matching-lines='.*model_name.*' {tf1.name + '.pp.json'} {expected_json}",
+                    shell=True)
             except:
                 from shutil import copy
                 current_dir = os.path.abspath(os.path.dirname(__file__))
@@ -110,14 +110,64 @@ class TestVCF2Paragraph(unittest.TestCase):
                     reference = os.path.join(GRMPY_ROOT, "share", "test-data", "genotyping_test_2", "swaps.fa")
                 else:
                     reference = self.hg38
-                expected_json = x.replace(".vcf", ".pp.json")
+                expected_json = x.replace(".vcf", ".json")
                 subprocess.check_call("python3 %s %s %s -r %s -R -g alleles" % (
                     quote(self.vcf2paragraph), quote(x), tf1.name, reference
                 ), shell=True)
                 subprocess.check_call(
-                    "python -mjson.tool %s > %s" % (tf1.name, tf1.name + ".pp.json"), shell=True)
+                    "python3 -mjson.tool --sort-keys %s > %s" % (tf1.name, tf1.name + ".pp.json"),
+                    shell=True)
                 subprocess.check_call("diff --ignore-matching-lines='.*model_name.*' %s %s" %
-                                      (tf1.name + ".pp.json", expected_json), shell=True)
+                                      (tf1.name + ".pp.json", expected_json),
+                                      shell=True)
+            except:  # pylint: disable=bare-except
+                from shutil import copy
+                current_dir = os.path.abspath(os.path.dirname(__file__))
+                copy(tf1.name + ".pp.json",
+                     os.path.join(current_dir, "test-failed.json"))
+                os.chmod(os.path.join(current_dir, "test-failed.json"), 0o777)
+                print("Failed output saved in %s" %
+                      os.path.join(current_dir, "test-failed.json"))
+                raise
+            finally:
+                os.remove(tf1.name)
+                os.remove(tf1.name + ".pp.json")
+
+    def test_allele_graph_insertion_vcfs(self):
+        assert self.test_insertion_vcfs
+        for x in self.test_insertion_vcfs:
+            print("Testing output for %s..." % x)
+            tf1 = tempfile.NamedTemporaryFile(suffix=".json")
+            tf1.close()
+            try:
+                expected_json = x.replace(".vcf", ".json")
+                reference = x.replace(".vcf", ".ref.fa")
+                # check with allele splitting
+                subprocess.check_call("python3 %s %s %s -r %s --alt-splitting "
+                                      "--read-len 5 --max-ref-node-length 10 --alt-paths "
+                                      "--retrieve-reference-sequence -g alleles" % (
+                                          quote(self.vcf2paragraph), quote(x), tf1.name, reference
+                                      ), shell=True)
+                subprocess.check_call(
+                    "python3 -mjson.tool --sort-keys %s > %s" % (tf1.name, tf1.name + ".pp.json"),
+                    shell=True)
+                subprocess.check_call("diff --ignore-matching-lines='.*model_name.*' %s %s" %
+                                      (tf1.name + ".pp.json", expected_json),
+                                      shell=True)
+
+                # check without alt splitting
+                expected_json = x.replace(".vcf", ".noas.json")
+                subprocess.check_call("python3 %s %s %s -r %s "
+                                      "--read-len 5 --max-ref-node-length 10 --alt-paths "
+                                      "--retrieve-reference-sequence -g alleles" % (
+                                          quote(self.vcf2paragraph), quote(x), tf1.name, reference
+                                      ), shell=True)
+                subprocess.check_call(
+                    "python3 -mjson.tool --sort-keys %s > %s" % (tf1.name, tf1.name + ".pp.json"),
+                    shell=True)
+                subprocess.check_call("diff --ignore-matching-lines='.*model_name.*' %s %s" %
+                                      (tf1.name + ".pp.json", expected_json),
+                                      shell=True)
             except:  # pylint: disable=bare-except
                 from shutil import copy
                 current_dir = os.path.abspath(os.path.dirname(__file__))

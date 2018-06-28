@@ -27,12 +27,14 @@
 #pragma once
 
 #include <functional>
+#include <list>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "common/ReadExtraction.hh"
-#include "graphs/WalkableGraph.hh"
+#include "graphcore/Graph.hh"
+#include "graphcore/Path.hh"
 #include "grm/Filter.hh"
 #include "json/json.h"
 
@@ -46,11 +48,13 @@ static const Json::Value NO_PATHS = Json::objectValue;
  * @param paths list of paths through graph for exact matching; pass NO_PATHS for none
  * @param reads vector of reads that will be updated with graph alignment information
  * @param filter filter function to discard reads if alignment isn't good
- * @param exact_path_matching enable / disable exact matching step (=force Smith Waterman)
+ * @param graph_sequence_matching enable smith waterman graph sequence matching
+ * @param kmer_sequence_matching enable kmer sequence matching
+ * @param validate_alignments enable validation using read ids
  * @param threads number of threads to use for parallel execution
  */
 void alignReads(
-    const graphs::Graph& graph, Json::Value const& paths, std::vector<common::p_Read>& reads, ReadFilter const& filter,
-    bool exact_sequence_matching, bool graph_sequence_matching, bool kmer_sequence_matching, bool validate_alignments,
-    int threads = 1);
+    const graphtools::Graph* graph, std::list<graphtools::Path> const& paths, std::vector<common::p_Read>& reads,
+    ReadFilter const& filter, bool path_sequence_matching, bool graph_sequence_matching, bool klib_sequence_matching,
+    bool kmer_sequence_matching, bool validate_alignments, uint32_t threads = 1);
 }

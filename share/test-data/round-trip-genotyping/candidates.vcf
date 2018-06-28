@@ -1,6 +1,7 @@
 ##fileformat=VCFv4.2
 ##FILTER=<ID=PASS,Description="All filters passed">
 ##ALT=<ID=DEL,Description="Deletion">
+##contig=<ID=chr1,length=249250621>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
 chr1	161	test-ins	T	TGGGGGG	.	.	.
 chr1	161	test-del	TC	T	.	.	.

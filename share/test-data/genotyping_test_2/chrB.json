@@ -1,1 +1,98 @@
-{"edges": [{"from": "ALT-1-1500-1509", "sequences": ["S1"], "to": "REF-3-1510-1659"}, {"from": "REF-1-1350-1500", "sequences": ["S1"], "to": "ALT-1-1500-1509"}, {"from": "REF-1-1350-1500", "sequences": ["REF"], "to": "REF-2-1500-1510"}, {"from": "REF-2-1500-1510", "sequences": ["REF"], "to": "REF-3-1510-1659"}, {"from": "REF-3-1510-1659", "to": "sink"}, {"from": "source", "to": "REF-1-1350-1500"}], "model_name": "Allele graph from ../grm.py/share/test-data/genotyping_test_2/chrB.vcf", "nodes": [{"name": "source", "sequence": "NNNNNNNNNN"}, {"name": "REF-1-1350-1500", "reference": "chrB:1350-1499", "reference_sequence": "TCTAACAATTACGGAGGAGAACCGGTCTCCCCCCACGGTGGAGCGTATACGTCGTTAATGGTGGGGAAGTCAATACGACCGACTGTCCATGGTCATGCCCCTATCGTCGGATTCACGCTGCTTTACCTCAAAGTCAACCCAGCCGTAGTT", "sequences": ["REF", "S1"]}, {"name": "REF-2-1500-1510", "reference": "chrB:1500-1509", "reference_sequence": "AGGCCATACG", "sequences": ["REF"]}, {"name": "ALT-1-1500-1509", "sequence": "TCAGGTTGTCTTATGCTTGGCATCGTTCTT", "sequences": ["S1"]}, {"name": "REF-3-1510-1659", "reference": "chrB:1510-1658", "reference_sequence": "CACAGGCTATCTGTAAATCATCAAATCATGGTACCTATCTCGGGTACCACATTAATCTTACGCGCCAGAGCCTTGGAATGGGCTCTTCAGTTACCTGTAAGCGGCTTCTATCTTCAGCGCAGAGCGTGCACCGGGTTATAGGCCTAGAG", "sequences": ["REF", "S1"]}, {"name": "sink", "sequence": "NNNNNNNNNN"}], "paths": [{"nodes": ["source", "REF-1-1350-1500", "REF-2-1500-1510", "REF-3-1510-1659", "sink"], "nucleotide_length": 309, "path_id": "REF|1", "sequence": "REF"}, {"nodes": ["source", "REF-1-1350-1500", "ALT-1-1500-1509", "REF-3-1510-1659", "sink"], "nucleotide_length": 329, "path_id": "S1|1", "sequence": "S1"}], "sequencenames": ["REF", "S1"], "target_regions": ["chrB:1350-1658"]}
+{
+    "edges": [
+        {
+            "from": "source",
+            "name": "source_ref-chrB:1350-1499",
+            "to": "ref-chrB:1350-1499"
+        },
+        {
+            "from": "ref-chrB:1350-1499",
+            "name": "ref-chrB:1350-1499_ref-chrB:1500-1509",
+            "sequences": [
+                "REF",
+                "swap2:0"
+            ],
+            "to": "ref-chrB:1500-1509"
+        },
+        {
+            "from": "ref-chrB:1350-1499",
+            "name": "ref-chrB:1350-1499_chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT",
+            "sequences": [
+                "swap2:1"
+            ],
+            "to": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT"
+        },
+        {
+            "from": "ref-chrB:1500-1509",
+            "name": "ref-chrB:1500-1509_ref-chrB:1510-1659",
+            "sequences": [
+                "REF",
+                "swap2:0"
+            ],
+            "to": "ref-chrB:1510-1659"
+        },
+        {
+            "from": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT",
+            "name": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT_ref-chrB:1510-1659",
+            "sequences": [
+                "swap2:1"
+            ],
+            "to": "ref-chrB:1510-1659"
+        },
+        {
+            "from": "ref-chrB:1510-1659",
+            "name": "ref-chrB:1510-1659_sink",
+            "to": "sink"
+        }
+    ],
+    "model_name": "Graph from ../genotyping_test_2/chrB.vcf",
+    "nodes": [
+        {
+            "name": "source",
+            "sequence": "NNNNNNNNNN"
+        },
+        {
+            "name": "ref-chrB:1350-1499",
+            "reference": "chrB:1350-1499",
+            "reference_sequence": "TCTAACAATTACGGAGGAGAACCGGTCTCCCCCCACGGTGGAGCGTATACGTCGTTAATGGTGGGGAAGTCAATACGACCGACTGTCCATGGTCATGCCCCTATCGTCGGATTCACGCTGCTTTACCTCAAAGTCAACCCAGCCGTAGTT"
+        },
+        {
+            "name": "ref-chrB:1500-1509",
+            "reference": "chrB:1500-1509",
+            "reference_sequence": "AGGCCATACG"
+        },
+        {
+            "name": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT",
+            "position": "chrB:1500-1509",
+            "sequence": "TCAGGTTGTCTTATGCTTGGCATCGTTCTT"
+        },
+        {
+            "name": "ref-chrB:1510-1659",
+            "reference": "chrB:1510-1659",
+            "reference_sequence": "CACAGGCTATCTGTAAATCATCAAATCATGGTACCTATCTCGGGTACCACATTAATCTTACGCGCCAGAGCCTTGGAATGGGCTCTTCAGTTACCTGTAAGCGGCTTCTATCTTCAGCGCAGAGCGTGCACCGGGTTATAGGCCTAGAGG"
+        },
+        {
+            "name": "sink",
+            "sequence": "NNNNNNNNNN"
+        }
+    ],
+    "paths": [
+        {
+            "nodes": [
+                "ref-chrB:1350-1499",
+                "ref-chrB:1500-1509",
+                "ref-chrB:1510-1659"
+            ],
+            "path_id": "REF|1",
+            "sequence": "REF"
+        }
+    ],
+    "sequencenames": [
+        "REF",
+        "swap2:0",
+        "swap2:1"
+    ],
+    "target_regions": [
+        "chrB:1350-1659"
+    ]
+}

@@ -63,6 +63,7 @@ class Workflow
     const GraphSpecPaths& graphSpecPaths_;
     const std::string& outputFilePath_;
     const std::string& outputFolderPath_;
+    const bool gzipOutput_;
     const Parameters& parameters_;
     const std::string& referencePath_;
     const std::string& targetRegions_;
@@ -70,18 +71,20 @@ class Workflow
     mutable std::mutex mutex_;
     bool terminate_ = false;
 
+    bool firstPrinted_ = false;
+
     std::string processGraph(
         const std::string& graphSpecPath, const Parameters& parameters, const InputPaths& inputPaths,
         std::vector<common::BamReader>& readers);
-    void processGraphs(std::ofstream& outputFileStream);
+    void processGraphs(std::ostream& outputFileStream);
     void makeOutputFile(const std::string& output, const std::string& graphSpecPath);
 
 public:
     Workflow(
         bool jointInputs, const std::vector<std::string>& inpuPaths, const InputPaths& inputIndexPaths,
         const std::vector<std::string>& graphSpecPaths, const std::string& outputFilePath,
-        const std::string& outputFolderPath, const Parameters& parameters, const std::string& referencePath,
-        const std::string& targetRegions);
+        const std::string& outputFolderPath, bool gzipOutput, const Parameters& parameters,
+        const std::string& referencePath, const std::string& targetRegions);
     void run();
 };
 

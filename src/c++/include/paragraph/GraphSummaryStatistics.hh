@@ -36,7 +36,7 @@
 #pragma once
 
 #include "common/Read.hh"
-#include "graphs/WalkableGraph.hh"
+#include "graphcore/Graph.hh"
 #include "paragraph/AlignmentStatistics.hh"
 
 #include "json/json.h"
@@ -50,5 +50,5 @@ namespace paragraph
 /**
  * add summary statistics on graph alignments into JSON output
  */
-void summarizeAlignments(graphs::WalkableGraph& wgraph, std::vector<common::p_Read>& reads, Json::Value& output);
+void summarizeAlignments(graphtools::Graph const& wgraph, common::ReadBuffer const& reads, Json::Value& output);
 }

@@ -19,23 +19,19 @@
 #
 
 import os
-from collections import defaultdict
-import tempfile
 import multiprocessing
-import json
 import logging
 import itertools
-import gzip
 import traceback
+import hashlib
+import tempfile
 
-import intervaltree
-import pysam.bcftools
-import pysam
+import pysam.bcftools  # pylint: disable=E0401
+import pysam  # pylint: disable=E0401
 
-from grm.vcfgraph import HaploidVCFGraph, AlleleGraph
-from grm.vcfgraph.topological_sort import topological_sort
-from grm.vcfgraph.ref_node_split import split_long_reference_nodes
-from grm.vcfgraph.cleanup import cleanup_and_add_paths
+from grm.vcfgraph import VCFGraph, NoVCFRecordsException
+from grm.vcfgraph import graphUtils
+from grm.vcfgraph.graphContainer import GraphContainer
 from grm.helpers import parse_region
 from grm.helpers import LoggingWriter
 
@@ -49,165 +45,72 @@ def add_reference_information(paragraph_dict, reference_fasta):
             n["reference_sequence"] = fasta.fetch(chrom, start - 1, end).upper()
 
 
-def convert_allele_vcf(vcf_path,
-                       target_regions=None,
-                       ref_node_padding=150,
-                       ref_node_max_length=1000):
+def convert_vcf(vcf,
+                ref,
+                target_regions=None,
+                ref_node_padding=150,
+                ref_node_max_length=1000,
+                allele_graph=False,
+                simplify=True,
+                alt_paths=False,
+                alt_splitting=False):
     """
     Convert a single VCF file to a graph dictionary
-    :param vcf_path: file name of the VCF file
-    :param target_regions: target region list
-    :param ref_node_padding: padding / read length
-    :param ref_node_max_length: maximum length before splitting a reference node
-    :return: dictionary containing JSON graph
-    """
-    if not target_regions:
-        target_regions = []
-    output = {"model_name": "Allele graph from %s" % vcf_path,
-              "sequencenames": [],
-              "nodes": [],
-              "edges": [],
-              "vcf_records": []}
-
-    indexed_vcf = tempfile.NamedTemporaryFile(delete=False, suffix=".vcf.gz")
-    try:
-        indexed_vcf.close()
-        # noinspection PyUnresolvedReferences
-        pysam.bcftools.view(vcf_path, "-o", indexed_vcf.name, "-O", "z", catch_stdout=False)  # pylint: disable=no-member
-        # noinspection PyUnresolvedReferences
-        pysam.bcftools.index(indexed_vcf.name)  # pylint: disable=no-member
-
-        all_nodes = []
-        all_edges = []
-        regions_added = set()
-        region_list = list(map(parse_region, target_regions))
-        if not list(region_list):
-            region_list = [(None, None, None)]
-
-        for i, (chrom, start, end) in enumerate(region_list):
-            graph = AlleleGraph.create_from_vcf(
-                indexed_vcf.name, chrom, start, end, ref_node_padding)
-            nodes, edges = graph.get_nodes_and_edges()
-            output["sequencenames"] += list(graph.all_sequences)
-            output["vcf_records"] += graph.vcflist
-            if ref_node_max_length:
-                nodes, edges = split_long_reference_nodes(
-                    nodes, edges, ref_node_max_length, ref_node_padding)
-            nodes, edges = topological_sort(nodes, edges)
-            all_nodes += nodes
-            all_edges += edges
-            if nodes:
-                regions_added.add(i)
-        if len(regions_added) > 1:
-            output["nodes"], output["edges"] = topological_sort(all_nodes, all_edges)
-        else:
-            output["nodes"], output["edges"] = all_nodes, all_edges
-        output["sequencenames"] = list(set(output["sequencenames"]))
-    finally:
-        os.remove(indexed_vcf.name)
-
-    # determine target regions from all reference segments
-    if not target_regions:
-        reference_trees = defaultdict(intervaltree.IntervalTree)
-        for n in all_nodes:
-            if "reference" in n:
-                n_chr, n_start, n_end = parse_region(n["reference"])
-                reference_trees[n_chr].addi(n_start, n_end + 1)
-        target_regions = []
-        for chrom, tree in reference_trees.items():
-            tree.merge_overlaps()
-            for iv in tree.items():
-                target_regions.append("%s:%i-%i" %
-                                      (chrom, iv.begin, iv.end - 1))
-
-    output["nodes"], output["edges"], output["paths"] = cleanup_and_add_paths(output["nodes"], output["edges"])
-    output["target_regions"] = sorted(target_regions)
-    output["sequencenames"] = sorted(output["sequencenames"])
-
-    return output
-
-
-def convert_haploid_vcf(vcf_path,
-                        ref,
-                        target_regions=None,
-                        ref_node_padding=150,
-                        ref_node_max_length=1000,
-                        ref_paths=False,
-                        crossovers=False):
-    """
-    Convert a single VCF file to a graph dictionary
-    :param vcf_path: file name of the VCF file
+    :param vcf: file name of the VCF file
     :param ref: reference FASTA file name
     :param target_regions: target region list
     :param ref_node_padding: padding / read length
     :param ref_node_max_length: maximum length before splitting a reference node
-    :param ref_paths: add reference paths even if not in VCF
-    :param crossovers: add crossover paths
+    :param allele_graph: add edges between any compatible allele pair, not just haplotypes from input
+    :param simplify: simplify the graph
+    :param alt_paths: Add all possible non-reference paths to the graph
+    :param alt_splitting: also split long alt nodes (e.g. long insertions)
     :return: dictionary containing JSON graph
     """
-    if not target_regions:
-        target_regions = []
-    output = {"model_name": "Graph from %s" % vcf_path,
-              "sequencenames": [],
-              "nodes": [],
-              "edges": []}
-
+    graph = GraphContainer("Graph from %s" % vcf)
     indexed_vcf = tempfile.NamedTemporaryFile(delete=False, suffix=".vcf.gz")
     try:
         indexed_vcf.close()
         # noinspection PyUnresolvedReferences
-        pysam.bcftools.view(vcf_path, "-o", indexed_vcf.name, "-O", "z", catch_stdout=False)  # pylint: disable=no-member
+        pysam.bcftools.view(vcf, "-o", indexed_vcf.name, "-O", "z", catch_stdout=False)  # pylint: disable=no-member
         # noinspection PyUnresolvedReferences
         pysam.bcftools.index(indexed_vcf.name)  # pylint: disable=no-member
 
-        all_nodes = []
-        all_edges = []
-        regions_added = set()
-        region_list = list(map(parse_region, target_regions))
-        if not list(region_list):
-            region_list = [(None, None, None)]
-        for i, (chrom, start, end) in enumerate(region_list):
-            graph = HaploidVCFGraph.create_from_vcf(
-                ref, indexed_vcf.name, chrom, start, end, ref_node_padding)
-            nodes, edges = graph.get_nodes_and_edges(ref_paths, crossovers)
-            output["sequencenames"] += list(graph.all_sequences)
+        regions = map(parse_region, target_regions) if target_regions else [(None,)*3]
+        for (chrom, start, end) in regions:
+            if chrom is not None:
+                logging.info(f"Starting work on region: {chrom}:{start}-{end}")
+            try:
+                vcfGraph = VCFGraph.create_from_vcf(
+                    ref, indexed_vcf.name, chrom, start, end, ref_node_padding, allele_graph)
+            except NoVCFRecordsException:
+                logging.info(f"Region {chrom}:{start}-{end} has no VCF records, skipping.")
+                continue
+            logging.info(f"CONSTRUCTED VCF GRAPH:\n{str(vcfGraph)}")
+            chromGraph = vcfGraph.get_graph(allele_graph)
             if ref_node_max_length:
-                nodes, edges = split_long_reference_nodes(
-                    nodes, edges, ref_node_max_length, ref_node_padding)
-            nodes, edges = topological_sort(nodes, edges)
-            all_nodes += nodes
-            all_edges += edges
-            if nodes:
-                regions_added.add(i)
-        if len(regions_added) > 1:
-            output["nodes"], output["edges"] = topological_sort(
-                all_nodes, all_edges)
-        else:
-            output["nodes"], output["edges"] = all_nodes, all_edges
-        output["sequencenames"] = list(set(output["sequencenames"]))
+                graphUtils.split_ref_nodes(chromGraph, ref_node_max_length, ref_node_padding)
+                if alt_splitting:
+                    graphUtils.split_alt_nodes(chromGraph, ref_node_max_length, ref_node_padding)
+
+            if simplify:
+                graphUtils.remove_empty_nodes(chromGraph)
+                graphUtils.combine_nodes(chromGraph)
+                # Disable edge label simplification for now. May use node-label short-cut later
+                # graphUtils.remove_redundant_edge_labels(graph)
+            chromGraph.check()
+
+            graphUtils.add_graph(graph, chromGraph)
     finally:
         os.remove(indexed_vcf.name)
 
-    # determine target regions from all reference segments
-    if not target_regions:
-        reference_trees = defaultdict(intervaltree.IntervalTree)
-        for n in all_nodes:
-            if "reference" in n:
-                n_chr, n_start, n_end = parse_region(n["reference"])
-                reference_trees[n_chr].addi(n_start, n_end + 1)
-        target_regions = []
-        for chrom, tree in reference_trees.items():
-            tree.merge_overlaps()
-            for iv in tree.items():
-                target_regions.append("%s:%i-%i" %
-                                      (chrom, iv.begin, iv.end - 1))
-
-    output["nodes"], output["edges"], output["paths"] = cleanup_and_add_paths(
-        output["nodes"], output["edges"])
-    output["target_regions"] = sorted(target_regions)
-    output["sequencenames"] = sorted(output["sequencenames"])
-
-    return output
+    graph.target_regions = target_regions or graph.get_reference_regions()
+    graphUtils.add_source_sink(graph)
+    graphUtils.add_ref_path(graph)
+    if alt_paths:
+        graphUtils.add_alt_paths(graph)
+    graph.check()
+    return graph.json_dict()
 
 
 def convert_vcf_to_json(vcf_name,
@@ -217,7 +120,9 @@ def convert_vcf_to_json(vcf_name,
                         graph_type="alleles",
                         split_type="lines",
                         retrieve_ref_sequence=False,
-                        threads=1):
+                        alt_splitting=False,
+                        threads=1,
+                        alt_paths=False):
     """ Convert VCF file to list of JSON graphs
     This function converts each record separately (as opposed to all records jointly like convert_vcf)
     :param vcf_name: VCF file name
@@ -225,27 +130,51 @@ def convert_vcf_to_json(vcf_name,
     :param read_length: read length parameter for VCF conversion
     :param max_ref_node_length: length before splitting ref nodes
     :param graph_type: type of graph for vcf2paragraph
-    :param split_type: "lines", "full", "by_id"
+    :param split_type: "lines", "full", "by_id", "superloci"
     :param retrieve_ref_sequence: retrieve the reference sequence
+    :param alt_splitting: split long alt nodes
     :param threads: number of processes to use
+    :param alt_paths: generate paths for ALT alleles
+    :return header, vcf_records, events -- vcf header, matched lists of VCF records and an event
     """
 
-    header, records = parse_vcf_lines(vcf_name, read_length, split_type)
+    header, records, block_ids = parse_vcf_lines(vcf_name, read_length, split_type)
+    variants = [None] * len(block_ids)
 
-    params = {"header": header,
-              "reference": reference,
-              "read_length": read_length,
-              "max_ref_node_length": max_ref_node_length,
-              "graph_type": graph_type,
-              "retrieve_reference_sequence": retrieve_ref_sequence}
+    to_process = []
+    try:
+        for record_block in records:
+            tf = tempfile.NamedTemporaryFile(delete=False, suffix=".vcf.gz")
+            tf.close()
+            to_process.append(tf.name)
+            with pysam.VariantFile(tf.name, 'w', header=header) as vcf_out:
+                for record in record_block:
+                    vcf_out.write(record)
 
-    with multiprocessing.Pool(threads) as pool:
-        variants = pool.map(run_vcf2paragraph, zip(records, itertools.repeat(params)))
+        params = {"reference": reference,
+                  "read_length": read_length,
+                  "max_ref_node_length": max_ref_node_length,
+                  "graph_type": graph_type,
+                  "retrieve_reference_sequence": retrieve_ref_sequence,
+                  "alt_splitting": alt_splitting,
+                  "alt_paths": alt_paths}
 
-    if any([x is None for x in variants]):
-        raise Exception("Event conversion failed for at least one VCF record.")
+        with multiprocessing.Pool(threads) as pool:
+            variants = pool.map(run_vcf2paragraph, zip(to_process, itertools.repeat(params)))
 
-    return variants
+        if any([x is None for x in variants]):
+            raise Exception("Event conversion failed for at least one VCF record.")
+
+        for v, b in zip(variants, block_ids):
+            v["ID"] = b
+    finally:
+        for p in to_process:
+            try:
+                os.remove(p)
+            except:  # pylint: disable=bare-except
+                pass
+
+    return header, records, variants
 
 
 def parse_vcf_lines(vcf_path, read_length=150, split_type="full"):
@@ -254,38 +183,90 @@ def parse_vcf_lines(vcf_path, read_length=150, split_type="full"):
 
     Store header and records separately
     :param vcf_path: path to VCF file
-    :param split_type: "lines", "full", "by_id"
+    :param read_length: length of reads = minimum padding length
+    :param split_type: "lines", "full", "by_id", "superloci"
+
+    :return: vcf header, block records, block IDs
     """
+    sha = hashlib.sha256()
+    blocksize = 65536
+    with open(vcf_path, 'rb') as vcf_file:
+        file_buffer = vcf_file.read(blocksize)
+        while file_buffer:
+            sha.update(file_buffer)
+            file_buffer = vcf_file.read(blocksize)
+    vcf_id = os.path.basename(vcf_path) + "@" + str(sha.hexdigest())
+
     vcf_file = pysam.VariantFile(vcf_path)
-    header = str(vcf_file.header)
+    vcf_header = vcf_file.header
+    # pylint: disable=no-member
+    if 'GRMPY_ID' not in vcf_header.info:
+        vcf_header.add_line('##INFO=<ID=GRMPY_ID,Number=1,Type=String,Description="Graph ID '
+                            'for linking to genotypes.json.gz; matches record.graphinfo.ID in there.">')
+    # pylint: enable=no-member
+
     records = []
+    block_ids = []
     prev_id = ""
-    for record in vcf_file.fetch(None, None, None):
+    current_chr = None
+    previous_end = None
+
+    for record in vcf_file:
         if record.pos < read_length:
             raise Exception("Distance between vcf position and chrom start is smaller than read length.")
-        if split_type != "lines":
-            if split_type == "full":
-                if not records:
-                    records[0] = str(record)
-                else:
-                    records[0] += str(record)
+        if split_type == "full":
+            bid = vcf_id + ":0"
+            record.info["GRMPY_ID"] = bid
+            if not records:
+                records = [[record]]
+                block_ids.append(bid)
             else:
-                if not record.id:
-                    # records without ID are just appended separately
-                    # make sure we add these separately
-                    records.append(str(record))
-                    prev_id = None
-                elif record.id == prev_id:
-                    records[-1] += "\n" + str(record)
-                else:
-                    records.append(str(record))
-                    prev_id = record.id
+                records[0].append(record)
         elif split_type == "lines":
-            records.append(str(record))
+            bid = vcf_id + ":" + str(len(records) + 1)
+            record.info["GRMPY_ID"] = bid
+            records.append([record])
+            block_ids.append(bid)
+        elif split_type == "by_id":
+            if not record.id:
+                # records without ID are just appended separately
+                # make sure we add these separately
+                bid = vcf_id + ":" + str(len(records) + 1)
+                record.info["GRMPY_ID"] = bid
+                records.append([record])
+                block_ids.append(bid)
+                prev_id = None
+            elif record.id == prev_id:
+                bid = block_ids[-1]
+                record.info["GRMPY_ID"] = bid
+                records[-1].append(record)
+            else:
+                bid = vcf_id + ":" + str(len(records) + 1)
+                record.info["GRMPY_ID"] = bid
+                records.append([record])
+                block_ids.append(bid)
+                prev_id = record.id
+        elif split_type == "superloci":
+            if not current_chr or record.chrom != current_chr or \
+               not previous_end or record.pos > previous_end + read_length:
+                bid = vcf_id + ":" + str(len(records) + 1)
+                record.info["GRMPY_ID"] = bid
+                records.append([record])
+                block_ids.append(bid)
+                logging.debug("New superlocus started at %s:%i -- previous : %s:%s ; read_length = %i",
+                              record.chrom, record.pos, str(current_chr), str(previous_end), read_length)
+            else:
+                bid = block_ids[-1]
+                record.info["GRMPY_ID"] = bid
+                records[-1].append(record)
+            current_chr = record.chrom
+            previous_end = record.stop
+            if not previous_end or previous_end < record.pos:
+                previous_end = record.pos
         else:
             raise Exception("Unknown VCF splitting type: %s" % split_type)
     vcf_file.close()
-    return header, records
+    return vcf_header, records, block_ids
 
 
 def run_vcf2paragraph(event_and_args):
@@ -298,33 +279,17 @@ def run_vcf2paragraph(event_and_args):
     result = {}
 
     try:
-        logging.debug(event)
+        logging.debug("Converting: %s", str(event))
 
-        # prepare input
-        tf = tempfile.NamedTemporaryFile(
-            mode="wt", suffix=".json", delete=False)
-        tempfiles.append(tf.name)
-        tf.write(params["header"])
-        tf.write(event)
-        tf.close()
-
-        # output
-        if params["graph_type"] == "alleles":
-            result["type"] = "custom-allelegraph"
-            result["graph"] = convert_allele_vcf(tf.name, None,
-                                                 ref_node_padding=params["read_length"],
-                                                 ref_node_max_length=params["max_ref_node_length"])
-        else:
-            result["type"] = "custom-haplotypegraph"
-            result["graph"] = convert_haploid_vcf(tf.name,
-                                                  None,
-                                                  params["reference"],
-                                                  ref_node_padding=params["read_length"],
-                                                  ref_node_max_length=params["max_ref_node_length"])
-
-        # reformat the result
-        if "model_name" in result["graph"]:
-            result["ID"] = result["graph"]["model_name"]
+        result["graph"] = convert_vcf(
+            event,
+            params["reference"],
+            None,
+            ref_node_padding=params["read_length"],
+            ref_node_max_length=params["max_ref_node_length"],
+            allele_graph=params["graph_type"] == "alleles",
+            alt_splitting=params["alt_splitting"],
+            alt_paths=params["alt_paths"])
 
         chrom = None
         start = None

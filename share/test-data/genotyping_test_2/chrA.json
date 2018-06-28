@@ -1,1 +1,114 @@
-{"edges": [{"from": "ALT-1-1500-1506", "sequences": ["S1"], "to": "REF-3-1507-1659"}, {"from": "REF-1-1350-1500", "sequences": ["S1"], "to": "ALT-1-1500-1506"}, {"from": "REF-1-1350-1500", "sequences": ["REF"], "to": "REF-2-1500-1507"}, {"from": "REF-2-1500-1507", "sequences": ["REF"], "to": "REF-3-1507-1659"}, {"from": "REF-3-1507-1659", "to": "sink"}, {"from": "source", "to": "REF-1-1350-1500"}], "model_name": "Allele graph from ../grm.py/share/test-data/genotyping_test_2/chrA.vcf", "nodes": [{"name": "source", "sequence": "NNNNNNNNNN"}, {"name": "REF-1-1350-1500", "reference": "chrA:1350-1499", "reference_sequence": "GAGCGTCAAAGGCCCGTCCTATAGACCTGAAGAGTGTTGAGAGTTCTATGGAAAAATTTATAGAGTACTTCCCAGTGTTTTAACTGTAACTGACTTCCATGATCATTTCAGTAATGCAGCCCACATGCATGTTCAAGACTAACACACCGT", "sequences": ["REF", "S1"]}, {"name": "REF-2-1500-1507", "reference": "chrA:1500-1506", "reference_sequence": "GCTGCCC", "sequences": ["REF"]}, {"name": "ALT-1-1500-1506", "sequence": "CTAGTAA", "sequences": ["S1"]}, {"name": "REF-3-1507-1659", "reference": "chrA:1507-1658", "reference_sequence": "CTTCGTTGACCCTGGTAGAAGTTAGCGGGGCTTGTTTAAGGTCGCGTCGGAATATATGATTTACATAACTGTCACTTTGGGACGCACCCGGCCTTATGGCCATGTGTATTGATAGACTGTCAACCTAACAAGAAAAATTAACGCTTTCCCGA", "sequences": ["REF", "S1"]}, {"name": "sink", "sequence": "NNNNNNNNNN"}], "paths": [{"nodes": ["source", "REF-1-1350-1500", "REF-2-1500-1507", "REF-3-1507-1659", "sink"], "nucleotide_length": 309, "path_id": "REF|1", "sequence": "REF"}, {"nodes": ["source", "REF-1-1350-1500", "ALT-1-1500-1506", "REF-3-1507-1659", "sink"], "nucleotide_length": 309, "path_id": "S1|1", "sequence": "S1"}], "sequencenames": ["REF", "S1"], "target_regions": ["chrA:1350-1658"]}
+{
+    "edges": [
+        {
+            "from": "source",
+            "name": "source_ref-chrA:1350-1499",
+            "to": "ref-chrA:1350-1499"
+        },
+        {
+            "from": "ref-chrA:1350-1499",
+            "name": "ref-chrA:1350-1499_ref-chrA:1500-1506",
+            "sequences": [
+                "REF",
+                "swap1:0"
+            ],
+            "to": "ref-chrA:1500-1506"
+        },
+        {
+            "from": "ref-chrA:1350-1499",
+            "name": "ref-chrA:1350-1499_chrA:1500-1506:CTAGTAA",
+            "sequences": [
+                "swap1:1"
+            ],
+            "to": "chrA:1500-1506:CTAGTAA"
+        },
+        {
+            "from": "ref-chrA:1500-1506",
+            "name": "ref-chrA:1500-1506_ref-chrA:1507-1509",
+            "sequences": [
+                "REF",
+                "swap1:0"
+            ],
+            "to": "ref-chrA:1507-1509"
+        },
+        {
+            "from": "chrA:1500-1506:CTAGTAA",
+            "name": "chrA:1500-1506:CTAGTAA_ref-chrA:1507-1509",
+            "sequences": [
+                "swap1:1"
+            ],
+            "to": "ref-chrA:1507-1509"
+        },
+        {
+            "from": "ref-chrA:1507-1509",
+            "name": "ref-chrA:1507-1509_ref-chrA:1510-1659",
+            "sequences": [
+                "REF",
+                "swap1:0",
+                "swap1:1"
+            ],
+            "to": "ref-chrA:1510-1659"
+        },
+        {
+            "from": "ref-chrA:1510-1659",
+            "name": "ref-chrA:1510-1659_sink",
+            "to": "sink"
+        }
+    ],
+    "model_name": "Graph from ../genotyping_test_2/chrA.vcf",
+    "nodes": [
+        {
+            "name": "source",
+            "sequence": "NNNNNNNNNN"
+        },
+        {
+            "name": "ref-chrA:1350-1499",
+            "reference": "chrA:1350-1499",
+            "reference_sequence": "GAGCGTCAAAGGCCCGTCCTATAGACCTGAAGAGTGTTGAGAGTTCTATGGAAAAATTTATAGAGTACTTCCCAGTGTTTTAACTGTAACTGACTTCCATGATCATTTCAGTAATGCAGCCCACATGCATGTTCAAGACTAACACACCGT"
+        },
+        {
+            "name": "ref-chrA:1500-1506",
+            "reference": "chrA:1500-1506",
+            "reference_sequence": "GCTGCCC"
+        },
+        {
+            "name": "chrA:1500-1506:CTAGTAA",
+            "position": "chrA:1500-1506",
+            "sequence": "CTAGTAA"
+        },
+        {
+            "name": "ref-chrA:1507-1509",
+            "reference": "chrA:1507-1509",
+            "reference_sequence": "CTT"
+        },
+        {
+            "name": "ref-chrA:1510-1659",
+            "reference": "chrA:1510-1659",
+            "reference_sequence": "CGTTGACCCTGGTAGAAGTTAGCGGGGCTTGTTTAAGGTCGCGTCGGAATATATGATTTACATAACTGTCACTTTGGGACGCACCCGGCCTTATGGCCATGTGTATTGATAGACTGTCAACCTAACAAGAAAAATTAACGCTTTCCCGAC"
+        },
+        {
+            "name": "sink",
+            "sequence": "NNNNNNNNNN"
+        }
+    ],
+    "paths": [
+        {
+            "nodes": [
+                "ref-chrA:1350-1499",
+                "ref-chrA:1500-1506",
+                "ref-chrA:1507-1509",
+                "ref-chrA:1510-1659"
+            ],
+            "path_id": "REF|1",
+            "sequence": "REF"
+        }
+    ],
+    "sequencenames": [
+        "REF",
+        "swap1:0",
+        "swap1:1"
+    ],
+    "target_regions": [
+        "chrA:1350-1659"
+    ]
+}

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-export PARAGRAPH_SOURCE=/opt/paragraph-source
-export CLANG_FORMAT=clang-format-5.0
+: ${PARAGRAPH_SOURCE:=/opt/paragraph-source}
+CLANG_FORMAT=clang-format-5.0
 
 set +e
 DIFFS=0

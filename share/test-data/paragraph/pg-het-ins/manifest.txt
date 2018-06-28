@@ -1,0 +1,2 @@
+#id	path	depth	read length
+NA12878	na12878.bam	50	150

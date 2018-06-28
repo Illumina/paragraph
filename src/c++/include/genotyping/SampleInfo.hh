@@ -70,6 +70,18 @@ public:
     void set_autosome_depth(double autosome_depth) { autosome_depth_ = autosome_depth; }
 
     /**
+     * Getters / setters for sex information
+     */
+    enum Sex
+    {
+        UNKNOWN = 0,
+        MALE = 1,
+        FEMALE = 2,
+    };
+    void set_sex(std::string sex_string);
+    Sex sex() const { return sex_; }
+
+    /**
      * Getter / setter for the alignment data
      */
     void set_alignment_data(Json::Value const& alignment_data) { alignment_data_ = alignment_data; }
@@ -81,6 +93,7 @@ private:
     std::string index_filename_;
     unsigned int read_length_ = 0;
     double autosome_depth_ = 0.0;
+    Sex sex_ = UNKNOWN;
     Json::Value alignment_data_ = Json::nullValue;
 };
 

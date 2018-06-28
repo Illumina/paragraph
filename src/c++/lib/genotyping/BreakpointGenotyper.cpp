@@ -43,7 +43,7 @@ namespace genotyping
 /**
  * @param genotype_parameters GenotypeParameter class
  */
-BreakpointGenotyper::BreakpointGenotyper(GenotypingParameters* param)
+BreakpointGenotyper::BreakpointGenotyper(std::unique_ptr<GenotypingParameters> const& param)
     : n_alleles_(param->numAlleles())
     , ploidy_(param->ploidy())
     , coverage_test_cutoff_(param->coverageTestCutoff())
@@ -201,12 +201,12 @@ double BreakpointGenotyper::genotypeLikelihood(
             const poisson_distribution<> allele_count_distribution(lambda * mu_with_ploidy);
             gl += log(pdf(allele_count_distribution, read_counts[al]));
         }
+        if (std::isinf(gl))
+        {
+            return -std::numeric_limits<double>::max();
+        }
     }
 
-    if (std::isinf(gl))
-    {
-        gl = std::numeric_limits<double>::min();
-    }
     return gl;
 }
 }

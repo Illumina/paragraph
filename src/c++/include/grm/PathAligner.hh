@@ -24,31 +24,33 @@
 // OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+/**
+ * \brief Aligner which seeds and extends exact unique matches
+ *
+ * \file PathAligner.hh
+ * \author Peter Krusche
+ * \email pkrusche@illumina.com
+ *
+ */
+
 #pragma once
 
-#include <graphs/WalkableGraph.hh>
-#include <memory>
-#include <string>
-#include <vector>
-
 #include "common/Read.hh"
-#include "graphs/Graph.hh"
+#include "graphcore/Graph.hh"
+#include "graphcore/Path.hh"
+
+#include <memory>
 
 namespace grm
 {
 
-/**
- * Graph aligner which finds alignments / matches along paths
- */
 class PathAligner
 {
 public:
-    PathAligner();
-
+    explicit PathAligner(int32_t kmer_size = 32);
     virtual ~PathAligner();
 
     PathAligner(PathAligner&& rhs) noexcept;
-
     PathAligner& operator=(PathAligner&& rhs) noexcept;
 
     /**
@@ -56,7 +58,7 @@ public:
      * @param g a graph
      * @param paths list of paths
      */
-    void setGraph(graphs::Graph const& g, Json::Value const& paths);
+    void setGraph(graphtools::Graph const* g, std::list<graphtools::Path> const& paths);
 
     /**
      * Align a read to the graph and update the graph_* fields.
@@ -67,10 +69,18 @@ public:
      *
      * @param read read structure
      */
-    void alignRead(common::Read& read) const;
+    void alignRead(common::Read& read);
+
+    unsigned attempted() const { return attempted_; }
+    unsigned anchored() const { return anchored_; }
+    unsigned mapped() const { return mapped_; }
 
 private:
-    struct PathAlignerImpl;
-    std::unique_ptr<PathAlignerImpl> _impl;
+    unsigned attempted_ = 0;
+    unsigned anchored_ = 0;
+    unsigned mapped_ = 0;
+
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
 };
 }

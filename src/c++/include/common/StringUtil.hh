@@ -191,5 +191,20 @@ namespace stringutil
     {
         return str.find(query) != std::string::npos;
     }
+
+    /**
+     * Convert double to string with a fixed precision
+     */
+    static inline std::string doubleToStr(double x, int precision, bool fixed = false)
+    {
+        std::stringstream s;
+        s.precision(5);
+        if (fixed)
+        {
+            s << std::fixed;
+        }
+        s << x;
+        return s.str();
+    }
 }
 }

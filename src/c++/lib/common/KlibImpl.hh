@@ -101,7 +101,7 @@ static inline int translate(const char* bases, uint8_t* translated, int length)
 }
 // [INCLUDED CODE END]
 
-struct KlibAlignmentImpl
+struct KlibAlignmentImpl : boost::noncopyable
 {
     KlibAlignmentImpl()
         : gapo(0)

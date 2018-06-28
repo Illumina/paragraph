@@ -43,8 +43,9 @@
 #include <boost/filesystem.hpp>
 #include <htslib/hts.h>
 
-#include "Error.hh"
 #include "StringUtil.hh"
+
+#include "Error.hh"
 
 namespace common
 {
@@ -57,12 +58,11 @@ namespace common
 static inline Json::Value getJSON(std::string const& file_or_value)
 {
     Json::Value result;
-    Json::Reader reader;
     boost::filesystem::path p(file_or_value);
     if (!boost::filesystem::is_regular_file(file_or_value))
     {
         std::istringstream input(file_or_value);
-        reader.parse(input, result);
+        input >> result;
     }
     else
     {
@@ -93,14 +93,30 @@ static inline Json::Value getJSON(std::string const& file_or_value)
                 }
             }
             std::istringstream input(value);
-            reader.parse(input, result);
+            input >> result;
         }
         else
         {
             std::ifstream input(file_or_value);
-            reader.parse(input, result);
+            input >> result;
         }
     }
     return result;
+}
+
+/**
+ * Write a Json::Value object to string
+ * indent = false also suppresses line breaks
+ */
+static inline std::string writeJson(Json::Value const& val, bool indent = true, int float_precision = 5)
+{
+    Json::StreamWriterBuilder wBuilder;
+    wBuilder["precision"] = float_precision;
+    wBuilder["useSpecialFloats"] = false;
+    if (!indent)
+    {
+        wBuilder["indentation"] = "";
+    }
+    return Json::writeString(wBuilder, val);
 }
 }

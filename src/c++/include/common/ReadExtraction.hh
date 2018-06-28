@@ -46,8 +46,8 @@ namespace common
  * @param avr_fragment_length decides how long to extend beyond target region
  */
 void extractReads(
-    BamReader& reader, std::list<Region> const& target_regions, int max_num_reads, std::vector<p_Read>& all_reads,
-    int avr_fragment_length = 333);
+    BamReader& reader, std::list<Region> const& target_regions, int max_num_reads, unsigned longest_alt_insertion,
+    std::vector<p_Read>& all_reads, int avr_fragment_length = 333);
 
 /**
  * High-level read extraction interface
@@ -61,8 +61,8 @@ void extractReads(
  */
 void extractReads(
     const std::string& bam_path, const std::string& bam_index_path, const std::string& reference_path,
-    std::list<Region> const& target_regions, int max_num_reads, std::vector<p_Read>& all_reads,
-    int avr_fragment_length = 333);
+    std::list<Region> const& target_regions, int max_num_reads, unsigned longest_alt_insertion,
+    std::vector<p_Read>& all_reads, int avr_fragment_length = 333);
 
 /**
  * Lower-level read extraction interface for specified target region
@@ -75,15 +75,16 @@ void extractReads(
  */
 std::pair<int, int> extractReadsFromRegion(
     std::vector<p_Read>& all_reads, int max_num_reads, ReadReader& reader, const Region& region,
-    int avr_fragment_length);
+    unsigned longest_alt_insertion, int avr_fragment_length);
 
 /**
  * Low-level read extraction for mapped reads in target region
  * @param read_pairs Container for extracted reads
  * @param reader Reader that will provide the reads
  * @param region Region to check if a read is in
+ * @return average read length
  */
-void extractMappedReadsFromRegion(ReadPairs& read_pairs, int max_num_reads, ReadReader& reader, const Region& region);
+int extractMappedReadsFromRegion(ReadPairs& read_pairs, int max_num_reads, ReadReader& reader, const Region& region);
 
 /**
  * return true if this aligned read or its mate overlaps >= 1 base with the target region

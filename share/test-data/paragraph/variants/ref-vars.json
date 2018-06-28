@@ -1,0 +1,128 @@
+{
+    "edges": [
+        {
+            "from": "A",
+            "name": "A_ref-chr5:1000-1001",
+            "to": "ref-chr5:1000-1001"
+        },
+        {
+            "from": "A",
+            "name": "A_ref-chr5:1002-1006",
+            "to": "ref-chr5:1002-1006"
+        },
+        {
+            "from": "A",
+            "name": "A_chr5:1000-1005:TTTTT",
+            "to": "chr5:1000-1005:TTTTT"
+        },
+        {
+            "from": "ref-chr5:1000-1001",
+            "name": "ref-chr5:1000-1001_ref-chr5:1002-1006",
+            "to": "ref-chr5:1002-1006"
+        },
+        {
+            "from": "ref-chr5:1002-1006",
+            "name": "ref-chr5:1002-1006_ref-chr5:1007-1007",
+            "to": "ref-chr5:1007-1007"
+        },
+        {
+            "from": "ref-chr5:1002-1006",
+            "name": "ref-chr5:1002-1006_chr5:1007-1007:C",
+            "to": "chr5:1007-1007:C"
+        },
+        {
+            "from": "ref-chr5:1007-1007",
+            "name": "ref-chr5:1007-1007_ref-chr5:1008-1010",
+            "to": "ref-chr5:1008-1010"
+        },
+        {
+            "from": "chr5:1007-1007:C",
+            "name": "chr5:1007-1007:C_ref-chr5:1008-1010",
+            "to": "ref-chr5:1008-1010"
+        },
+        {
+            "from": "ref-chr5:1008-1010",
+            "name": "ref-chr5:1008-1010_D",
+            "to": "D"
+        },
+        {
+            "from": "ref-chr5:1008-1010",
+            "name": "ref-chr5:1008-1010_C",
+            "to": "C"
+        },
+        {
+            "from": "chr5:1000-1005:TTTTT",
+            "name": "chr5:1000-1005:TTTTT_chr5:1006-1005:G",
+            "to": "chr5:1006-1005:G"
+        },
+        {
+            "from": "chr5:1000-1005:TTTTT",
+            "name": "chr5:1000-1005:TTTTT_D",
+            "to": "D"
+        },
+        {
+            "from": "chr5:1000-1005:TTTTT",
+            "name": "chr5:1000-1005:TTTTT_C",
+            "to": "C"
+        },
+        {
+            "from": "chr5:1006-1005:G",
+            "name": "chr5:1006-1005:G_D",
+            "to": "D"
+        },
+        {
+            "from": "chr5:1006-1005:G",
+            "name": "chr5:1006-1005:G_C",
+            "to": "C"
+        }
+    ],
+    "model_name": "Test graph for variant insertion",
+    "nodes": [
+        {
+            "name": "A",
+            "reference": "chr5:850-999"
+        },
+        {
+            "name": "ref-chr5:1000-1001",
+            "reference": "chr5:1000-1001"
+        },
+        {
+            "name": "ref-chr5:1002-1006",
+            "reference": "chr5:1002-1006"
+        },
+        {
+            "name": "ref-chr5:1007-1007",
+            "reference": "chr5:1007-1007"
+        },
+        {
+            "name": "chr5:1007-1007:C",
+            "position": "chr5:1007-1007",
+            "sequence": "C"
+        },
+        {
+            "name": "ref-chr5:1008-1010",
+            "reference": "chr5:1008-1010"
+        },
+        {
+            "name": "chr5:1000-1005:TTTTT",
+            "position": "chr5:1000-1005",
+            "sequence": "TTTTT"
+        },
+        {
+            "name": "chr5:1006-1005:G",
+            "position": "chr5:1006-1005",
+            "sequence": "G"
+        },
+        {
+            "name": "D",
+            "reference": "chr5:1101-1200"
+        },
+        {
+            "name": "C",
+            "reference": "chr5:1001-1100"
+        }
+    ],
+    "paths": [],
+    "sequencenames": [],
+    "target_regions": []
+}

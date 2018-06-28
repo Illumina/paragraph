@@ -57,7 +57,11 @@ void initLogging(const char* name, const char* filename, bool async, const char*
         spdlog::set_sync_mode();
     }
 
-    if (std::string(level) == "debug")
+    if (std::string(level) == "trace")
+    {
+        spdlog::set_level(spdlog::level::trace);
+    }
+    else if (std::string(level) == "debug")
     {
         spdlog::set_level(spdlog::level::debug);
     }

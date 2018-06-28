@@ -65,7 +65,7 @@ TEST(Alignment, KlibBasic)
     aln->getCigar(r0, r1, a0, a1, ncigar, icigar);
     getCigarStats("AAATGACGGATTG", "TGGGA", r0, a0, icigar, ncigar, softclipped, matches, mismatches, ins, del);
 
-    ASSERT_EQ(softclipped, 10);
+    ASSERT_EQ(softclipped, 2);
     ASSERT_EQ(matches, 3);
     ASSERT_EQ(mismatches, 0);
     ASSERT_EQ(del, 0);
@@ -99,7 +99,7 @@ TEST(Align, KlibIndel)
     ASSERT_EQ(r1, 12);
     ASSERT_EQ(a0, 0);
     ASSERT_EQ(a1, 17);
-    ASSERT_EQ(cig, "7M5D6M");
+    ASSERT_EQ(cig, "7M5I6M");
 
     // ref ins / alt del
 
@@ -117,7 +117,7 @@ TEST(Align, KlibIndel)
     ASSERT_EQ(r1, 17);
     ASSERT_EQ(a0, 0);
     ASSERT_EQ(a1, 12);
-    ASSERT_EQ(cig, "7M5I6M");
+    ASSERT_EQ(cig, "7M5D6M");
 
     // complex
 
@@ -136,7 +136,22 @@ TEST(Align, KlibIndel)
     ASSERT_EQ(r1, 18);
     ASSERT_EQ(a0, 0);
     ASSERT_EQ(a1, 20);
-    ASSERT_EQ(cig, "9M3D2M1I7M");
+    ASSERT_EQ(cig, "9M3I2M1D7M");
+
+    aln->setRef(
+        "XCCTCTTAGTTCTTTGTGGAGTCTGCCTTTTCTCCCCAATCTATCCTTACCAAGTTGTCTAAGGCATGGTCCTTGCACTTATTTATACCTCTGGCTCAGACTTCT"
+        "GAAGTCTGAGCTCCATACTCAGCTCAGACAGAAGTCTGAGCCCCATACTCAGCTCAGACAGAAGTCTGAGCCCCTGAGCTCCATACTCTGAT");
+    aln->setQuery(
+        "TTTATACCTCTGGCTCAGACTTCTCCCCTGAGCTCCATACTCTGATACCTAACTGTTCAACTTCTCTGCATGACCATTTAATCGGCCCCCATACTGTTAT");
+
+    aln->dump();
+    aln->getCigar(r0, r1, a0, a1, cig);
+    ASSERT_EQ(aln->getScore(), 68);
+    ASSERT_EQ(r0, 81);
+    ASSERT_EQ(r1, 196);
+    ASSERT_EQ(a0, 0);
+    ASSERT_EQ(a1, 99);
+    ASSERT_EQ(cig, "27M2D19M3D6M2D11M1D6M2D1M1I3M1I2M2I2M1D2M1D1M1D5M7D11M");
 
     delete aln;
 
@@ -172,7 +187,7 @@ TEST(Align, KlibIndel)
     ASSERT_EQ(r1, 26);
     ASSERT_EQ(a0, 0);
     ASSERT_EQ(a1, 28);
-    ASSERT_EQ(cig, "11M5D2M3I11M");
+    ASSERT_EQ(cig, "11M5I2M3D11M");
 
     // REF   CTGTG------TGTGTGTGTGAAAA
     // ALT1  CTGTGTGTGTGTGTGTGTGTGAAAA
@@ -221,7 +236,7 @@ TEST(Align, KlibIndel)
     ASSERT_EQ(r1, 18);
     ASSERT_EQ(a0, 0);
     ASSERT_EQ(a1, 24);
-    ASSERT_EQ(cig, "15M6D4M");
+    ASSERT_EQ(cig, "15M6I4M");
 
     aln->setRef("CTGTGTGTGTGTGTGAAAA");
     aln->setQuery("CTGTGTGTGAGTGTGTGTGTGAAAA");
@@ -236,7 +251,7 @@ TEST(Align, KlibIndel)
     ASSERT_EQ(r1, 18);
     ASSERT_EQ(a0, 0);
     ASSERT_EQ(a1, 24);
-    ASSERT_EQ(cig, "9M6D10M");
+    ASSERT_EQ(cig, "9M6I10M");
 
     aln->setRef("CTGTGTGTGTGTGTGTGTGTGAAAA");
     aln->setQuery("CTGTGTGTGAGTGTGTGTGTGAAAA");
@@ -272,7 +287,7 @@ TEST(Align, KlibIndel)
     ASSERT_EQ(r1, 149);
     ASSERT_EQ(a0, 0);
     ASSERT_EQ(a1, 68);
-    ASSERT_EQ(cig, "53M6I9M66I6M9I1M");
+    ASSERT_EQ(cig, "53M6D9M66D6M9D1M");
 
     uint32_t* icigar = NULL;
     int softclipped = -1, mismatches = -1, matches = -1, ins = -1, del = -1;

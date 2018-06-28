@@ -1,56 +1,61 @@
 [
     {
-        "eventinfo": {
-            "chrom": "chrA",
-            "end": 1509,
-            "n_ev": 0,
-            "start": 1500,
-            "type": "custom-allelegraph",
-            "vcf_records": [
-                {
-                    "alts": [
-                        "CTAGTAACTT"
-                    ],
-                    "chrom": "chrA",
-                    "end": 1509,
-                    "id": "swap1",
-                    "pos": 1500,
-                    "ref": "GCTGCCCCTT"
-                }
-            ]
-        },
+        "breakpointinfo": [
+            {
+                "mapped_alleles": {
+                    "swap1:0": "REF"
+                },
+                "name": "_ref-chrA:1507-1509"
+            },
+            {
+                "mapped_alleles": {
+                    "swap1:0": "REF"
+                },
+                "name": "ref-chrA:1350-1499_"
+            }
+        ],
         "graphinfo": {
-            "ID": "Allele graph from /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpjyyzxs5r.json",
+            "ID": "swaps.vcf:0",
             "edges": [
                 {
-                    "name": "ALT-1-1500-1506_REF-3-1507-1659",
+                    "name": "source_ref-chrA:1350-1499"
+                },
+                {
+                    "name": "ref-chrA:1350-1499_ref-chrA:1500-1506",
                     "sequences": [
-                        "S1"
+                        "REF",
+                        "swap1:0"
                     ]
                 },
                 {
-                    "name": "REF-1-1350-1500_ALT-1-1500-1506",
+                    "name": "ref-chrA:1350-1499_chrA:1500-1506:CTAGTAA",
                     "sequences": [
-                        "S1"
+                        "swap1:1"
                     ]
                 },
                 {
-                    "name": "REF-1-1350-1500_REF-2-1500-1507",
+                    "name": "ref-chrA:1500-1506_ref-chrA:1507-1509",
                     "sequences": [
-                        "REF"
+                        "REF",
+                        "swap1:0"
                     ]
                 },
                 {
-                    "name": "REF-2-1500-1507_REF-3-1507-1659",
+                    "name": "chrA:1500-1506:CTAGTAA_ref-chrA:1507-1509",
                     "sequences": [
-                        "REF"
+                        "swap1:1"
                     ]
                 },
                 {
-                    "name": "REF-3-1507-1659_sink"
+                    "name": "ref-chrA:1507-1509_ref-chrA:1510-1659",
+                    "sequences": [
+                        "REF",
+                        "swap1:0",
+                        "swap1:1"
+                    ]
                 },
                 {
-                    "name": "source_REF-1-1350-1500"
+                    "name": "ref-chrA:1510-1659_sink"
                 }
             ],
             "nodes": [
@@ -58,147 +63,267 @@
                     "name": "source"
                 },
                 {
-                    "name": "REF-1-1350-1500",
-                    "sequences": [
-                        "REF",
-                        "S1"
-                    ]
+                    "name": "ref-chrA:1350-1499"
                 },
                 {
-                    "name": "REF-2-1500-1507",
-                    "sequences": [
-                        "REF"
-                    ]
+                    "name": "ref-chrA:1500-1506"
                 },
                 {
-                    "name": "ALT-1-1500-1506",
-                    "sequences": [
-                        "S1"
-                    ]
+                    "name": "chrA:1500-1506:CTAGTAA"
                 },
                 {
-                    "name": "REF-3-1507-1659",
-                    "sequences": [
-                        "REF",
-                        "S1"
-                    ]
+                    "name": "ref-chrA:1507-1509"
+                },
+                {
+                    "name": "ref-chrA:1510-1659"
                 },
                 {
                     "name": "sink"
                 }
             ],
             "sequencenames": [
+                "ALT",
                 "REF",
-                "S1"
+                "swap1:0",
+                "swap1:1"
             ],
             "target_regions": [
-                "chrA:1350-1658"
+                "chrA:1350-1659"
             ]
         },
         "samples": {
             "SWAPS": {
-                "Filter": "PASS",
-                "GT": "REF/REF",
+                "alleles": {
+                    "REF": {
+                        "avr_score": 150.0,
+                        "clip_rate": 0.0,
+                        "contig_length": 10,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 9060.0,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 604,
+                        "num_rev_reads": 0
+                    },
+                    "swap1:0": {
+                        "avr_score": 150.0,
+                        "clip_rate": 0.0,
+                        "contig_length": 10,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 9060.0,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 604,
+                        "num_rev_reads": 0
+                    },
+                    "swap1:1": {
+                        "avr_score": 150.0,
+                        "clip_rate": 0.0,
+                        "contig_length": 10,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 60.0,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 4,
+                        "num_rev_reads": 0
+                    }
+                },
+                "bad_alignment_pct": 0.0,
                 "breakpoints": {
-                    "REF-1-1350-1500_": {
-                        "DP": 596,
-                        "GL": {
-                            "REF/REF": -438.6737279453135,
-                            "REF/S1": -Infinity,
-                            "S1/S1": -Infinity
+                    "_ref-chrA:1507-1509": {
+                        "counts": {
+                            "alleles": {
+                                "REF": 564,
+                                "swap1:1": 0
+                            },
+                            "edges": {
+                                "chrA:1500-1506:CTAGTAA_ref-chrA:1507-1509": 0,
+                                "ref-chrA:1500-1506_ref-chrA:1507-1509": 564
+                            }
                         },
-                        "GT": "REF/REF",
-                        "allele_fractions": [
-                            1,
-                            0
-                        ]
+                        "gt": {
+                            "GL": {
+                                "REF/REF": -31.606,
+                                "REF/swap1:1": -395.74,
+                                "swap1:1/swap1:1": -Infinity
+                            },
+                            "GT": "REF/REF",
+                            "allele_fractions": [
+                                1.0,
+                                0.0
+                            ],
+                            "coverage_test_pvalue": 0.10982,
+                            "num_reads": 564
+                        }
                     },
-                    "_REF-3-1507-1659": {
-                        "DP": 596,
-                        "GL": {
-                            "REF/REF": -438.6737279453135,
-                            "REF/S1": -Infinity,
-                            "S1/S1": -Infinity
+                    "ref-chrA:1350-1499_": {
+                        "counts": {
+                            "alleles": {
+                                "REF": 512,
+                                "swap1:1": 0
+                            },
+                            "edges": {
+                                "ref-chrA:1350-1499_chrA:1500-1506:CTAGTAA": 0,
+                                "ref-chrA:1350-1499_ref-chrA:1500-1506": 512
+                            }
                         },
-                        "GT": "REF/REF",
-                        "allele_fractions": [
-                            1,
-                            0
-                        ]
+                        "gt": {
+                            "GL": {
+                                "REF/REF": -31.384,
+                                "REF/swap1:1": -359.48,
+                                "swap1:1/swap1:1": -Infinity
+                            },
+                            "GT": "REF/REF",
+                            "allele_fractions": [
+                                1.0,
+                                0.0
+                            ],
+                            "coverage_test_pvalue": 0.15497,
+                            "num_reads": 512
+                        }
                     }
                 },
-                "num_support": 2,
-                "otherGT": {
-                    "REF/S1": {
-                        "num_unsupport": 2
+                "edges": {
+                    "ref-chrA:1350-1499_ref-chrA:1500-1506": {
+                        "clip_rate": 0.0,
+                        "contig_length": 157,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 62.14,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 596,
+                        "num_rev_reads": 0
                     },
-                    "S1/S1": {
-                        "num_unsupport": 2
+                    "ref-chrA:1500-1506_chrA:1500-1506:CTAGTAA": {
+                        "clip_rate": 0.0,
+                        "contig_length": 14,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 2899.1,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 556,
+                        "num_rev_reads": 0
+                    },
+                    "source_ref-chrA:1350-1499": {
+                        "clip_rate": 0.0,
+                        "contig_length": 151,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 336.32,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 636,
+                        "num_rev_reads": 0
                     }
                 },
-                "read_counts_by_edge": {
-                    "REF-1-1350-1500_REF-2-1500-1507": 596,
-                    "REF-2-1500-1507_REF-3-1507-1659": 596
-                }
+                "gt": {
+                    "GL": {
+                        "REF/REF": -31.384,
+                        "REF/swap1:1": -359.48,
+                        "swap1:1/swap1:1": -Infinity
+                    },
+                    "GT": "REF/REF",
+                    "allele_fractions": [
+                        1.0,
+                        0.0
+                    ],
+                    "filter": "PASS",
+                    "num_reads": 1076
+                },
+                "mean_graph": null,
+                "mean_linear": null,
+                "median_graph": 0.0,
+                "median_linear": 0.0,
+                "multi_read": 0,
+                "nodes": {
+                    "chrA:1500-1506:CTAGTAA": {
+                        "clip_rate": 0.0,
+                        "contig_length": 7,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 5560.0,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 556,
+                        "num_rev_reads": 0
+                    },
+                    "ref-chrA:1350-1499": {
+                        "clip_rate": 0.0,
+                        "contig_length": 150,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 39.653,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 636,
+                        "num_rev_reads": 0
+                    },
+                    "ref-chrA:1500-1506": {
+                        "clip_rate": 0.0,
+                        "contig_length": 7,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 813.71,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 596,
+                        "num_rev_reads": 0
+                    },
+                    "source": {
+                        "clip_rate": 0.0,
+                        "contig_length": 1,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 46036.0,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 644,
+                        "num_rev_reads": 0
+                    }
+                },
+                "paired_read": 0,
+                "problematic_graph": 0,
+                "problematic_linear": 644,
+                "single_read": 644,
+                "variance_graph": 0.0,
+                "variance_linear": 0.0
             }
-        },
-        "sequencenames": [
-            "REF",
-            "S1"
-        ]
+        }
     },
     {
-        "eventinfo": {
-            "chrom": "chrB",
-            "end": 1509,
-            "n_ev": 1,
-            "start": 1500,
-            "type": "custom-allelegraph",
-            "vcf_records": [
-                {
-                    "alts": [
-                        "TCAGGTTGTCTTATGCTTGGCATCGTTCTT"
-                    ],
-                    "chrom": "chrB",
-                    "end": 1509,
-                    "id": "swap2",
-                    "pos": 1500,
-                    "ref": "AGGCCATACG"
-                }
-            ]
-        },
+        "breakpointinfo": [
+            {
+                "mapped_alleles": {
+                    "swap2:0": "REF"
+                },
+                "name": "_ref-chrB:1510-1659"
+            },
+            {
+                "mapped_alleles": {
+                    "swap2:0": "REF"
+                },
+                "name": "ref-chrB:1350-1499_"
+            }
+        ],
         "graphinfo": {
-            "ID": "Allele graph from /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpsm_301mt.json",
+            "ID": "swaps.vcf:1",
             "edges": [
                 {
-                    "name": "ALT-1-1500-1509_REF-3-1510-1659",
+                    "name": "source_ref-chrB:1350-1499"
+                },
+                {
+                    "name": "ref-chrB:1350-1499_ref-chrB:1500-1509",
                     "sequences": [
-                        "S1"
+                        "REF",
+                        "swap2:0"
                     ]
                 },
                 {
-                    "name": "REF-1-1350-1500_ALT-1-1500-1509",
+                    "name": "ref-chrB:1350-1499_chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT",
                     "sequences": [
-                        "S1"
+                        "swap2:1"
                     ]
                 },
                 {
-                    "name": "REF-1-1350-1500_REF-2-1500-1510",
+                    "name": "ref-chrB:1500-1509_ref-chrB:1510-1659",
                     "sequences": [
-                        "REF"
+                        "REF",
+                        "swap2:0"
                     ]
                 },
                 {
-                    "name": "REF-2-1500-1510_REF-3-1510-1659",
+                    "name": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT_ref-chrB:1510-1659",
                     "sequences": [
-                        "REF"
+                        "swap2:1"
                     ]
                 },
                 {
-                    "name": "REF-3-1510-1659_sink"
-                },
-                {
-                    "name": "source_REF-1-1350-1500"
+                    "name": "ref-chrB:1510-1659_sink"
                 }
             ],
             "nodes": [
@@ -206,147 +331,234 @@
                     "name": "source"
                 },
                 {
-                    "name": "REF-1-1350-1500",
-                    "sequences": [
-                        "REF",
-                        "S1"
-                    ]
+                    "name": "ref-chrB:1350-1499"
                 },
                 {
-                    "name": "REF-2-1500-1510",
-                    "sequences": [
-                        "REF"
-                    ]
+                    "name": "ref-chrB:1500-1509"
                 },
                 {
-                    "name": "ALT-1-1500-1509",
-                    "sequences": [
-                        "S1"
-                    ]
+                    "name": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT"
                 },
                 {
-                    "name": "REF-3-1510-1659",
-                    "sequences": [
-                        "REF",
-                        "S1"
-                    ]
+                    "name": "ref-chrB:1510-1659"
                 },
                 {
                     "name": "sink"
                 }
             ],
             "sequencenames": [
+                "ALT",
                 "REF",
-                "S1"
+                "swap2:0",
+                "swap2:1"
             ],
             "target_regions": [
-                "chrB:1350-1658"
+                "chrB:1350-1659"
             ]
         },
         "samples": {
             "SWAPS": {
-                "Filter": "PASS",
-                "GT": "S1/S1",
+                "alleles": {
+                    "swap2:1": {
+                        "avr_score": 150.0,
+                        "clip_rate": 0.0,
+                        "contig_length": 30,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 2980.0,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 596,
+                        "num_rev_reads": 0
+                    }
+                },
+                "bad_alignment_pct": 0.0,
                 "breakpoints": {
-                    "REF-1-1350-1500_": {
-                        "DP": 596,
-                        "GL": {
-                            "REF/REF": -Infinity,
-                            "REF/S1": -Infinity,
-                            "S1/S1": -438.6737279453135
+                    "_ref-chrB:1510-1659": {
+                        "counts": {
+                            "alleles": {
+                                "REF": 0,
+                                "swap2:1": 476
+                            },
+                            "edges": {
+                                "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT_ref-chrB:1510-1659": 476,
+                                "ref-chrB:1500-1509_ref-chrB:1510-1659": 0
+                            }
                         },
-                        "GT": "S1/S1",
-                        "allele_fractions": [
-                            0,
-                            1
-                        ]
+                        "gt": {
+                            "GL": {
+                                "REF/REF": -Infinity,
+                                "REF/swap2:1": -337.43,
+                                "swap2:1/swap2:1": -34.293
+                            },
+                            "GT": "swap2:1/swap2:1",
+                            "allele_fractions": [
+                                0.0,
+                                1.0
+                            ],
+                            "coverage_test_pvalue": 0.0044933,
+                            "num_reads": 476
+                        }
                     },
-                    "_REF-3-1510-1659": {
-                        "DP": 596,
-                        "GL": {
-                            "REF/REF": -Infinity,
-                            "REF/S1": -Infinity,
-                            "S1/S1": -438.6737279453135
+                    "ref-chrB:1350-1499_": {
+                        "counts": {
+                            "alleles": {
+                                "REF": 0,
+                                "swap2:1": 476
+                            },
+                            "edges": {
+                                "ref-chrB:1350-1499_chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT": 476,
+                                "ref-chrB:1350-1499_ref-chrB:1500-1509": 0
+                            }
                         },
-                        "GT": "S1/S1",
-                        "allele_fractions": [
-                            0,
-                            1
-                        ]
+                        "gt": {
+                            "GL": {
+                                "REF/REF": -Infinity,
+                                "REF/swap2:1": -337.43,
+                                "swap2:1/swap2:1": -34.293
+                            },
+                            "GT": "swap2:1/swap2:1",
+                            "allele_fractions": [
+                                0.0,
+                                1.0
+                            ],
+                            "coverage_test_pvalue": 0.0044933,
+                            "num_reads": 476
+                        }
                     }
                 },
-                "num_support": 2,
-                "otherGT": {
-                    "REF/REF": {
-                        "num_unsupport": 2
+                "edges": {
+                    "ref-chrB:1350-1499_ref-chrB:1500-1509": {
+                        "clip_rate": 0.0,
+                        "contig_length": 160,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 267.75,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 476,
+                        "num_rev_reads": 0
                     },
-                    "REF/S1": {
-                        "num_unsupport": 2
+                    "source_ref-chrB:1350-1499": {
+                        "clip_rate": 0.0,
+                        "contig_length": 151,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 522.12,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 716,
+                        "num_rev_reads": 0
                     }
                 },
-                "read_counts_by_edge": {
-                    "ALT-1-1500-1509_REF-3-1510-1659": 596,
-                    "REF-1-1350-1500_ALT-1-1500-1509": 596
-                }
+                "gt": {
+                    "GL": {
+                        "REF/REF": -Infinity,
+                        "REF/swap2:1": -337.43,
+                        "swap2:1/swap2:1": -34.293
+                    },
+                    "GT": "swap2:1/swap2:1",
+                    "allele_fractions": [
+                        0.0,
+                        1.0
+                    ],
+                    "filter": "PASS",
+                    "num_reads": 952
+                },
+                "mean_graph": null,
+                "mean_linear": null,
+                "median_graph": 0.0,
+                "median_linear": 0.0,
+                "multi_read": 0,
+                "nodes": {
+                    "ref-chrB:1350-1499": {
+                        "clip_rate": 0.0,
+                        "contig_length": 150,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 215.2,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 716,
+                        "num_rev_reads": 0
+                    },
+                    "ref-chrB:1500-1509": {
+                        "clip_rate": 0.0,
+                        "contig_length": 10,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 2856.0,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 476,
+                        "num_rev_reads": 0
+                    },
+                    "source": {
+                        "clip_rate": 0.0,
+                        "contig_length": 1,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 47760.0,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 724,
+                        "num_rev_reads": 0
+                    }
+                },
+                "paired_read": 0,
+                "problematic_graph": 0,
+                "problematic_linear": 724,
+                "single_read": 724,
+                "variance_graph": 0.0,
+                "variance_linear": 0.0
             }
-        },
-        "sequencenames": [
-            "REF",
-            "S1"
-        ]
+        }
     },
     {
-        "eventinfo": {
-            "chrom": "chrC",
-            "end": 1699,
-            "n_ev": 2,
-            "start": 1500,
-            "type": "custom-allelegraph",
-            "vcf_records": [
-                {
-                    "alts": [
-                        "CCGGAGATACCCTCTGTCTCCGCTAACATTTCCCCGCGGACAAAATTTGTCGGCTGGGAGGAATAGGTGCAAACGCATAATATACCCCTCTTACTTTTTGTTAGGGTCTAGTCCGAATCTAAAAAATGACTAAGGACTCTCAGAGTGATGGATATATGCCTCGCGACGCCGATCTGTGCTTATGTCGCAGCTTTGGCATCAAACCAGTTTCACATACCCTGCCTAAAAGATTCCCATACTGCGAAATCGCAAGATTGTACAAGTTGTAGTCTGTGCGCCAGCGTGAGCACGGCACTCGGT"
-                    ],
-                    "chrom": "chrC",
-                    "end": 1699,
-                    "id": "swap3",
-                    "pos": 1500,
-                    "ref": "CGCGTTGTAAGCTACCATATTCAATCTGTGCCAGGGATCGAGCCACAGGCACCGCTCAATCTCGCGGGAGATTGTGCAAAGAGTCTTACCTTTCGTCGACCTCCGCCTCGCTCGTGAATCTTGCGATCGATTGAAAGTCACGGGTAGAGTGATGTTCGGGCGAATCAGACAGGCAGATGCAATGGAGGTTCCCGGATAGT"
-                }
-            ]
-        },
+        "breakpointinfo": [
+            {
+                "mapped_alleles": {
+                    "swap3:0": "REF"
+                },
+                "name": "_ref-chrC:1698-1699"
+            },
+            {
+                "mapped_alleles": {
+                    "swap3:0": "REF"
+                },
+                "name": "ref-chrC:1350-1500_"
+            }
+        ],
         "graphinfo": {
-            "ID": "Allele graph from /var/folders/2j/s70wxb4x60l2l60zcbgdkvg800376c/T/tmpcqpsl6ul.json",
+            "ID": "swaps.vcf:2",
             "edges": [
                 {
-                    "name": "ALT-1-1501-1697_REF-3-1698-1849",
+                    "name": "source_ref-chrC:1350-1500"
+                },
+                {
+                    "name": "ref-chrC:1350-1500_chrC:1501-1697:CGGAGATACCCTCTGTCTCCGCTAACATTTCCCCGCGGACAAAATTTGTCGGCTGGGAGGAATAGGTGCAAACGCATAATATACCCCTCTTACTTTTTGTTAGGGTCTAGTCCGAATCTAAAAAATGACTAAGGACTCTCAGAGTGATGGATATATGCCTCGCGACGCCGATCTGTGCTTATGTCGCAGCTTTGGCATCAAACCAGTTTCACATACCCTGCCTAAAAGATTCCCATACTGCGAAATCGCAAGATTGTACAAGTTGTAGTCTGTGCGCCAGCGTGAGCACGGCACTCG",
                     "sequences": [
-                        "S1"
+                        "swap3:1"
                     ]
                 },
                 {
-                    "name": "REF-1-1350-1501_ALT-1-1501-1697",
+                    "name": "ref-chrC:1350-1500_ref-chrC:1501-1697",
                     "sequences": [
-                        "S1"
+                        "REF",
+                        "swap3:0"
                     ]
                 },
                 {
-                    "name": "REF-1-1350-1501_REF-2-1501-1698",
+                    "name": "chrC:1501-1697:CGGAGATACCCTCTGTCTCCGCTAACATTTCCCCGCGGACAAAATTTGTCGGCTGGGAGGAATAGGTGCAAACGCATAATATACCCCTCTTACTTTTTGTTAGGGTCTAGTCCGAATCTAAAAAATGACTAAGGACTCTCAGAGTGATGGATATATGCCTCGCGACGCCGATCTGTGCTTATGTCGCAGCTTTGGCATCAAACCAGTTTCACATACCCTGCCTAAAAGATTCCCATACTGCGAAATCGCAAGATTGTACAAGTTGTAGTCTGTGCGCCAGCGTGAGCACGGCACTCG_ref-chrC:1698-1699",
                     "sequences": [
-                        "REF"
+                        "swap3:1"
                     ]
                 },
                 {
-                    "name": "REF-2-1501-1698_REF-3-1698-1849",
+                    "name": "ref-chrC:1501-1697_ref-chrC:1698-1699",
                     "sequences": [
-                        "REF"
+                        "REF",
+                        "swap3:0"
                     ]
                 },
                 {
-                    "name": "REF-3-1698-1849_sink"
+                    "name": "ref-chrC:1698-1699_ref-chrC:1700-1849",
+                    "sequences": [
+                        "REF",
+                        "swap3:0",
+                        "swap3:1"
+                    ]
                 },
                 {
-                    "name": "source_REF-1-1350-1501"
+                    "name": "ref-chrC:1700-1849_sink"
                 }
             ],
             "nodes": [
@@ -354,95 +566,198 @@
                     "name": "source"
                 },
                 {
-                    "name": "REF-1-1350-1501",
-                    "sequences": [
-                        "REF",
-                        "S1"
-                    ]
+                    "name": "ref-chrC:1350-1500"
                 },
                 {
-                    "name": "REF-2-1501-1698",
-                    "sequences": [
-                        "REF"
-                    ]
+                    "name": "chrC:1501-1697:CGGAGATACCCTCTGTCTCCGCTAACATTTCCCCGCGGACAAAATTTGTCGGCTGGGAGGAATAGGTGCAAACGCATAATATACCCCTCTTACTTTTTGTTAGGGTCTAGTCCGAATCTAAAAAATGACTAAGGACTCTCAGAGTGATGGATATATGCCTCGCGACGCCGATCTGTGCTTATGTCGCAGCTTTGGCATCAAACCAGTTTCACATACCCTGCCTAAAAGATTCCCATACTGCGAAATCGCAAGATTGTACAAGTTGTAGTCTGTGCGCCAGCGTGAGCACGGCACTCG"
                 },
                 {
-                    "name": "ALT-1-1501-1697",
-                    "sequences": [
-                        "S1"
-                    ]
+                    "name": "ref-chrC:1501-1697"
                 },
                 {
-                    "name": "REF-3-1698-1849",
-                    "sequences": [
-                        "REF",
-                        "S1"
-                    ]
+                    "name": "ref-chrC:1698-1699"
+                },
+                {
+                    "name": "ref-chrC:1700-1849"
                 },
                 {
                     "name": "sink"
                 }
             ],
             "sequencenames": [
+                "ALT",
                 "REF",
-                "S1"
+                "swap3:0",
+                "swap3:1"
             ],
             "target_regions": [
-                "chrC:1350-1848"
+                "chrC:1350-1849"
             ]
         },
         "samples": {
             "SWAPS": {
-                "Filter": "PASS",
-                "GT": "REF/S1",
+                "alleles": {
+                    "REF": {
+                        "avr_score": 150.0,
+                        "clip_rate": 0.0,
+                        "contig_length": 199,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 405.53,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 538,
+                        "num_rev_reads": 0
+                    },
+                    "swap3:0": {
+                        "avr_score": 150.0,
+                        "clip_rate": 0.0,
+                        "contig_length": 199,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 405.53,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 538,
+                        "num_rev_reads": 0
+                    },
+                    "swap3:1": {
+                        "avr_score": 150.0,
+                        "clip_rate": 0.0,
+                        "contig_length": 299,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 269.9,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 538,
+                        "num_rev_reads": 0
+                    }
+                },
+                "bad_alignment_pct": 0.0,
                 "breakpoints": {
-                    "REF-1-1350-1501_": {
-                        "DP": 596,
-                        "GL": {
-                            "REF/REF": -Infinity,
-                            "REF/S1": -437.4450589256945,
-                            "S1/S1": -Infinity
+                    "_ref-chrC:1698-1699": {
+                        "counts": {
+                            "alleles": {
+                                "REF": 266,
+                                "swap3:1": 266
+                            },
+                            "edges": {
+                                "chrC:1501-1697:CGGAGATACCCTCTGTCTCCGCTAACATTTCCCCGCGGACAAAATTTGTCGGCTGGGAGGAATAGGTGCAAACGCATAATATACCCCTCTTACTTTTTGTTAGGGTCTAGTCCGAATCTAAAAAATGACTAAGGACTCTCAGAGTGATGGATATATGCCTCGCGACGCCGATCTGTGCTTATGTCGCAGCTTTGGCATCAAACCAGTTTCACATACCCTGCCTAAAAGATTCCCATACTGCGAAATCGCAAGATTGTACAAGTTGTAGTCTGTGCGCCAGCGTGAGCACGGCACTCG_ref-chrC:1698-1699": 266,
+                                "ref-chrC:1501-1697_ref-chrC:1698-1699": 266
+                            }
                         },
-                        "GT": "REF/S1",
-                        "allele_fractions": [
-                            0.5,
-                            0.5
-                        ]
+                        "gt": {
+                            "GL": {
+                                "REF/REF": -462.35,
+                                "REF/swap3:1": -7.437,
+                                "swap3:1/swap3:1": -462.35
+                            },
+                            "GT": "REF/swap3:1",
+                            "allele_fractions": [
+                                0.5,
+                                0.5
+                            ],
+                            "coverage_test_pvalue": 0.4427,
+                            "num_reads": 532
+                        }
                     },
-                    "_REF-3-1698-1849": {
-                        "DP": 596,
-                        "GL": {
-                            "REF/REF": -Infinity,
-                            "REF/S1": -437.4450589256945,
-                            "S1/S1": -Infinity
+                    "ref-chrC:1350-1500_": {
+                        "counts": {
+                            "alleles": {
+                                "REF": 238,
+                                "swap3:1": 238
+                            },
+                            "edges": {
+                                "ref-chrC:1350-1500_chrC:1501-1697:CGGAGATACCCTCTGTCTCCGCTAACATTTCCCCGCGGACAAAATTTGTCGGCTGGGAGGAATAGGTGCAAACGCATAATATACCCCTCTTACTTTTTGTTAGGGTCTAGTCCGAATCTAAAAAATGACTAAGGACTCTCAGAGTGATGGATATATGCCTCGCGACGCCGATCTGTGCTTATGTCGCAGCTTTGGCATCAAACCAGTTTCACATACCCTGCCTAAAAGATTCCCATACTGCGAAATCGCAAGATTGTACAAGTTGTAGTCTGTGCGCCAGCGTGAGCACGGCACTCG": 238,
+                                "ref-chrC:1350-1500_ref-chrC:1501-1697": 238
+                            }
                         },
-                        "GT": "REF/S1",
-                        "allele_fractions": [
-                            0.5,
-                            0.5
-                        ]
+                        "gt": {
+                            "GL": {
+                                "REF/REF": -420.65,
+                                "REF/swap3:1": -10.802,
+                                "swap3:1/swap3:1": -420.65
+                            },
+                            "GT": "REF/swap3:1",
+                            "allele_fractions": [
+                                0.5,
+                                0.5
+                            ],
+                            "coverage_test_pvalue": 0.0044933,
+                            "num_reads": 476
+                        }
                     }
                 },
-                "num_support": 2,
-                "otherGT": {
-                    "REF/REF": {
-                        "num_unsupport": 2
+                "edges": {
+                    "ref-chrC:1350-1500_chrC:1501-1697:CGGAGATACCCTCTGTCTCCGCTAACATTTCCCCGCGGACAAAATTTGTCGGCTGGGAGGAATAGGTGCAAACGCATAATATACCCCTCTTACTTTTTGTTAGGGTCTAGTCCGAATCTAAAAAATGACTAAGGACTCTCAGAGTGATGGATATATGCCTCGCGACGCCGATCTGTGCTTATGTCGCAGCTTTGGCATCAAACCAGTTTCACATACCCTGCCTAAAAGATTCCCATACTGCGAAATCGCAAGATTGTACAAGTTGTAGTCTGTGCGCCAGCGTGAGCACGGCACTCG": {
+                        "clip_rate": 0.0,
+                        "contig_length": 448,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 99.75,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 588,
+                        "num_rev_reads": 0
                     },
-                    "S1/S1": {
-                        "num_unsupport": 2
+                    "source_ref-chrC:1350-1500": {
+                        "clip_rate": 0.0,
+                        "contig_length": 152,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 897.95,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 1200,
+                        "num_rev_reads": 0
                     }
                 },
-                "read_counts_by_edge": {
-                    "ALT-1-1501-1697_REF-3-1698-1849": 298,
-                    "REF-1-1350-1501_ALT-1-1501-1697": 298,
-                    "REF-1-1350-1501_REF-2-1501-1698": 298,
-                    "REF-2-1501-1698_REF-3-1698-1849": 298
-                }
+                "gt": {
+                    "GL": {
+                        "REF/REF": -420.65,
+                        "REF/swap3:1": -7.437,
+                        "swap3:1/swap3:1": -420.65
+                    },
+                    "GT": "REF/swap3:1",
+                    "allele_fractions": [
+                        0.5,
+                        0.5
+                    ],
+                    "filter": "PASS",
+                    "num_reads": 1008
+                },
+                "mean_graph": 352.48,
+                "mean_linear": null,
+                "median_graph": 351.0,
+                "median_linear": 0.0,
+                "multi_read": 0,
+                "nodes": {
+                    "chrC:1501-1697:CGGAGATACCCTCTGTCTCCGCTAACATTTCCCCGCGGACAAAATTTGTCGGCTGGGAGGAATAGGTGCAAACGCATAATATACCCCTCTTACTTTTTGTTAGGGTCTAGTCCGAATCTAAAAAATGACTAAGGACTCTCAGAGTGATGGATATATGCCTCGCGACGCCGATCTGTGCTTATGTCGCAGCTTTGGCATCAAACCAGTTTCACATACCCTGCCTAAAAGATTCCCATACTGCGAAATCGCAAGATTGTACAAGTTGTAGTCTGTGCGCCAGCGTGAGCACGGCACTCG": {
+                        "clip_rate": 0.0,
+                        "contig_length": 297,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 146.51,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 588,
+                        "num_rev_reads": 0
+                    },
+                    "ref-chrC:1350-1500": {
+                        "clip_rate": 0.0,
+                        "contig_length": 151,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 311.76,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 1200,
+                        "num_rev_reads": 0
+                    },
+                    "source": {
+                        "clip_rate": 0.0,
+                        "contig_length": 1,
+                        "gap_rate": 0.0,
+                        "match_base_depth": 150010.0,
+                        "mismatch_rate": 0.0,
+                        "num_fwd_reads": 1604,
+                        "num_rev_reads": 0
+                    }
+                },
+                "paired_read": 402,
+                "problematic_graph": 0,
+                "problematic_linear": 1202,
+                "single_read": 800,
+                "variance_graph": 439.61,
+                "variance_linear": 0.0
             }
-        },
-        "sequencenames": [
-            "REF",
-            "S1"
-        ]
+        }
     }
 ]

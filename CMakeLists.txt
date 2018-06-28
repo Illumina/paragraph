@@ -29,10 +29,9 @@ include(configureFiles)
 include(FindZLIB)
 include(GetHtslib)
 include(GetGoogleTest)
-include(GetProtobuf)
+include(GetGraphTools)
 include(GetSpdlog)
 
-include_directories(${CMAKE_BINARY_DIR}/src/protobuf)
 include_directories(${GRM_SOURCE_DIR}/external/src/c++/include)
 include_directories(${GRM_SOURCE_DIR}/external/jsoncpp)
 include_directories(${GRM_SOURCE_DIR}/external/klib)
@@ -62,15 +61,14 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
 # make libraries first
-add_subdirectory (src/protobuf)
 add_subdirectory (src/c++/lib)
 add_subdirectory (external)
 
-add_library(grm STATIC $<TARGET_OBJECTS:grmpy_common> $<TARGET_OBJECTS:proto> $<TARGET_OBJECTS:external>)
+add_library(grm STATIC $<TARGET_OBJECTS:grmpy_common> $<TARGET_OBJECTS:external>)
 set(GRM_LIBRARY grm)
 
 set(GRM_EXTERNAL_LIBS ${HTSLIB_LIBRARY}
-                      ${PROTOBUF_LIBRARIES}
+                      ${GRAPHTOOLS_LIBRARY}
                       ${CMAKE_THREAD_LIBS_INIT}
                       ${Boost_LIBRARIES}
                       ${BZIP2_LIBRARIES}
@@ -120,7 +118,6 @@ install (DIRECTORY "${CMAKE_SOURCE_DIR}/src/c++/include/" DESTINATION include)
 install (FILES "${CMAKE_BINARY_DIR}/include/grm/Version.hh" DESTINATION include/grm)
 install (DIRECTORY "${CMAKE_SOURCE_DIR}/external/gssw" DESTINATION include FILES_MATCHING PATTERN "*.h")
 install (DIRECTORY "${CMAKE_SOURCE_DIR}/external/jsoncpp/json" DESTINATION include)
-install (DIRECTORY "${CMAKE_BINARY_DIR}/src/protobuf/" DESTINATION include FILES_MATCHING PATTERN "*.h")
 
 # install docs
 install (DIRECTORY "${CMAKE_SOURCE_DIR}/doc/" DESTINATION doc)

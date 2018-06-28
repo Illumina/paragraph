@@ -41,10 +41,10 @@ using std::vector;
 
 namespace genotyping
 {
-GenotypingParameters::GenotypingParameters(const vector<string>& _allele_names)
-    : ploidy_(2)
-    , num_alleles(_allele_names.size())
-    , coverage_test_cutoff(0.00001)
+GenotypingParameters::GenotypingParameters(const vector<string>& _allele_names, unsigned int ploidy)
+    : ploidy_(ploidy)
+    , num_alleles(static_cast<const unsigned int>(_allele_names.size()))
+    , coverage_test_cutoff(-1.0)
     , allele_names(_allele_names)
     , min_overlap_bases(16)
     , reference_allele("REF")
@@ -95,7 +95,7 @@ void GenotypingParameters::setFromJson(Json::Value& param_json)
         auto& field = param_json[key];
         if (key == "min_overlap_bases")
         {
-            min_overlap_bases = field.asInt();
+            min_overlap_bases = field.asUInt();
         }
         if (key == "coverage_test_cutoff")
         {
@@ -175,7 +175,7 @@ vector<int> GenotypingParameters::alleleNameConversionIndex(Json::Value& param_j
         auto it = std::find(allele_names.begin(), allele_names.end(), key.asString());
         if (it != allele_names.end())
         {
-            int dist = it - allele_names.begin();
+            const int dist = static_cast<int>(it - allele_names.begin());
             conversion_index.push_back(dist);
         }
         else
@@ -192,7 +192,7 @@ void GenotypingParameters::setAlleleErrorRate(Json::Value& param_json, vector<in
     auto it_ref = std::find(allele_names.begin(), allele_names.end(), reference_allele);
     if (it_ref != allele_names.end())
     {
-        size_t ref_index = it_ref - allele_names.begin();
+        const size_t ref_index = (size_t)(it_ref - allele_names.begin());
         allele_error_rates[ref_index] = reference_allele_error_rate;
     }
     size_t index = 0;
@@ -235,8 +235,8 @@ void GenotypingParameters::setGenotypeFractions(Json::Value& param_json, vector<
         GenotypeVector new_gt;
         for (auto& g : gv)
         {
-            auto new_index = conversion_index[g];
-            if (new_index != -1)
+            const auto new_index = (size_t)conversion_index[g];
+            if (new_index != (size_t)-1)
             {
                 new_gt.push_back(new_index);
             }

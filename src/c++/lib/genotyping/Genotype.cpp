@@ -34,11 +34,16 @@
  */
 
 #include "genotyping/Genotype.hh"
+#include "common/StringUtil.hh"
+#include <boost/algorithm/string/join.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
 #include <algorithm>
 #include <cassert>
 #include <functional>
 
+using boost::adaptors::transformed;
+using boost::algorithm::join;
 using std::string;
 using std::vector;
 
@@ -66,11 +71,12 @@ string Genotype::toString() const
     string gt_str;
     if (gt.empty())
     {
-        gt_str = "./.";
+        gt_str = "."; // TODO: change this for haploid
     }
     else
     {
-        gt_str = std::to_string(gt[0]) + "/" + std::to_string(gt[1]);
+        auto str = static_cast<std::string (*)(int)>(std::to_string);
+        gt_str = join(gt | transformed(str), "/");
     }
     return gt_str;
 }
@@ -84,7 +90,8 @@ string Genotype::toString(vector<string> const& allele_names) const
     }
     else
     {
-        gt_str = allele_names[gt[0]] + "/" + allele_names[gt[1]];
+        auto al = [&allele_names](int g) { return allele_names[g]; };
+        gt_str = join(gt | transformed(al), "/");
     }
     return gt_str;
 }
@@ -139,17 +146,25 @@ Json::Value Genotype::toJson(vector<string> const& allele_names) const
         json_result["GL"] = Json::Value();
         for (size_t i = 0; i < gl.size(); ++i)
         {
-            string gl_str = allele_names[gl_name[i][0]] + "/" + allele_names[gl_name[i][1]];
+            string gl_str = allele_names[gl_name[i][0]];
+            for (size_t j = 1; j < gl_name[i].size(); j++)
+            {
+                gl_str += "/" + allele_names[gl_name[i][j]];
+            }
             json_result["GL"][gl_str] = gl[i];
         }
     }
 
     if (!allele_fractions.empty())
     {
-        json_result["allele_fractions"] = Json::arrayValue;
-        for (auto& allele_fraction : allele_fractions)
+        json_result["allele_fractions"] = Json::objectValue;
+
+        assert(allele_names.size() == allele_fractions.size());
+        for (size_t allele = 0; allele < allele_fractions.size(); ++allele)
         {
-            json_result["allele_fractions"].append(allele_fraction);
+            const std::string& allele_name = allele_names[allele];
+            const double& allele_fraction = allele_fractions[allele];
+            json_result["allele_fractions"][allele_name] = allele_fraction;
         }
     }
     if (!filter.empty())

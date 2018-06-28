@@ -54,9 +54,9 @@ namespace detail
     class ScopeEndCallBase
     {
     public:
-        virtual ~ScopeEndCallBase() {}
+        virtual ~ScopeEndCallBase() = default;
 
-        operator bool() const { return false; }
+        explicit operator bool() const { return false; }
     };
 
     /**
@@ -65,7 +65,6 @@ namespace detail
     template <typename FuncT> class ScopeEndCall : public ScopeEndCallBase
     {
         FuncT f_;
-        ScopeEndCall();
 
     public:
         explicit ScopeEndCall(FuncT f)
@@ -73,7 +72,7 @@ namespace detail
         {
         }
 
-        ~ScopeEndCall() { f_(std::uncaught_exception()); }
+        ~ScopeEndCall() override { f_(std::uncaught_exception()); }
     };
 
     /**
@@ -103,10 +102,9 @@ template <typename Lock> class unlock_guard
 private:
     Lock& l;
 
+public:
     unlock_guard(unlock_guard&) = delete;
     unlock_guard& operator=(unlock_guard&) = delete;
-
-public:
     explicit unlock_guard(Lock& m_)
         : l(m_)
     {
@@ -116,7 +114,7 @@ public:
     ~unlock_guard() { l.lock(); }
 };
 
-template <bool crashOnExceptions> class BasicThreadPool : std::vector<std::thread>
+template <bool crashOnExceptions> class BasicThreadPool
 {
     struct Executor
     {
@@ -126,7 +124,8 @@ template <bool crashOnExceptions> class BasicThreadPool : std::vector<std::threa
         {
         }
         virtual void execute() = 0;
-        virtual ~Executor() {}
+        virtual ~Executor() = default;
+
         const std::size_t maxThreads_;
         const int request_;
         Executor* next_ = 0;
@@ -153,15 +152,16 @@ template <bool crashOnExceptions> class BasicThreadPool : std::vector<std::threa
 
     std::exception_ptr firstThreadException_;
 
-    typedef std::vector<std::thread> BaseType;
-    typedef BaseType::size_type size_type;
+    typedef std::vector<std::thread> ThreadVector;
+    typedef ThreadVector::size_type size_type;
+    ThreadVector threads_{};
 
 public:
     /**
      * \return number of threads in th pool + 1. This is because the thread calling execute()
      *         is counted as a worker.
      */
-    std::size_t size() const { return BaseType::size() + 1; }
+    std::size_t size() const { return threads_.size() + 1; }
 
     /**
      * \brief clears and repopulates ThreadPool. Use at your own risk. The only reasonable situation you'd might
@@ -176,7 +176,7 @@ public:
         // thread calling the execute will be one of the workers
         while (--newSize)
         {
-            push_back(std::thread(&BasicThreadPool::threadFunc, this));
+            threads_.push_back(std::thread(&BasicThreadPool::threadFunc, this));
         }
     }
 
@@ -226,10 +226,10 @@ public:
             virtual void execute() { func_(); }
         } executor(func, threads);
 
-        LOG()->debug("created {}", executor);
+        LOG()->trace("created {}", executor);
 
         enque(&executor);
-        LOG()->debug("enqued {}", executor);
+        LOG()->trace("enqued {}", executor);
         stateChangedCondition_.notify_all();
 
         while (!terminateRequested_ && (!executor.complete_ || executor.threadsIn_))
@@ -242,7 +242,7 @@ public:
         }
 
         unque(&executor);
-        LOG()->debug("unqued {}", executor);
+        LOG()->trace("unqued {}", executor);
 
         if (firstThreadException_)
         {
@@ -254,7 +254,7 @@ public:
     /**
      * \brief Executes func on requested number of size() threads.
      **/
-    template <typename F> void execute(F func) { execute(func, size()); }
+    template <typename F> void execute(F func) { execute(func, static_cast<const unsigned int>(size())); }
 
 private:
     void clear()
@@ -267,8 +267,8 @@ private:
             terminateRequested_ = true;
             stateChangedCondition_.notify_all();
         }
-        std::for_each(begin(), end(), [](std::thread& t) { t.join(); });
-        BaseType::clear();
+        std::for_each(threads_.begin(), threads_.end(), [](std::thread& t) { t.join(); });
+        threads_.clear();
         terminateRequested_ = false;
         threadsReady_ = 0;
     }
@@ -308,18 +308,18 @@ private:
         Executor* ret = 0;
         for (Executor* e = head_; 0 != e; e = e->next_)
         {
-            LOG()->debug("checking {}", *e);
+            // LOG()->trace("checking {}", *e);
 
             if (!e->complete_ && e->threadsIn_ < e->maxThreads_ && THREAD_LAST_PROCESSED_REQUEST_ < e->request_
                 && (!ret || ret->request_ > e->request_))
             {
                 ret = e;
-                LOG()->debug("found {}", *e);
+                // LOG()->trace("found {}", *e);
             }
         }
         if (!ret)
         {
-            LOG()->debug("found nothing");
+            // LOG()->trace("found nothing");
         }
         return ret;
     }

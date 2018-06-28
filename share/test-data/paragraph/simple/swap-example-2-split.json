@@ -1,0 +1,139 @@
+{
+    "edges": [
+        {
+            "from": "source",
+            "name": "source_ref-chr5:70243962-70244111",
+            "to": "ref-chr5:70243962-70244111"
+        },
+        {
+            "from": "ref-chr5:70243962-70244111",
+            "name": "ref-chr5:70243962-70244111_ref-chr5:70244112-70244113",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:70244112-70244113"
+        },
+        {
+            "from": "ref-chr5:70243962-70244111",
+            "name": "ref-chr5:70243962-70244111_chr5:70244112-70244113:AT",
+            "sequences": [
+                "ALT"
+            ],
+            "to": "chr5:70244112-70244113:AT"
+        },
+        {
+            "from": "ref-chr5:70244112-70244113",
+            "name": "ref-chr5:70244112-70244113_ref-chr5:70244114-70244115",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:70244114-70244115"
+        },
+        {
+            "from": "chr5:70244112-70244113:AT",
+            "name": "chr5:70244112-70244113:AT_ref-chr5:70244114-70244115",
+            "sequences": [
+                "ALT"
+            ],
+            "to": "ref-chr5:70244114-70244115"
+        },
+        {
+            "from": "ref-chr5:70244114-70244115",
+            "name": "ref-chr5:70244114-70244115_ref-chr5:70244116-70244116",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:70244116-70244116"
+        },
+        {
+            "from": "ref-chr5:70244114-70244115",
+            "name": "ref-chr5:70244114-70244115_chr5:70244116-70244116:G",
+            "sequences": [
+                "ALT"
+            ],
+            "to": "chr5:70244116-70244116:G"
+        },
+        {
+            "from": "ref-chr5:70244116-70244116",
+            "name": "ref-chr5:70244116-70244116_ref-chr5:70244117-70244266",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:70244117-70244266"
+        },
+        {
+            "from": "chr5:70244116-70244116:G",
+            "name": "chr5:70244116-70244116:G_ref-chr5:70244117-70244266",
+            "sequences": [
+                "ALT"
+            ],
+            "to": "ref-chr5:70244117-70244266"
+        },
+        {
+            "from": "ref-chr5:70244117-70244266",
+            "name": "ref-chr5:70244117-70244266_sink",
+            "to": "sink"
+        }
+    ],
+    "model_name": "Graph from simple/swap-example-2-split.vcf",
+    "nodes": [
+        {
+            "name": "source",
+            "sequence": "NNNNNNNNNN"
+        },
+        {
+            "name": "ref-chr5:70243962-70244111",
+            "reference": "chr5:70243962-70244111"
+        },
+        {
+            "name": "ref-chr5:70244112-70244113",
+            "reference": "chr5:70244112-70244113"
+        },
+        {
+            "name": "chr5:70244112-70244113:AT",
+            "position": "chr5:70244112-70244113",
+            "sequence": "AT"
+        },
+        {
+            "name": "ref-chr5:70244114-70244115",
+            "reference": "chr5:70244114-70244115"
+        },
+        {
+            "name": "ref-chr5:70244116-70244116",
+            "reference": "chr5:70244116-70244116"
+        },
+        {
+            "name": "chr5:70244116-70244116:G",
+            "position": "chr5:70244116-70244116",
+            "sequence": "G"
+        },
+        {
+            "name": "ref-chr5:70244117-70244266",
+            "reference": "chr5:70244117-70244266"
+        },
+        {
+            "name": "sink",
+            "sequence": "NNNNNNNNNN"
+        }
+    ],
+    "paths": [
+        {
+            "nodes": [
+                "ref-chr5:70243962-70244111",
+                "ref-chr5:70244112-70244113",
+                "ref-chr5:70244114-70244115",
+                "ref-chr5:70244116-70244116",
+                "ref-chr5:70244117-70244266"
+            ],
+            "path_id": "REF|1",
+            "sequence": "REF"
+        }
+    ],
+    "sequencenames": [
+        "ALT",
+        "REF"
+    ],
+    "target_regions": [
+        "chr5:70243962-70244266"
+    ]
+}

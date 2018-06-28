@@ -51,7 +51,10 @@ def main():
             node_label = str(i) + ": " + node["reference"]
         else:
             node_shape = "box"
-            node_label = str(i) + ": " + node["sequence"]
+            node_sequence = node["sequence"]
+            if len(node_sequence) > 30:
+                node_sequence = node_sequence[:14] + "..." + node_sequence[-14:]
+            node_label = str(i) + ": " + node_sequence
 
         if "sequences" in node:
             node_label += " (%s)" % str(node["sequences"])

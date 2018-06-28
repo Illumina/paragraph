@@ -37,7 +37,7 @@
 #include "genotyping/Genotype.hh"
 #include "genotyping/GenotypingParameters.hh"
 #include "genotyping/SampleInfo.hh"
-#include "graphs/WalkableGraph.hh"
+#include "graphcore/Graph.hh"
 #include "json/json.h"
 
 #include <map>
@@ -64,12 +64,12 @@ public:
      * Set the graph we genotype on
      * @param graph our graph to genotype
      */
-    void reset(std::shared_ptr<graphs::WalkableGraph> graph);
+    void reset(graphtools::Graph const* graph);
 
     /**
      * @return the graph (asserts if no graph is set)
      */
-    graphs::WalkableGraph const& getGraph() const;
+    graphtools::Graph const& getGraph() const;
 
     /**
      * Add a alignment and depth information for a sample
@@ -142,6 +142,11 @@ protected:
      * @return pair of expected mean depth and read length
      */
     std::pair<double, int> const& getDepthAndReadlength(size_t sample_index) const;
+
+    /**
+     * Get sex integer for a sample
+     */
+    SampleInfo::Sex getSampleSex(size_t sample_index) const;
 
 private:
     /**

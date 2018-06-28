@@ -18,5 +18,4 @@
 # Peter Krusche <pkrusche@illumina.com>
 #
 
-from grm.vcfgraph.haploidvcf import HaploidVCFGraph
-from grm.vcfgraph.allelegraph import AlleleGraph
+from grm.vcfgraph.vcfgraph import VCFGraph, NoVCFRecordsException

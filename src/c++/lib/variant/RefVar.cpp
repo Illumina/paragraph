@@ -36,7 +36,6 @@
 
 #include "variant/RefVar.hh"
 #include "common/Error.hh"
-#include "common/Genetics.hh"
 
 #include <algorithm>
 #include <boost/concept_check.hpp>
@@ -117,8 +116,8 @@ void leftShift(std::string const& ref, RefVar& rv, int64_t pos_min)
 {
     pos_min = std::max(pos_min, (int64_t)0);
 
-    trimLeft(ref, rv);
-    trimRight(ref, rv);
+    trimLeft(ref.substr(static_cast<unsigned long>(rv.start), static_cast<unsigned long>(rv.end - rv.start + 1)), rv);
+    trimRight(ref.substr(static_cast<unsigned long>(rv.start), static_cast<unsigned long>(rv.end - rv.start + 1)), rv);
 
     int64_t reflen = rv.end - rv.start + 1;
 
@@ -170,14 +169,14 @@ void leftShift(std::string const& ref, RefVar& rv, int64_t pos_min)
             done = false;
         }
     }
-    trimLeft(ref, rv);
-    trimRight(ref, rv);
+    trimLeft(ref.substr(static_cast<unsigned long>(rv.start), static_cast<unsigned long>(rv.end - rv.start + 1)), rv);
+    trimRight(ref.substr(static_cast<unsigned long>(rv.start), static_cast<unsigned long>(rv.end - rv.start + 1)), rv);
 }
 
 void rightShift(std::string const& ref, RefVar& rv, int64_t pos_max)
 {
-    trimLeft(ref, rv);
-    trimRight(ref, rv);
+    trimLeft(ref.substr(static_cast<unsigned long>(rv.start), static_cast<unsigned long>(rv.end - rv.start + 1)), rv);
+    trimRight(ref.substr(static_cast<unsigned long>(rv.start), static_cast<unsigned long>(rv.end - rv.start + 1)), rv);
 
     int64_t reflen = rv.end - rv.start + 1;
     if (reflen < 0 && rv.alt.size() == 0)
@@ -230,8 +229,8 @@ void rightShift(std::string const& ref, RefVar& rv, int64_t pos_max)
         }
     }
 
-    trimLeft(ref, rv);
-    trimRight(ref, rv);
+    trimLeft(ref.substr(static_cast<unsigned long>(rv.start), static_cast<unsigned long>(rv.end - rv.start + 1)), rv);
+    trimRight(ref.substr(static_cast<unsigned long>(rv.start), static_cast<unsigned long>(rv.end - rv.start + 1)), rv);
 }
 
 void leftShift(FastaFile const& f, const char* chr, RefVar& rv, int64_t pos_min)
@@ -664,89 +663,6 @@ int toPrimitives(FastaFile const& f, const char* chr, RefVar const& rv, std::lis
 }
 
 /**
- * @brief Decompose a RefVar into primitive variants (subst / ins / del) by means of realigning
- *
- * @param f reference sequence fasta
- * @param chr the chromosome to use
- * @param rv the RefVar record
- * @param snps the number of snps
- * @param ins the number of insertions
- * @param dels the number of deletions
- * @param homref the number of calls with no variation
- */
-void countRefVarPrimitives(
-    FastaFile const& f, const char* chr, variant::RefVar const& rv, size_t& snps, size_t& ins, size_t& dels,
-    size_t& homref, size_t& transitions, size_t& transversions)
-{
-    int64_t rstart = rv.start, rend = rv.end, reflen = rend - rstart + 1;
-    int64_t altlen = (int64_t)rv.alt.size();
-
-    std::string refseq;
-    std::string altseq(rv.alt);
-
-    if (reflen <= 0)
-    {
-        if (altlen > 0)
-        {
-            ins += altlen;
-        }
-        else
-        {
-            ++homref;
-        }
-        return;
-    }
-    // reflen > 0
-    refseq = f.query(chr, rstart, rend);
-
-    // from the left, split off SNPs / matches
-    size_t pos = 0;
-    bool isValidSnv(false);
-
-    while (reflen > 0 && altlen > 0)
-    {
-        char r = refseq[pos];
-        char a = altseq[pos];
-        if (r != a)
-        {
-            ++snps;
-            const bool isTransversion(snvIsTransversion(r, a, isValidSnv));
-
-            if (isValidSnv)
-            {
-                if (isTransversion)
-                {
-                    ++transversions;
-                }
-                else
-                {
-                    ++transitions;
-                }
-            }
-        }
-        else
-        {
-            ++homref;
-        }
-        ++pos;
-        --reflen;
-        --altlen;
-    }
-    // now either reflen == 0 or altlen == 0
-    if (reflen > 0)
-    {
-        // del
-        dels += reflen;
-    }
-    if (altlen > 0)
-    {
-        // ins
-        ins += altlen;
-    }
-    // else nothing left
-}
-
-/**
  * Convert a CIGAR string to a list of variants
  *
  * @param ref reference sequence string
@@ -793,7 +709,7 @@ std::list<RefVar> cigarToRefVar(
         switch (op)
         {
         case 'S':
-            refpos += count;
+            altpos += count;
             break;
         case 'M': // 'M'
         case '=': // '='
@@ -842,31 +758,24 @@ std::list<RefVar> cigarToRefVar(
         }
         case 'I': // 'I' -> REF insertion in ALT = ALT deletion
             rv.start = (int64_t)refpos;
-            rv.end = (int64_t)(refpos + count - 1);
-            rv.alt = "";
-            rv.flags = (int64_t)altpos;
-            result.push_back(rv);
-            // shift the reference position
-            refpos += count;
-            break;
-        case 'D': // 'D' -> REF deletion = ALT insertion;
-            // insert before reference pos
-
-            // reference length = end - start + 1 == refpos-1 - refpos + 1 == 0
-            // this is interpreted as an insertion before pos.
-            rv.start = (int64_t)refpos;
             rv.end = (int64_t)(refpos - 1);
             rv.alt = altseq.substr(altpos, count);
             rv.flags = (int64_t)altpos;
             result.push_back(rv);
+            // shift the reference position
             altpos += count;
+            break;
+        case 'D': // 'D' -> REF deletion = ALT insertion;
+            // insert before reference pos
+            rv.start = (int64_t)refpos;
+            rv.end = (int64_t)(refpos + count - 1);
+            rv.alt = "";
+            rv.flags = (int64_t)altpos;
+            result.push_back(rv);
+            refpos += count;
             break;
         default:
             error("Unknown CIGAR operation: %c", op);
-        }
-        if (refpos >= refseq.size() || altpos > altseq.size())
-        {
-            break;
         }
     }
     ref_left = (int)(refseq.size() - refpos);

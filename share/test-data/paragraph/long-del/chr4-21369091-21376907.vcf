@@ -9,5 +9,6 @@
 ##ALT=<ID=DEL,Description="Deletion">
 ##ALT=<ID=INV,Description="Inversion">
 ##reference=hg19
+##contig=<ID=chr4,length=191154276>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	REF	ALT
 chr4	21369091	del-1	C	<DEL>	.	PASS	SVTYPE=DEL;END=21376907	GT	0	1

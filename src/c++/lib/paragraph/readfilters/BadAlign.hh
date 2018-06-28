@@ -35,20 +35,24 @@
 
 #include <algorithm>
 
-#include "graphs/GraphMapping.hh"
-#include "graphs/GraphMappingOperations.hh"
+#include "graphalign/GraphAlignmentOperations.hh"
 #include "paragraph/ReadFilter.hh"
 
 #include "common/Error.hh"
 
 namespace paragraph
 {
+
+using graphtools::Graph;
+using graphtools::GraphAlignment;
+using graphtools::decodeGraphAlignment;
+
 namespace readfilters
 {
     class BadAlign : public ReadFilter
     {
     public:
-        explicit BadAlign(graphs::WalkableGraph const* graph, double bad_align_frac)
+        explicit BadAlign(Graph const* graph, double bad_align_frac)
             : graph_(graph)
             , bad_align_frac_(bad_align_frac)
         {
@@ -57,15 +61,19 @@ namespace readfilters
 
         std::pair<bool, std::string> filterRead(common::Read const& r) override
         {
-            const graphs::GraphMapping mapping
-                = graphs::decodeFromString(r.graph_pos(), r.graph_cigar(), r.bases(), *graph_);
-            const auto query_aligned = mapping.querySpan() - mapping.queryClipped();
-            const bool is_bad = query_aligned < (int)round(bad_align_frac_ * (mapping.querySpan()));
+            const GraphAlignment mapping = decodeGraphAlignment(r.graph_pos(), r.graph_cigar(), graph_);
+            size_t query_clipped = 0;
+            for (auto const& aln : mapping)
+            {
+                query_clipped += aln.numClipped();
+            }
+            const auto query_aligned = mapping.queryLength() - query_clipped;
+            const bool is_bad = query_aligned < round(bad_align_frac_ * (mapping.queryLength()));
             return { is_bad, is_bad ? "bad_align" : "" };
         }
 
     private:
-        graphs::WalkableGraph const* graph_;
+        Graph const* graph_;
         double bad_align_frac_;
     };
 }

@@ -228,21 +228,6 @@ extern int
 toPrimitives(common::FastaFile const& f, const char* chr, RefVar const& rv, std::list<variant::RefVar>& vars);
 
 /**
- * @brief Decompose a RefVar into primitive variants (subst / ins / del) by means of realigning
- *
- * @param f reference sequence fasta
- * @param chr the chromosome to use
- * @param rv the RefVar record
- * @param snps the number of snps
- * @param ins the number of insertions
- * @param dels the number of deletions
- * @param homref the number of calls with no variation
- */
-void countRefVarPrimitives(
-    common::FastaFile const& f, const char* chr, variant::RefVar const& rv, size_t& snps, size_t& ins, size_t& dels,
-    size_t& homref, size_t& transitions, size_t& transversions);
-
-/**
  * Convert a list of RefVar records to allele strings
  */
 extern void

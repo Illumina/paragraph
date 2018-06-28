@@ -36,7 +36,7 @@
 
 #include "genotyping/Genotype.hh"
 #include "genotyping/SampleInfo.hh"
-#include "graphs/WalkableGraph.hh"
+#include "graphcore/Graph.hh"
 #include "json/json.h"
 
 #include <string>
@@ -67,7 +67,7 @@ public:
      * @param node_name name of node
      * @param forward true to use successor node/edges, false to use predecessors
      */
-    BreakpointStatistics(graphs::WalkableGraph const& wgraph, std::string const& node_name, bool forward);
+    BreakpointStatistics(graphtools::Graph const& graph, graphtools::NodeId node_name, bool forward);
 
     /**
      * Add edge counts from paragraph output
@@ -82,9 +82,25 @@ public:
     std::vector<std::string> const& edgeNames() const { return edge_names; }
 
     /**
-     * @return vector of allele names
+     * @return vector of canonical allele names (i.e. alleles which represent different
+     *         subsets of edges on the breakpoint)
      */
-    std::vector<std::string> const& alleleNames() const { return allele_names; }
+    std::vector<std::string> const& canonicalAlleleNames() const { return canonical_allele_names; }
+
+    /**
+     * @return vector of all allele names -- some alleles may be duplicated
+     */
+    std::vector<std::string> const& allAlleleNames() const { return all_allele_names; }
+
+    /**
+     * Get the canonical allele name for an allele
+     * @param alleleName name of allele on the graph
+     * @return the corresponding canonical allele name
+     */
+    std::string getCanonicalAlleleName(std::string const& alleleName) const
+    {
+        return allele_name_to_canonical_allele_name.at(alleleName);
+    }
 
 private:
     // edge to allele index and allele names
@@ -93,8 +109,10 @@ private:
     // order of edge and allele names for AlleleCounts arrays below
     std::vector<std::string> edge_names;
     std::map<std::string, size_t> edge_name_to_index;
-    std::vector<std::string> allele_names;
+    std::vector<std::string> canonical_allele_names;
     std::map<std::string, size_t> allele_name_to_index;
+    std::vector<std::string> all_allele_names;
+    std::map<std::string, std::string> allele_name_to_canonical_allele_name;
 
     // breakpoint count and genotype information for each sample
     AlleleCounts edge_counts; //  count by edge

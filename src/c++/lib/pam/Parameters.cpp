@@ -33,9 +33,11 @@
  *
  */
 
-#include "pam/Parameters.hh"
-#include "common/Error.hh"
 #include <fstream>
+
+#include "pam/Parameters.hh"
+
+#include "common/Error.hh"
 
 namespace pam
 {
@@ -47,9 +49,8 @@ void Parameters::load(
     reference_path_ = reference_path;
 
     Json::Value root;
-    Json::Reader reader;
     std::ifstream event_desc(event_path);
-    reader.parse(event_desc, root);
+    event_desc >> root;
 
     description_ = root;
 

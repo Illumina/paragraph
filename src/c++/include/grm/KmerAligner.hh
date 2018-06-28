@@ -35,13 +35,13 @@
 
 #pragma once
 
-#include <graphs/WalkableGraph.hh>
+#include <list>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "common/Read.hh"
-#include "graphs/Graph.hh"
+#include "graphcore/Graph.hh"
+#include "graphcore/Path.hh"
 
 namespace grm
 {
@@ -65,7 +65,7 @@ public:
      * @param g a graph
      * @param paths list of paths
      */
-    void setGraph(graphs::Graph const& g, Json::Value const& paths);
+    void setGraph(graphtools::Graph const* g, std::list<graphtools::Path> const& paths);
 
     /**
      * Align a read to the graph and update the graph_* fields.

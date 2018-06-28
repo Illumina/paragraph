@@ -14,5 +14,5 @@ python3 -mpylint --rcfile=${PARAGRAPH_SOURCE}/.pylintrc \
     ${PARAGRAPH_SOURCE}/src/python/test \
     ${PARAGRAPH_SOURCE}/src/python/bin 
 
-python3 -mpep8 --ignore=E126 --max-line-length=160 \
+python3 -mpep8 --ignore=E126,E226,E303,E402,E722 --max-line-length=160 \
     ${PARAGRAPH_SOURCE}/src/python

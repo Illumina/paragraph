@@ -112,37 +112,38 @@ $ ${PARAGRAPH}/bin/multigrmpy.py \
     -r ${PARAGRAPH}/share/test-data/genotyping_test_2/swaps.fa \
     -i ${PARAGRAPH}/share/test-data/genotyping_test_2/swaps.vcf \
     -m ${PARAGRAPH}/share/test-data/genotyping_test_2/samples.txt \
-    -o /tmp/paragraph-test \
-    --verbose
+    -o /tmp/paragraph-test 
 $ tree /tmp/paragraph-test
 ```
 
 ```
 /tmp/paragraph-test
-├── GraphTyping.log
-├── genotype.json.gz  # genotypes for our one sample
-└── variants.json  # full variant graphs, converted from swaps.vcf
+├── grmpy.log
+├── genotypes.json.gz  # genotypes and additional information for our one sample
+├── genotypes.vcf.gz   # genotypes in VCF format (only when input was also VCF)
+└── variants.json.gz  # full variant graphs, converted from swaps.vcf
 ```
 
-The first file to look at is the file `GraphTyping.log`:
+The first file to look at is the file `grmpy.log`:
 
 ```
-2017-11-24 16:08:12,022: Starting with these parameters: #...
-2017-11-24 16:08:12,022: Input is a vcf. Column3 will be recognized as ID.
-2017-11-24 16:08:12,041: chrA   1500    swap1   GCTGCCCCTT      CTAGTAACTT      .       PASS    .       GT      0/0
-
-2017-11-24 16:08:12,053: chrB   1500    swap2   AGGCCATACG      TCAGGTTGTCTTATGCTTGGCATCGTTCTT  .       PASS    .       GT      1/1
-
-2017-11-24 16:08:12,057: chrC   1500    swap3   CGCGTTGTAAGCTACCATATTCAATCTGTGCCAGGGATCGAGCCACAGGCACCGCTCAATCTCGCGGGAGATTGTGCAAAGAGTCTTACCTTTCGTCGACCTCCGCCTCGCTCGTGAATCTTGCGATCGATTGAAAGTCACGGGTAGAGTGATGTTCGGGCGAATCAGACAGGCAGATGCAATGGAGGTTCCCGGATAGT        CCGGAGATACCCTCTGTCTCCGCTAACATTTCCCCGCGGACAAAATTTGTCGGCTGGGAGGAATAGGTGCAAACGCATAATATACCCCTCTTACTTTTTGTTAGGGTCTAGTCCGAATCTAAAAAATGACTAAGGACTCTCAGAGTGATGGATATATGCCTCGCGACGCCGATCTGTGCTTATGTCGCAGCTTTGGCATCAAACCAGTTTCACATACCCTGCCTAAAAGATTCCCATACTGCGAAATCGCAAGATTGTACAAGTTGTAGTCTGTGCGCCAGCGTGAGCACGGCACTCGGT    .       PASS    .       GT      0/1
-
-2017-11-24 16:08:12,145: Done. Graph Json stored at:
-/tmp/paragraph-test/variants.json
-2017-11-24 16:08:12,145: Running multi-paragraph for graph read counts...
-2017-11-24 16:08:27,399: Finished genotyping. Merging output...
-2017-11-24 16:08:27,629: ParaGRAPH completed on 3 sites.
+[2018-05-30 19:08:01.057] [Genotyping] [11589850564992724888] [critical] Starting alignment for sample SWAPS (1/1)
+[2018-05-30 19:08:01.058] [Genotyping] [13762672856748146659] [critical] Starting alignment for sample SWAPS (1/1)
+[2018-05-30 19:08:01.058] [Genotyping] [14316483420521963862] [critical] Starting alignment for sample SWAPS (1/1)
+[2018-05-30 19:08:01.059] [Genotyping] [17003373142924278091] [critical] Starting alignment for sample SWAPS (1/1)
+[2018-05-30 19:08:01.059] [Genotyping] [9576328718556000728] [critical] Starting alignment for sample SWAPS (1/1)
+[2018-05-30 19:08:01.059] [Genotyping] [14181681436824356172] [critical] Starting alignment for sample SWAPS (1/1)
+[2018-05-30 19:08:01.060] [Genotyping] [4886869389785116662] [critical] Starting alignment for sample SWAPS (1/1)
+[2018-05-30 19:08:01.060] [Genotyping] [6672028834885690059] [critical] Starting alignment for sample SWAPS (1/1)
+[2018-05-30 19:08:09.431] [Genotyping] [11589850564992724888] [critical] Sample SWAPS: Alignment 1 / 3 finished
+[2018-05-30 19:08:09.569] [Genotyping] [13762672856748146659] [critical] Sample SWAPS: Alignment 2 / 3 finished
+[2018-05-30 19:08:09.758] [Genotyping] [14316483420521963862] [critical] Sample SWAPS: Alignment 3 / 3 finished
+[2018-05-30 19:08:09.760] [Genotyping] [6672028834885690059] [critical] Genotyping finished for graph 2 / 3
+[2018-05-30 19:08:09.760] [Genotyping] [11589850564992724888] [critical] Genotyping finished for graph 1 / 3
+[2018-05-30 19:08:09.760] [Genotyping] [14181681436824356172] [critical] Genotyping finished for graph 3 / 3
 ```
 
-If everything worked well, the genotype JSON files will give the graph used
+If everything worked well, the genotypes JSON file will give the graph used
 for each candidate variant as well as genotypes and Hardy-Weinberg p-values
 for each sample. 
 
@@ -175,7 +176,25 @@ The output JSON file contains more information which can be used to link
 events back to the original VCF file, genotype likelihoods, and also to get the
 genotypes of the individual breakpoints.
 
+If the input is a VCF file, then the output folder will contain an updated
+VCF file which allows us to quickly compare the original genotypes from the
+input VCF, and those obtained by grmpy:
+
+```
+bcftools query -f '[%GT\t%OLD_GT]\n' /tmp/paragraph-test/genotypes.vcf.gz
+```
+```
+0/0     0/0
+1/1     1/1
+0/1     0/1
+```
+
+We can see that the genotypes match in our use case, as expected.
+
 In [doc/multiple-samples.md](doc/multiple-samples.md), we show how ParaGRAPH can be run on multiple samples with snakemake.
+[Doc/genotyping-parameters.md](doc/genotyping-parameters.md) contains
+additional information on how to adjust parameters for genotyping and variant
+filtering.
 
 ## <a name='SystemRequirements'></a>System Requirements
 
@@ -199,7 +218,7 @@ should be usable. We have tested using g++ and Clang on the following systems:
 
 ### <a name='Helperscripts'></a>Helper scripts
 
-All helper, wrappers, and conversion scripts are implemented in Python 3.4 (see
+All helper, wrappers, and conversion scripts are implemented in Python 3.6 (see
 [graph-tools.md](doc/graph-tools.md)). The following third-party packages are required:
 
 - Pysam (MIT license; https://github.com/pysam-developers/pysam),
@@ -232,26 +251,6 @@ The complete list of requrements can be found in [requirements.txt](requirements
   export BOOST_ROOT=$HOME/boost_1_65_0_install
   # Now run cmake + build as shown below.
   ```
-
-- [Protobuf](https://github.com/google/protobuf) version 3.3.0 is required. For convenience, we have included a
-  tarball of this release into the repository. Protobuf library is automatically built during the configuration
-  stage of the Cmake build process.
-
-  Protobuf's copyright: 2014, Google Inc. See
-  [https://github.com/google/protobuf/blob/master/LICENSE](https://github.com/google/protobuf/blob/master/LICENSE),
-  and also the LICENSE file inside [external/protobuf-cpp-3.3.0.tar.gz](external/protobuf-cpp-3.3.0.tar.gz).
-
-  If there are issues with compiling the bundled Protobuf library, CMake can be enabled to use a custom/pre-compiled
-  version of Protobuf by setting the installation prefix with `PROTOBUF_INSTALL_PATH` environment variable.
-
-  ```bash
-  export PROTOBUF_INSTALL_PATH=<your-protobuf-install-path>
-  # Now run cmake + build as shown below.
-  ```
-
-  The path given by `PROTOBUF_INSTALL_PATH` variable must point to an installation prefix as specified by the `--prefix`
-  option in the `configure.sh` script when configuring/building Protobuf. It is also possible to use `/usr` or 
-  `/usr/local` if you have a system-wide installation of this Protobuf version.
 
 - Recent versions of Google Test and Google Mock are required.
 
@@ -387,11 +386,12 @@ Alternatively, candidate SV events can be specified as vcf.
     chr1	161	test-del	TC	T	.	.	.
    ```
 
-*  **samples.txt**: Manifest that specifies some test BAM files. Columns need to be: ID, path, depth, read length. Tab delimited.
+*  **samples.txt**: Manifest that specifies some test BAM files. Required columns: ID, path, depth, read length. Optional column: sex. Tab delimited.
     ```
-    id path    depth   read length
-    sample1	sample1.bam 1   50
-    sample2	sample2.bam 1   50
+    id path    depth   read length  sex
+    sample1	sample1.bam 1   50  male
+    sample2	sample2.bam 1   50  female
+    sample3	sample2.bam 1   50  unknown
     ```
 
 *  **dummy.fa** a short dummy reference which only contains `chr1`

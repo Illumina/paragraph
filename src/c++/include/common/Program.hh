@@ -67,7 +67,7 @@ public:
     };
     Options();
     virtual ~Options() {}
-    Action parse(int argc, const char* const argv[]);
+    Action parse(const char* moduleName, int argc, const char* const argv[]);
     std::string usage() const;
     const std::string& logLevel() const { return logLevel_; }
     const std::string& logFile() const { return logFile_; }
@@ -106,9 +106,8 @@ template <class O> void run(void (*callback)(const O&), const char* moduleName, 
     try
     {
         O options;
-        const typename O::Action action = options.parse(argc, argv);
+        const typename O::Action action = options.parse(moduleName, argc, argv);
 
-        initLogging(moduleName, options.logFile().c_str(), options.logAsync(), options.logLevel().c_str());
         logger = LOG();
 
         if (O::RUN == action)

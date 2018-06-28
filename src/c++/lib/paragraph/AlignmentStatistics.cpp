@@ -34,56 +34,105 @@
  */
 
 #include "paragraph/AlignmentStatistics.hh"
-#include "graphs/GraphMappingOperations.hh"
+
+using graphtools::Alignment;
+using graphtools::GraphAlignment;
+using graphtools::NodeId;
 
 namespace paragraph
 {
 
-using graphs::GraphMapping;
-using graphs::NodeMapping;
 using std::map;
 using std::string;
 using std::vector;
 
-void AlignmentStatistics::addNodeMappingBases(const NodeMapping& node_mapping)
+/* Add mapping stats for a node. will count the read as forward / reverse and
+ * add all types of bases as mapped to the node */
+void AlignmentStatistics::addNodeMapping(
+    const Alignment& alignment, bool is_graph_reverse_strand, bool count_clipped_bases)
 {
-    num_match_bases += node_mapping.mapping.matched();
-    num_mismatch_bases += node_mapping.mapping.mismatched();
-    num_gap_bases += node_mapping.mapping.inserted() + node_mapping.mapping.deleted();
-}
+    num_match_bases += alignment.numMatched();
+    num_mismatch_bases += alignment.numMismatched();
+    num_gap_bases += alignment.numInserted() + alignment.numDeleted();
 
-void AlignmentStatistics::addNodeMapping(const NodeMapping& node_mapping, bool is_graph_reverse_strand)
-{
-    addNodeMappingBases(node_mapping);
-    is_graph_reverse_strand ? num_rev_strand_reads++ : num_fwd_strand_reads++;
+    if (count_clipped_bases)
+    {
+        num_clip_bases += alignment.numClipped();
+    }
+
+    if (is_graph_reverse_strand)
+    {
+        num_rev_strand_reads++;
+    }
+    else
+    {
+        num_fwd_strand_reads++;
+    }
 }
 
 void AlignmentStatistics::addEdgeMapping(
-    const NodeMapping& node_mapping1, const NodeMapping& node_mapping2, bool is_graph_reverse_strand)
+    const Alignment& from_alignment, const Alignment& to_alignment, bool is_graph_reverse_strand,
+    bool count_clipped_bases_from, bool count_clipped_bases_to)
 {
-    addNodeMappingBases(node_mapping1);
-    addNodeMapping(node_mapping2, is_graph_reverse_strand);
+    num_match_bases += from_alignment.numMatched();
+    num_mismatch_bases += from_alignment.numMismatched();
+    num_gap_bases += from_alignment.numInserted() + from_alignment.numDeleted();
+    num_match_bases += to_alignment.numMatched();
+    num_mismatch_bases += to_alignment.numMismatched();
+    num_gap_bases += to_alignment.numInserted() + to_alignment.numDeleted();
+
+    if (count_clipped_bases_from)
+    {
+        num_clip_bases += from_alignment.numClipped();
+    }
+
+    if (count_clipped_bases_to)
+    {
+        num_clip_bases += to_alignment.numClipped();
+    }
+
+    if (is_graph_reverse_strand)
+    {
+        num_rev_strand_reads++;
+    }
+    else
+    {
+        num_fwd_strand_reads++;
+    }
 }
 
+/**
+ * add mapping stats of a read to an allele: adds reads + counts if mapping contains a path from source to sink;
+ * bases before source and sink are added as clipped.
+ */
 void AlignmentStatistics::addAlleleMapping(
-    const GraphMapping& graph_mapping, bool is_graph_reverse_strand, uint64_t source, uint64_t sink)
+    const GraphAlignment& graph_alignment, bool is_graph_reverse_strand, bool has_source_and_sink)
 {
-    bool is_first_node = true;
-    for (auto& node_mapping : graph_mapping)
+    const NodeId source = 0;
+    const auto sink = static_cast<const NodeId>(graph_alignment.path().graphRawPtr()->numNodes() - 1);
+
+    for (NodeId node_index = 0; node_index != graph_alignment.size(); ++node_index)
     {
-        if (is_first_node)
+        const auto node_id = static_cast<const NodeId>(graph_alignment.getNodeIdByIndex(node_index));
+        const auto& alignment = graph_alignment[node_index];
+
+        num_match_bases += alignment.numMatched();
+        num_mismatch_bases += alignment.numMismatched();
+        num_gap_bases += alignment.numInserted() + alignment.numDeleted();
+
+        if (has_source_and_sink && ((node_id == source) || (node_id == sink)))
         {
-            addNodeMapping(node_mapping, is_graph_reverse_strand);
-            is_first_node = false;
+            continue;
         }
-        else
-        {
-            addNodeMappingBases(node_mapping);
-        }
-        if ((uint64_t)node_mapping.node_id != source && (uint64_t)node_mapping.node_id != sink)
-        {
-            addClipBases(node_mapping);
-        }
+        num_clip_bases += alignment.numClipped();
+    }
+    if (is_graph_reverse_strand)
+    {
+        num_rev_strand_reads++;
+    }
+    else
+    {
+        num_fwd_strand_reads++;
     }
 }
 
@@ -95,7 +144,10 @@ Json::Value AlignmentStatistics::toJson()
     output["mismatch_rate"] = (double)num_mismatch_bases / (num_match_bases + num_mismatch_bases + num_gap_bases);
     output["gap_rate"] = (double)num_gap_bases / (num_match_bases + num_mismatch_bases + num_gap_bases);
     output["clip_rate"] = (double)num_clip_bases / (num_match_bases + num_mismatch_bases + num_gap_bases);
-    output["match_base_depth"] = (double)num_match_bases / length;
+    if (length > 0)
+    {
+        output["match_base_depth"] = (double)num_match_bases / length;
+    }
     output["contig_length"] = (int)length;
     return output;
 }

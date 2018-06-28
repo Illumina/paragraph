@@ -1,74 +1,71 @@
 {
     "edges": [
         {
-            "from": "ref-chr4:21368941-21369090",
-            "sequences": [
-                "REF"
-            ],
-            "to": "ref-chr4:21369091-21369240-1"
-        },
-        {
-            "from": "ref-chr4:21368941-21369090",
-            "sequences": [
-                "ALT"
-            ],
-            "to": "ref-chr4:21376908-21377056"
-        },
-        {
-            "from": "ref-chr4:21369091-21369240-1",
-            "to": "sink"
-        },
-        {
-            "from": "ref-chr4:21376758-21376907-1",
-            "sequences": [
-                "REF"
-            ],
-            "to": "ref-chr4:21376908-21377056"
-        },
-        {
-            "from": "ref-chr4:21376908-21377056",
-            "to": "sink"
+            "from": "source",
+            "name": "source_ref-chr4:21376758-21376907",
+            "to": "ref-chr4:21376758-21376907"
         },
         {
             "from": "source",
+            "name": "source_ref-chr4:21368941-21369090",
             "to": "ref-chr4:21368941-21369090"
         },
         {
-            "from": "source",
-            "to": "ref-chr4:21376758-21376907-1"
+            "from": "ref-chr4:21376758-21376907",
+            "name": "ref-chr4:21376758-21376907_ref-chr4:21376908-21377057",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr4:21376908-21377057"
+        },
+        {
+            "from": "ref-chr4:21368941-21369090",
+            "name": "ref-chr4:21368941-21369090_ref-chr4:21376908-21377057",
+            "sequences": [
+                "ALT"
+            ],
+            "to": "ref-chr4:21376908-21377057"
+        },
+        {
+            "from": "ref-chr4:21368941-21369090",
+            "name": "ref-chr4:21368941-21369090_ref-chr4:21369091-21369240",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr4:21369091-21369240"
+        },
+        {
+            "from": "ref-chr4:21376908-21377057",
+            "name": "ref-chr4:21376908-21377057_sink",
+            "to": "sink"
+        },
+        {
+            "from": "ref-chr4:21369091-21369240",
+            "name": "ref-chr4:21369091-21369240_sink",
+            "to": "sink"
         }
     ],
-    "model_name": "Graph from ../grm.py/data/paragraph/long-del/chr4-21369091-21376907.vcf",
+    "model_name": "Graph from long-del/chr4-21369091-21376907.vcf",
     "nodes": [
         {
             "name": "source",
             "sequence": "NNNNNNNNNN"
         },
         {
-            "end": 21376907,
-            "name": "ref-chr4:21376758-21376907-1",
-            "reference": "chr4:21376758-21376907",
-            "start": 21376758
+            "name": "ref-chr4:21376758-21376907",
+            "reference": "chr4:21376758-21376907"
         },
         {
             "name": "ref-chr4:21368941-21369090",
-            "reference": "chr4:21368941-21369090",
-            "sequences": [
-                "REF"
-            ]
+            "reference": "chr4:21368941-21369090"
         },
         {
-            "name": "ref-chr4:21376908-21377056",
-            "reference": "chr4:21376908-21377056",
-            "sequences": [
-                "REF"
-            ]
+            "name": "ref-chr4:21376908-21377057",
+            "reference": "chr4:21376908-21377057"
         },
         {
-            "end": 21369240,
-            "name": "ref-chr4:21369091-21369240-1",
-            "reference": "chr4:21369091-21369240",
-            "start": 21369091
+            "name": "ref-chr4:21369091-21369240",
+            "reference": "chr4:21369091-21369240"
         },
         {
             "name": "sink",
@@ -78,34 +75,17 @@
     "paths": [
         {
             "nodes": [
-                "source",
-                "ref-chr4:21368941-21369090",
-                "ref-chr4:21376908-21377056",
-                "sink"
+                "ref-chr4:21376758-21376907",
+                "ref-chr4:21376908-21377057"
             ],
-            "nucleotide_length": 299,
-            "path_id": "ALT|1",
-            "sequence": "ALT"
-        },
-        {
-            "nodes": [
-                "source",
-                "ref-chr4:21376758-21376907-1",
-                "ref-chr4:21376908-21377056",
-                "sink"
-            ],
-            "nucleotide_length": 299,
             "path_id": "REF|1",
             "sequence": "REF"
         },
         {
             "nodes": [
-                "source",
                 "ref-chr4:21368941-21369090",
-                "ref-chr4:21369091-21369240-1",
-                "sink"
+                "ref-chr4:21369091-21369240"
             ],
-            "nucleotide_length": 300,
             "path_id": "REF|2",
             "sequence": "REF"
         }
@@ -116,6 +96,6 @@
     ],
     "target_regions": [
         "chr4:21368941-21369240",
-        "chr4:21376758-21377056"
+        "chr4:21376758-21377057"
     ]
 }

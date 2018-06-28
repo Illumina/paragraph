@@ -35,7 +35,8 @@
 #include "grmpy/CountAndGenotype.hh"
 #include "common/JsonHelpers.hh"
 #include "genotyping/GraphBreakpointGenotyper.hh"
-#include "graphs/WalkableGraph.hh"
+#include "graphcore/Graph.hh"
+#include "grm/GraphInput.hh"
 
 namespace grmpy
 {
@@ -54,13 +55,26 @@ Json::Value countAndGenotype(
     LOG()->info("Running genotyper");
     // Initialize walkable graph
     Json::Value root = graphPath.empty() ? samples.front().get_alignment_data() : common::getJSON(graphPath);
-    graphs::Graph graph;
-    graphs::fromJson(root, referencePath, graph);
+    graphtools::Graph graph = grm::graphFromJson(root, referencePath, true);
 
-    auto wgraph_ptr = std::make_shared<graphs::WalkableGraph>(graph);
+    unsigned int male_ploidy = 2;
+    unsigned int female_ploidy = 2;
 
-    genotyping::GraphBreakpointGenotyper graph_genotyper;
-    graph_genotyper.reset(wgraph_ptr);
+    if (root.isMember("chrom"))
+    {
+        if (root["chrom"] == "chrX" || root["chrom"] == "X")
+        {
+            male_ploidy = 1;
+        }
+    }
+    else
+    {
+        LOG()->info("Cannot find chrom in graph. Assume the graph comes from chr1~22");
+    }
+
+    genotyping::GraphBreakpointGenotyper graph_genotyper(male_ploidy, female_ploidy);
+    graph_genotyper.reset(&graph);
+
     graph_genotyper.setParameters(genotypingParameterPath);
 
     for (const genotyping::SampleInfo& sample_info : samples)

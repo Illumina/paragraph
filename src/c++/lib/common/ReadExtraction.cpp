@@ -37,19 +37,21 @@ namespace common
  * @param reader An open bam reader
  * @param target_regions list of target regions
  * @param max_reads maximum number of reads per target region to retrieve
+ * @param longest_alt_insertion If graph has long enough insertions recoverMissingMates is used to find mates that
+ * possibly support it and happen to be aligned outside of target region
  * @param all_reads output vector to store retrieved reads
  * @param avr_fragment_length decides how long to extend beyond target region
  */
 void extractReads(
-    BamReader& reader, std::list<Region> const& target_regions, int max_num_reads, std::vector<p_Read>& all_reads,
-    int avr_fragment_length)
+    BamReader& reader, std::list<Region> const& target_regions, int max_num_reads, unsigned longest_alt_insertion,
+    std::vector<p_Read>& all_reads, int avr_fragment_length)
 {
     auto logger = LOG();
     for (const auto& region : target_regions)
     {
         logger->info("[Retrieving for region {}.]", (std::string)region);
-        std::pair<int, int> num_extracted_reads
-            = extractReadsFromRegion(all_reads, max_num_reads, reader, region, avr_fragment_length);
+        std::pair<int, int> num_extracted_reads = extractReadsFromRegion(
+            all_reads, max_num_reads, reader, region, longest_alt_insertion, avr_fragment_length);
 
         if (max_num_reads == num_extracted_reads.first)
         {
@@ -69,17 +71,20 @@ void extractReads(
  * @param reference_path path to FASTA reference file
  * @param target_regions list of target regions
  * @param max_reads maximum number of reads per target region to retrieve
+ * @param longest_alt_insertion If graph has long enough insertions recoverMissingMates is used to find mates that
+ * possibly support it and happen to be aligned outside of target region
  * @param all_reads output vector to store retrieved reads
  * @param avr_fragment_length decides how long to extend beyond target region
  */
 void extractReads(
     const std::string& bam_path, const std::string& bam_index_path, const std::string& reference_path,
-    std::list<Region> const& target_regions, int max_num_reads, std::vector<p_Read>& all_reads, int avr_fragment_length)
+    std::list<Region> const& target_regions, int max_num_reads, unsigned longest_alt_insertion,
+    std::vector<p_Read>& all_reads, int avr_fragment_length)
 {
     auto logger = LOG();
     logger->info("Retrieving reads from {}", bam_path);
     BamReader reader(bam_path, bam_index_path, reference_path);
-    extractReads(reader, target_regions, max_num_reads, all_reads, avr_fragment_length);
+    extractReads(reader, target_regions, max_num_reads, longest_alt_insertion, all_reads, avr_fragment_length);
     logger->info("Done retrieving reads from {}", bam_path);
 }
 
@@ -90,11 +95,13 @@ void extractReads(
  * @param max_reads maximum number of reads to load
  * @param reader Reader that will provide the reads
  * @param region target region
+ * @param longest_alt_insertion If graph has long enough insertions recoverMissingMates is used to find mates that
+ * possibly support it and happen to be aligned outside of target region
  * @param avr_fragment_length decides how long to extend beyond target region
  */
 std::pair<int, int> extractReadsFromRegion(
     std::vector<p_Read>& all_reads, int max_num_reads, ReadReader& reader, const Region& region,
-    int avr_fragment_length)
+    unsigned longest_alt_insertion, int avr_fragment_length)
 {
 
     int extended_flank = avr_fragment_length * 3;
@@ -102,10 +109,10 @@ std::pair<int, int> extractReadsFromRegion(
     reader.setRegion(extended_region);
 
     ReadPairs read_pairs;
-    extractMappedReadsFromRegion(read_pairs, max_num_reads, reader, region);
+    unsigned read_length = extractMappedReadsFromRegion(read_pairs, max_num_reads, reader, region);
 
     std::pair<int, int> num_extracted_reads;
-    if (max_num_reads == read_pairs.num_reads())
+    if (max_num_reads == read_pairs.num_reads() || read_length > longest_alt_insertion * 2)
     {
         num_extracted_reads = std::make_pair(read_pairs.num_reads(), 0);
     }
@@ -127,17 +134,28 @@ std::pair<int, int> extractReadsFromRegion(
  * @param reader Reader that will provide the reads
  * @param max_reads Maximum number of reads to load
  * @param region Region to check if a read is in
+ * @return average read length
  */
-void extractMappedReadsFromRegion(ReadPairs& read_pairs, int max_num_reads, ReadReader& reader, const Region& region)
+int extractMappedReadsFromRegion(ReadPairs& read_pairs, int max_num_reads, ReadReader& reader, const Region& region)
 {
     Read read;
+    unsigned total_read_length = 0;
+    unsigned reads = 0;
     while ((read_pairs.num_reads() != max_num_reads) && reader.getAlign(read))
     {
+        // don't count empty reads. There should not be empty reads, but don't count them anyway.
+        if (read.bases().length())
+        {
+            total_read_length += read.bases().length();
+            ++reads;
+        }
         if (isReadOrItsMateInRegion(read, region))
         {
             read_pairs.add(read);
         }
     }
+
+    return reads ? total_read_length / reads : 0;
 }
 
 /**

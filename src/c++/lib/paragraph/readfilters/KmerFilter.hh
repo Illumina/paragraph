@@ -35,8 +35,7 @@
 
 #pragma once
 
-#include "graphs/GraphMapping.hh"
-#include "graphs/GraphMappingOperations.hh"
+#include "graphalign/GraphAlignmentOperations.hh"
 #include "paragraph/ReadFilter.hh"
 
 #include "common/Error.hh"
@@ -45,11 +44,11 @@ namespace paragraph
 {
 namespace readfilters
 {
-
+    using graphtools::Graph;
     class KmerFilter : public ReadFilter
     {
     public:
-        explicit KmerFilter(graphs::WalkableGraph const* graph, int32_t kmer_len = 16);
+        explicit KmerFilter(Graph const* graph, int32_t kmer_len = 16);
         ~KmerFilter() override;
 
         std::pair<bool, std::string> filterRead(common::Read const& r) override;

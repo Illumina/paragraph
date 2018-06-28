@@ -39,7 +39,10 @@ namespace genotyping
 
 void GraphBreakpointGenotyper::setParameters(const string& genotyping_parameter_path)
 {
-    p_genotype_parameter = std::unique_ptr<GenotypingParameters>(new GenotypingParameters(alleleNames()));
+    p_genotype_parameter
+        = std::unique_ptr<GenotypingParameters>(new GenotypingParameters(alleleNames(), female_ploidy_));
+    p_male_genotype_parameter
+        = std::unique_ptr<GenotypingParameters>(new GenotypingParameters(alleleNames(), male_ploidy_));
     if (!genotyping_parameter_path.empty())
     {
         Json::Value param_json = common::getJSON(genotyping_parameter_path);
@@ -53,7 +56,8 @@ void GraphBreakpointGenotyper::runGenotyping()
 
     // genotype all breakpoints
     auto const& allelenames = alleleNames();
-    const BreakpointGenotyper genotyper(p_genotype_parameter.get());
+    BreakpointGenotyper genotyper(p_genotype_parameter);
+    BreakpointGenotyper male_genotyper(p_male_genotype_parameter);
     for (const auto& breakpointname : breakpoint_names)
     {
         size_t sample_index = 0;
@@ -66,8 +70,19 @@ void GraphBreakpointGenotyper::runGenotyping()
             {
                 counts.push_back(getCount(sample_index, breakpointname, e));
             }
-            const auto gt = genotyper.genotype(depth_readlength.first, depth_readlength.second, counts);
-            setGenotype(samplename, breakpointname, gt);
+            auto sample_ploidy = getSamplePloidy(sample_index);
+            double expected_depth = depth_readlength.first * ((double)sample_ploidy / female_ploidy_);
+
+            if (getSamplePloidy(sample_index) == male_ploidy_)
+            {
+                const auto gt = male_genotyper.genotype(expected_depth, depth_readlength.second, counts);
+                setGenotype(samplename, breakpointname, gt);
+            }
+            else // treat unknown as female
+            {
+                const auto gt = genotyper.genotype(expected_depth, depth_readlength.second, counts);
+                setGenotype(samplename, breakpointname, gt);
+            }
             ++sample_index;
         }
     }
@@ -86,6 +101,18 @@ void GraphBreakpointGenotyper::runGenotyping()
             samplename, "",
             combinedGenotype(all_breakpoint_gts, &genotyper, depth_readlength.first, depth_readlength.second));
         ++sample_index;
+    }
+}
+
+unsigned int GraphBreakpointGenotyper::getSamplePloidy(size_t sample_index)
+{
+    if (getSampleSex(sample_index) == SampleInfo::MALE)
+    {
+        return male_ploidy_;
+    }
+    else // treat unknown as female
+    {
+        return female_ploidy_;
     }
 }
 }

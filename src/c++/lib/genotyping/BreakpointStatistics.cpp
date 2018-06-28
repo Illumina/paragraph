@@ -1,8 +1,37 @@
+// -*- mode: c++; indent-tabs-mode: nil; -*-
+//
+// copyright (c) 2017 illumina, inc.
+// all rights reserved.
+
+// redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+
+// 1. redistributions of source code must retain the above copyright notice, this
+//    list of conditions and the following disclaimer.
+
+// 2. redistributions in binary form must reproduce the above copyright notice,
+//    this list of conditions and the following disclaimer in the documentation
+//    and/or other materials provided with the distribution.
+
+// this software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are
+// disclaimed. in no event shall the copyright holder or contributors be liable
+// for any direct, indirect, incidental, special, exemplary, or consequential
+// damages (including, but not limited to, procurement of substitute goods or
+// services; loss of use, data, or profits; or business interruption) however
+// caused and on any theory of liability, whether in contract, strict liability,
+// or tort including negligence or otherwise) arising in any way out of the use
+// of this software, even if advised of the possibility of such damage.
+
 #include "genotyping/BreakpointStatistics.hh"
 #include <algorithm>
+#include <boost/algorithm/string/join.hpp>
 
 #include "common/Error.hh"
 
+using graphtools::Graph;
+using graphtools::NodeId;
 using std::string;
 using std::vector;
 
@@ -15,67 +44,69 @@ namespace genotyping
  * @param node_name name of node
  * @param forward true to use successor node/edges, false to use predecessors
  */
-BreakpointStatistics::BreakpointStatistics(
-    graphs::WalkableGraph const& wgraph, std::string const& node_name, bool forward)
+BreakpointStatistics::BreakpointStatistics(Graph const& graph, NodeId node_id, bool forward)
 {
-    const auto node_id = wgraph.nodeId(node_name);
-    const auto allele_nodes = forward ? wgraph.succ(node_id) : wgraph.pred(node_id);
+    const auto& node_name = graph.nodeName(node_id);
+    const auto allele_nodes = forward ? graph.successors(node_id) : graph.predecessors(node_id);
 
     // note that sequences / sequence labels that have the same name as an edge
     // will not work well with this.
     assert(allele_nodes.size() > 1);
+
+    std::map<std::string, std::set<std::string>> allele_edge_sets;
     for (auto const& an : allele_nodes)
     {
-        const auto an_name = wgraph.nodeName(an);
+        const auto& an_name = graph.nodeName(an);
         const std::string edge_name = forward ? (node_name + "_" + an_name) : (an_name + "_" + node_name);
-        const auto edge = forward ? wgraph.edge(node_id, an) : wgraph.edge(an, node_id);
-        for (const auto& sequence : edge->sequence_ids())
+
+        // create index of counts <-> edge names
+        edge_names.push_back(edge_name);
+        edge_name_to_index[edge_name] = edge_names.size() - 1;
+
+        const auto& edge_labels = forward ? graph.edgeLabels(node_id, an) : graph.edgeLabels(an, node_id);
+        for (const auto& allele_name : edge_labels)
         {
-            const auto allele_name = wgraph.header().sequencenames((int)sequence);
-            auto a_it = std::find(allele_names.begin(), allele_names.end(), allele_name);
-            if (a_it == allele_names.end())
+            allele_edge_sets[allele_name].insert(edge_name);
+            auto a_it = std::find(all_allele_names.begin(), all_allele_names.end(), allele_name);
+            if (a_it == all_allele_names.end())
             {
-                allele_names.push_back(allele_name);
-                allele_name_to_index[allele_name] = allele_names.size() - 1;
-                edgename_to_alleles[edge_name].push_back(allele_names.size() - 1);
-            }
-            else
-            {
-                edgename_to_alleles[edge_name].push_back(static_cast<unsigned long&&>(a_it - allele_names.begin()));
+                all_allele_names.push_back(allele_name);
             }
         }
     }
-    for (auto const& edgename : edgename_to_alleles)
+
+    // create canonical alleles
+    std::map<std::string, std::list<std::string>> canonical_allele_to_allele;
+    for (const auto& allele : allele_edge_sets)
     {
-        edge_names.push_back(edgename.first);
-        edge_name_to_index[edgename.first] = edge_names.size() - 1;
+        const std::string canonical_allele_id = boost::algorithm::join(allele.second, ";");
+        canonical_allele_to_allele[canonical_allele_id].push_back(allele.first);
     }
 
-    // put REF allele first
-    auto ref_it = allele_name_to_index.find("REF");
-    if (ref_it != allele_name_to_index.end() && ref_it->second != 0)
+    std::vector<std::pair<std::string, std::string>> ordered_canonical_alleles;
+    // choose representative allele from each equivalence class
+    for (const auto& canonical_allele : canonical_allele_to_allele)
     {
-        const auto allele_to_swap_name = allele_names[0];
-        const size_t allele_to_swap_index = ref_it->second;
-        // swap names
-        allele_names[0] = "REF";
-        allele_names[ref_it->second] = allele_to_swap_name;
-        // swap index positions
-        allele_name_to_index[allele_to_swap_name] = ref_it->second;
-        allele_name_to_index["REF"] = 0;
-        // change the mapping edgename->allele_index
-        for (auto& edgename : edgename_to_alleles)
+        const auto ref_it = std::find(canonical_allele.second.begin(), canonical_allele.second.end(), "REF");
+        auto canonical_allele_name = canonical_allele.second.front();
+        if (ref_it != canonical_allele.second.end())
         {
-            for (auto& original_allele : edgename.second)
+            ordered_canonical_alleles.insert(ordered_canonical_alleles.begin(), std::make_pair("REF", "REF"));
+            canonical_allele_name = "REF";
+        }
+        canonical_allele_names.push_back(canonical_allele_name);
+        const auto this_allele_index = canonical_allele_names.size() - 1;
+        for (const auto& edge : allele_edge_sets[canonical_allele_name])
+        {
+            edgename_to_alleles[edge].push_back(this_allele_index);
+        }
+        for (auto const& noncanonical_allele : canonical_allele.second)
+        {
+            allele_name_to_index[noncanonical_allele] = this_allele_index;
+            allele_name_to_canonical_allele_name[noncanonical_allele] = canonical_allele_name;
+            if (noncanonical_allele != "REF")
             {
-                if (original_allele == 0)
-                {
-                    original_allele = allele_to_swap_index;
-                }
-                else if (original_allele == allele_to_swap_index)
-                {
-                    original_allele = 0;
-                }
+                ordered_canonical_alleles.emplace_back(std::make_pair(canonical_allele_name, noncanonical_allele));
             }
         }
     }
@@ -112,11 +143,12 @@ void BreakpointStatistics::addCounts(Json::Value const& paragraph_json)
 
         edge_counts[e_it->second] += this_edge_count;
 
+        // add counts for canonical alleles also
         for (const auto& allele : edgename_to_alleles[edge_name])
         {
             if (allele_counts.size() <= allele)
             {
-                allele_counts.resize(allele_names.size(), 0);
+                allele_counts.resize(canonical_allele_names.size(), 0);
                 assert(allele_counts.size() > allele);
             }
             allele_counts[allele] += this_edge_count;
@@ -143,7 +175,9 @@ int32_t BreakpointStatistics::getCount(std::string const& edge_or_allele_name) c
     }
     else
     {
-        error("Unknown edge or allele: %s", edge_or_allele_name.c_str());
+        // unknown edge or allele -- this is allowed since for a complex breakpoint set
+        // we may not see all alleles at all breakpoints
+        return 0;
     }
     return result;
 }

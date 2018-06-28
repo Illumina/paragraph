@@ -36,10 +36,8 @@
 #include <unordered_set>
 
 #include "KmerFilter.hh"
-#include "graphs/GraphMapping.hh"
-#include "graphs/GraphMappingOperations.hh"
-#include "graphs/KmerIndex.hh"
-#include "graphs/KmerIndexOperations.hh"
+#include "graphalign/GraphAlignmentOperations.hh"
+#include "graphalign/KmerIndexOperations.hh"
 
 #include "common/Error.hh"
 
@@ -47,43 +45,45 @@ namespace paragraph
 {
 namespace readfilters
 {
+    using graphtools::Graph;
+    using graphtools::GraphAlignment;
+    using graphtools::NodeId;
+    using graphtools::decodeGraphAlignment;
     struct KmerFilter::Impl
     {
-        Impl(std::shared_ptr<graphs::WalkableGraph> g, int32_t kmer_len_)
-            : graph(std::move(g))
-            , graph_index(graph, kmer_len_)
+        Impl(Graph const* g, int32_t kmer_len_)
+            : graph(g)
+            , graph_index(*graph, kmer_len_)
             , kmer_len(kmer_len_)
         {
         }
-        std::shared_ptr<graphs::WalkableGraph> graph;
-        graphs::KmerIndex graph_index;
+        Graph const* graph;
+        graphtools::KmerIndex graph_index;
         int32_t kmer_len;
     };
 
-    KmerFilter::KmerFilter(graphs::WalkableGraph const* graph, int32_t kmer_len)
+    KmerFilter::KmerFilter(Graph const* graph, int32_t kmer_len)
     {
-        auto wgraph = std::make_shared<graphs::WalkableGraph>(*graph);
         if (kmer_len < 0)
         {
-            kmer_len = graphs::findMinCoveringKmerLength(
-                wgraph, static_cast<size_t>(-kmer_len), static_cast<size_t>(-kmer_len));
+            kmer_len = graphtools::findMinCoveringKmerLength(
+                graph, static_cast<size_t>(-kmer_len), static_cast<size_t>(-kmer_len));
             LOG()->info("Auto-detected kmer length is {}.", kmer_len);
         }
-        _impl.reset(new Impl(wgraph, kmer_len));
+        _impl.reset(new Impl(graph, kmer_len));
     }
 
     KmerFilter::~KmerFilter() = default;
 
     std::pair<bool, std::string> KmerFilter::filterRead(common::Read const& r)
     {
-        const graphs::GraphMapping mapping
-            = graphs::decodeFromString(r.graph_pos(), r.graph_cigar(), r.bases(), *_impl->graph);
-        if (mapping.size() < 1)
+        const GraphAlignment alignment = decodeGraphAlignment(r.graph_pos(), r.graph_cigar(), _impl->graph);
+        if (alignment.size() < 1)
         {
             return { true, "kmer_nomapping" };
         }
-        const auto sc_left = mapping[0].mapping.clipped();
-        const auto sc_right = mapping[mapping.size() - 1].mapping.clipped();
+        const auto sc_left = alignment[0].numClipped();
+        const auto sc_right = alignment[alignment.size() - 1].numClipped();
         const auto& bases = r.bases();
         if ((signed)(bases.size() - sc_left - sc_right) < _impl->kmer_len)
         {
@@ -96,27 +96,27 @@ namespace readfilters
             kmers.insert(bases.substr(pos, static_cast<unsigned long>(_impl->kmer_len)));
         }
 
-        std::unordered_set<uint64_t> nodes_not_covered;
-        std::list<uint64_t> nodes_supported;
-        for (const auto& nodemapping : mapping)
+        std::unordered_set<NodeId> nodes_not_covered;
+        std::list<NodeId> nodes_supported;
+        for (int32_t node_index = 0; node_index != (int32_t)alignment.size(); ++node_index)
         {
-            const auto id = static_cast<const uint64_t>(nodemapping.node_id);
+            const auto node_id = static_cast<const NodeId>(alignment.getNodeIdByIndex(node_index));
             // only check the nodes which actually have unique overlapping kmers
-            if (_impl->graph_index.numUniqueKmersOverlappingNode(static_cast<uint32_t>(id)) > 0)
+            if (_impl->graph_index.numUniqueKmersOverlappingNode(node_id) > 0)
             {
-                nodes_not_covered.insert(id);
-                nodes_supported.push_back(id);
+                nodes_not_covered.insert(node_id);
+                nodes_supported.push_back(node_id);
             }
         }
 
         for (auto const& kmer : kmers)
         {
-            if (_impl->graph_index.numPaths(kmer) == 1ull)
+            if (_impl->graph_index.numPaths(kmer) == 1)
             {
                 auto paths = _impl->graph_index.getPaths(kmer);
-                for (const auto& node_id : paths.front().node_ids())
+                for (const auto& node_id : paths.front().nodeIds())
                 {
-                    nodes_not_covered.erase(static_cast<uint64_t>(node_id));
+                    nodes_not_covered.erase(node_id);
                     if (nodes_not_covered.empty())
                     {
                         return { false, "" };

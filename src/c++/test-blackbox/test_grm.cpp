@@ -61,14 +61,13 @@ TEST(Grmpy, GenotypesSingleSwap)
     const Json::Value genotype = grmpy::countAndGenotype(graph_path, reference_path, genotype_parameter_path, samples);
 
     std::stringstream out_stream;
-    Json::StyledStreamWriter writer;
-    writer.write(out_stream, genotype);
+    out_stream << genotype;
 
     std::istream* json_stream = &out_stream;
     Json::Value result;
-    Json::Reader reader;
-    reader.parse(*json_stream, result);
+    (*json_stream) >> result;
 
-    EXPECT_EQ("REF/REF", result["samples"]["SAMPLE1"]["gt"]["GT"].asString());
+    EXPECT_EQ("REF", result["samples"]["SAMPLE1"]["gt"]["GT"].asString());
+    EXPECT_EQ("REF/REF", result["samples"]["SAMPLE2"]["gt"]["GT"].asString());
     std::cout << out_stream.str() << std::endl;
 }

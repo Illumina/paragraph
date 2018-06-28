@@ -4,7 +4,7 @@ This file shows how to set customized genotyping parameters externally in a JSON
 
 External genotyping parameter can be passed to multigrmpy.py and grmpy as JSON file with command line option `-G`
 
-Below includes all allowed parameter fields:
+Below we show all allowed parameter fields:
 
 ```javascript
 {
@@ -17,7 +17,11 @@ Below includes all allowed parameter fields:
 
 
     // Minimal depth p value for a breakpoint to pass depth test
-    "coverage_test_cutoff": 0.00001
+    // a negative value disables this test, but you can use a value
+    // such as 0.00001 for a more conservative callset which only 
+    // includes genotypes for calls which have read counts that are
+    // close to the median read depth in the BAM file.
+    "coverage_test_cutoff": -1.0,
 
     // Allele names in graph(s).
     //     If other alleles were observed in graph, they will be excluded from analysis.

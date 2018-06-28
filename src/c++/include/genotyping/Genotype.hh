@@ -36,7 +36,6 @@
 
 #include <utility>
 
-#include "common/Phred.hh"
 #include "json/json.h"
 
 namespace genotyping
@@ -68,7 +67,7 @@ struct Genotype
     GenotypeVector gt;
 
     /**
-     *  Log-probability for each possible genotype.
+     *  Log-likelihood for each possible genotype.
      */
     std::vector<GenotypeVector> gl_name;
     std::vector<double> gl;

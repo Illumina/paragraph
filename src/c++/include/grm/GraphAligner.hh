@@ -26,13 +26,13 @@
 
 #pragma once
 
-#include <graphs/WalkableGraph.hh>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "common/Read.hh"
-#include "graphs/Graph.hh"
+
+#include "graphcore/Graph.hh"
 
 namespace grm
 {
@@ -55,7 +55,7 @@ public:
      * Set the graph to align to
      * @param g a graph
      */
-    void setGraph(graphs::Graph const& g);
+    void setGraph(graphtools::Graph const* g);
 
     /**
      * Smith-Waterman align a string to the graph and return a cigar string and

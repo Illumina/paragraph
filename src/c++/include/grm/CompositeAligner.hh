@@ -35,8 +35,10 @@
 
 #pragma once
 
+#include "PathAligner.hh"
 #include "grm/Filter.hh"
 #include "grm/GraphAligner.hh"
+#include "grm/KlibAligner.hh"
 #include "grm/KmerAligner.hh"
 #include "grm/PathAligner.hh"
 
@@ -44,13 +46,13 @@ namespace grm
 {
 
 /**
- * Wrapper for a combination of PathAligner KmerAligner and GraphAligner
+ * Wrapper for a combination of KmerAligner and GraphAligner
  */
 class CompositeAligner
 {
 public:
     CompositeAligner(
-        bool exactPathMatching, bool graphMatching, bool kmerMatching,
+        bool pathMatching, bool graphMatching, bool klibMatching, bool kmerMatching,
         unsigned grapAlignmentflags = GraphAligner::AF_ALL);
 
     virtual ~CompositeAligner();
@@ -59,33 +61,39 @@ public:
 
     CompositeAligner& operator=(CompositeAligner&& rhs) noexcept = delete;
 
-    void setGraph(graphs::Graph const& graph, Json::Value const& paths);
+    void setGraph(graphtools::Graph const* graph, std::list<graphtools::Path> const& paths);
     void alignRead(common::Read& read, ReadFilter filter);
 
     unsigned attempted() const { return attempted_; }
     unsigned filtered() const { return filtered_; }
-    unsigned mappedExactly() const { return mappedExactly_; }
+    unsigned mappedKlib() const { return mappedKlib_; }
+    unsigned mappedPath() const { return mappedPath_; }
+    unsigned anchoredPath() const { return anchoredPath_; }
     unsigned mappedKmers() const { return mappedKmers_; }
     unsigned mappedSw() const { return mappedSw_; }
 
 private:
-    const bool exactPathMatching_;
+    const bool pathMatching_;
     const bool graphMatching_;
+    const bool klibMatching_;
     const bool kmerMatching_;
     const unsigned int grapAlignmentflags_;
 
+    grm::PathAligner pathAligner_;
     grm::GraphAligner graphAligner_;
+    grm::KlibAligner klibAligner_;
     grm::KmerAligner<16> kmerAligner_;
     // grm::KmerAligner<32> kmerAligner_;
-    grm::PathAligner pathAligner_;
 
     unsigned attempted_ = 0;
     unsigned filtered_ = 0;
-    unsigned mappedExactly_ = 0;
+    unsigned mappedKlib_ = 0;
+    unsigned mappedPath_ = 0;
+    unsigned anchoredPath_ = 0;
     unsigned mappedKmers_ = 0;
     unsigned mappedSw_ = 0;
 #ifdef _DEBUG
-    std::unique_ptr<graphs::WalkableGraph> graph_;
+    graphtools::Graph const* graph_;
 #endif
 };
 }

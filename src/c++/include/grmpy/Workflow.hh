@@ -74,9 +74,8 @@ class Workflow
 
     bool firstPrinted_ = false;
 
-    std::string processGraph(
-        const std::string& graphSpecPath, const Parameters& parameters, const InputPaths& inputPaths,
-        std::vector<common::BamReader>& readers);
+    bool progress_ = true;
+
     void genotypeGraphs(
         std::ostream& outputFileStream, std::vector<genotyping::Samples>::const_iterator& ungenotypedSamples);
     void alignSamples();
@@ -86,7 +85,7 @@ public:
     Workflow(
         const std::vector<std::string>& graphSpecPaths, const std::string& genotypingParameterPath,
         const genotyping::Samples& mainfest, const std::string& outputFilePath, const std::string& outputFolderPath,
-        bool gzipOutput, const Parameters& parameters, const std::string& referencePath);
+        bool gzipOutput, const Parameters& parameters, const std::string& referencePath, bool progress);
     void run();
 };
 

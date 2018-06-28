@@ -35,108 +35,157 @@
 
 #include "grm/KmerAligner.hh"
 #include "common/Error.hh"
-#include "common/Genetics.hh"
+#include "common/Klib.hh"
 #include "oligo/KmerGenerator.hh"
+
+#include "graphutils/SequenceOperations.hh"
+
 #include <iterator>
 #include <numeric>
 
 namespace grm
 {
 
-typedef std::size_t PositionType;
-struct Candidate
+namespace kmerAligner
 {
-    static const std::string DUMMY_PATH_ID_;
-    Candidate()
-        : pathId_(DUMMY_PATH_ID_)
-        , position_(0)
-        , reverse_(false)
-        , mismatchCount_(0)
+
+    typedef std::size_t PositionType;
+    struct Candidate
     {
-    }
-    Candidate(const std::string& pathId, PositionType position, bool reverse, unsigned mismatchCount)
-        : pathId_(pathId)
-        , position_(position)
-        , reverse_(reverse)
-        , mismatchCount_(mismatchCount)
+        static const int DUMMY_PATH_ID_ = -1;
+        Candidate()
+            : pathId_(DUMMY_PATH_ID_)
+            , position_(0)
+            , reverse_(false)
+            , mismatchCount_(0)
+        {
+        }
+        Candidate(const int pathId, PositionType position, bool reverse, unsigned mismatchCount)
+            : pathId_(pathId)
+            , position_(position)
+            , reverse_(reverse)
+            , mismatchCount_(mismatchCount)
+        {
+        }
+        int pathId_;
+        PositionType position_;
+        bool reverse_;
+        unsigned mismatchCount_;
+
+        bool operator==(const Candidate& that)
+        {
+            return mismatchCount_ == that.mismatchCount_ && position_ == that.position_ && reverse_ == that.reverse_
+                && pathId_ == that.pathId_;
+        }
+
+        // push/pop_heap will result in the element with largest number of mismatches
+        // evicted.
+        static bool lessMismatches(const Candidate& left, const Candidate& right)
+        {
+            // Compare mismatchCount_ only as otherwise finding best/second best is
+            // going to malfunction.
+            return left.mismatchCount_ < right.mismatchCount_;
+        }
+
+        friend std::ostream& operator<<(std::ostream& os, const Candidate& c)
+        {
+            return os << "Candidate(" << c.position_ << "p," << c.reverse_ << "r," << c.mismatchCount_ << "mm,"
+                      << c.pathId_ << "pid)";
+        }
+    };
+
+    struct KmerPosition
     {
-    }
-    std::reference_wrapper<const std::string> pathId_;
-    PositionType position_;
-    bool reverse_;
-    unsigned mismatchCount_;
+        typedef unsigned KmerType;
 
-    bool operator==(const Candidate& that)
+        KmerPosition()
+            : kmer_(0)
+            , position_(0)
+        {
+        }
+        KmerPosition(KmerType kmer, PositionType position)
+            : kmer_(kmer)
+            , position_(position)
+        {
+        }
+        KmerType kmer_;
+        PositionType position_;
+
+        bool operator<(const KmerPosition& that) const
+        {
+            return kmer_ < that.kmer_ || (kmer_ == that.kmer_ && position_ < that.position_);
+        }
+
+        friend std::ostream& operator<<(std::ostream& os, const KmerPosition& kp)
+        {
+            return os << "KmerPosition(" << oligo::bases(kp.kmer_) << "," << kp.position_ << "p)";
+        }
+    };
+
+    typedef std::vector<KmerPosition> KmerPositions;
+
+    template <unsigned KMER_LENGTH>
+    void makeKmers(std::string::const_iterator begin, std::string::const_iterator end, KmerPositions& kmerPositions)
     {
-        return mismatchCount_ == that.mismatchCount_ && position_ == that.position_ && reverse_ == that.reverse_
-            && pathId_.get() == that.pathId_.get();
+        kmerPositions.clear();
+        oligo::KmerGenerator<KMER_LENGTH, unsigned, std::string::const_iterator> kmerGenerator(begin, end);
+        unsigned kmer = 0;
+        std::string::const_iterator position;
+        while (kmerGenerator.next(kmer, position))
+        {
+            kmerPositions.push_back(KmerPosition(kmer, static_cast<PositionType>(std::distance(begin, position))));
+        }
+
+        std::sort(kmerPositions.begin(), kmerPositions.end());
     }
 
-    // push/pop_heap will result in the element with largest number of mismatches
-    // evicted.
-    static bool lessMismatches(const Candidate& left, const Candidate& right)
+    template <unsigned KMER_LENGTH> struct BasicPath
     {
-        // Compare mismatchCount_ only as otherwise finding best/second best is
-        // going to malfunction.
-        return left.mismatchCount_ < right.mismatchCount_;
-    }
+        typedef std::map<size_t, graphtools::NodeId> NodeStarts;
 
-    friend std::ostream& operator<<(std::ostream& os, const Candidate& c)
-    {
-        return os << "Candidate(" << c.position_ << "p," << c.reverse_ << "r," << c.mismatchCount_ << "mm,"
-                  << c.pathId_.get() << "pid)";
-    }
-};
+        int pathId_;
+        NodeStarts starts;
 
-struct KmerPosition
-{
-    typedef unsigned KmerType;
+        KmerPositions kmerPositions_;
 
-    KmerPosition()
-        : kmer_(0)
-        , position_(0)
-    {
-    }
-    KmerPosition(KmerType kmer, PositionType position)
-        : kmer_(kmer)
-        , position_(position)
-    {
-    }
-    KmerType kmer_;
-    PositionType position_;
+        const graphtools::Path& path_;
 
-    bool operator<(const KmerPosition& that) const
-    {
-        return kmer_ < that.kmer_ || (kmer_ == that.kmer_ && position_ < that.position_);
-    }
+        BasicPath(const int pathId, const graphtools::Path& p, const graphtools::Graph* g)
+            : pathId_(pathId)
+            , path_(p)
+        {
+            std::size_t nodeStart = 0;
+            for (const auto& node_id : p.nodeIds())
+            {
+                starts.emplace(nodeStart, node_id);
+                nodeStart += g->nodeSeq(node_id).length();
+            }
+            // note seq() returns string by value. Make sure it does not get destroyed...
+            const std::string& path_sequence = path_.seq();
+            makeKmers<KMER_LENGTH>(path_sequence.begin(), path_sequence.end(), kmerPositions_);
+        }
 
-    friend std::ostream& operator<<(std::ostream& os, const KmerPosition& kp)
-    {
-        return os << "KmerPosition(" << oligo::bases(kp.kmer_) << "," << kp.position_ << "p)";
-    }
-};
+        typename NodeStarts::const_iterator findStartNode(std::size_t pos) const
+        {
+            // lower bound returns first node after start unless pos matches exactly, make sure path is not empty
+            assert(starts.size() >= 1);
+            typename NodeStarts::const_iterator ret = starts.lower_bound(pos);
+            if (ret == starts.end())
+            {
+                ret = std::prev(starts.end());
+            }
+            else if (ret->first > pos)
+            {
+                ret = std::prev(ret);
+            }
 
-typedef std::vector<KmerPosition> KmerPositions;
+            return ret;
+        }
+    };
 
-struct Path
-{
-    std::string path_id;
-    std::string sequence_id;
-    std::string path_sequence;
-    typedef std::map<size_t, size_t> NodeStarts;
-    NodeStarts starts;
-    std::vector<std::string> node_names;
-    std::vector<uint64_t> node_ids;
+} // namespace kmerAligner
 
-    KmerPositions kmerPositions_;
-
-    friend std::ostream& operator<<(std::ostream& os, const Path& p)
-    {
-        return os << "Path(" << p.path_id << "," << p.sequence_id << "," << p.path_sequence << ","
-                  << accumulate(p.path_sequence.begin(), p.path_sequence.end(), std::string("")) << ","
-                  << ")";
-    }
-};
+using namespace kmerAligner;
 
 template <unsigned KMER_LENGTH> struct KmerAligner<KMER_LENGTH>::KmerAlignerImpl
 {
@@ -144,7 +193,8 @@ template <unsigned KMER_LENGTH> struct KmerAligner<KMER_LENGTH>::KmerAlignerImpl
 
     typedef std::vector<Candidate> Candidates;
 
-    std::list<Path> paths_;
+    typedef BasicPath<KMER_LENGTH> Path;
+    std::vector<Path> paths_;
     // NOTE, these transient buffers make the class thread-unsafe but allow avoiding dynamic
     // memory allocations
     mutable KmerPositions fwKmerPositions_;
@@ -158,7 +208,7 @@ template <unsigned KMER_LENGTH> struct KmerAligner<KMER_LENGTH>::KmerAlignerImpl
     // the duplicates are removed
     mutable std::vector<Candidate> seedCandidates_;
 
-    std::unordered_map<uint64_t, size_t> node_lengths_;
+    graphtools::Graph const* graph_;
     void alignRead(common::Read& read) const;
 
     void align(
@@ -167,54 +217,22 @@ template <unsigned KMER_LENGTH> struct KmerAligner<KMER_LENGTH>::KmerAlignerImpl
 
     template <bool reverse>
     void align(
-        const std::string& bases, const KmerPositions& seqeuenceKmerPositions, const Path& path,
+        const std::string& bases, const KmerPositions& sequenceKmerPositions, const Path& path,
         Candidates& candidates) const;
 
-    void setGraph(graphs::Graph const& g, Json::Value const& paths);
+    void setGraph(graphtools::Graph const* g, std::list<graphtools::Path> const& paths);
 
 private:
-    template <bool overlap>
-    static void
-    makeKmers(std::string::const_iterator begin, std::string::const_iterator end, KmerPositions& kmerPositions);
-    static Path makePath(
-        const Json::Value& p, const graphs::Graph& g, const std::unordered_map<std::string, uint64_t>& node_id_map);
-
-    static void dumpPaths(
-        graphs::WalkableGraph const& wg, uint64_t currentId, uint64_t endId, Path currentPath, bool ref,
-        std::list<Path>& path);
     bool updateAlignment(
         const Path& path, std::size_t pos, bool is_reverse_match, const std::string& bases,
         const std::string& rev_bases, common::Read& read) const;
     int buildCigar(
-        int start, std::string::const_iterator itSeq, std::size_t length_left,
-        typename Path::NodeStarts::const_iterator start_node, const Path& path, std::size_t leftClip,
-        const std::size_t rightClip, std::string& cigar, int& alignment_score) const;
+        int start, std::string::const_iterator itSeq, std::size_t lengthLeft,
+        typename Path::NodeStarts::const_iterator startNode, const Path& path, std::size_t leftClip,
+        std::size_t rightClip, std::string& cigar, int& alignment_score) const;
     void pickBest(
         const std::string& bases, const std::string& rvBases, const Candidates& candidates, common::Read& read) const;
 };
-
-const std::string Candidate::DUMMY_PATH_ID_;
-
-template <unsigned KMER_LENGTH>
-template <bool overlap>
-void KmerAligner<KMER_LENGTH>::KmerAlignerImpl::makeKmers(
-    std::string::const_iterator begin, std::string::const_iterator end, KmerPositions& kmerPositions)
-{
-    kmerPositions.clear();
-    oligo::KmerGenerator<KMER_LENGTH, unsigned, std::string::const_iterator> kmerGenerator(begin, end);
-    unsigned kmer = 0;
-    std::string::const_iterator position;
-    while (kmerGenerator.next(kmer, position))
-    {
-        kmerPositions.push_back(KmerPosition(kmer, std::distance(begin, position)));
-        if (!overlap)
-        {
-            kmerGenerator.skip(KMER_LENGTH - 1);
-        }
-    }
-
-    std::sort(kmerPositions.begin(), kmerPositions.end());
-}
 
 /**
  * \brief defines match for the purpose of the alignment.
@@ -252,9 +270,9 @@ void KmerAligner<KMER_LENGTH>::KmerAlignerImpl::align(
             const int offset = int(ppIt->position_) - int(sp.position_);
             // ignore candidates that overhang the path. If they are relevant
             // the path flanks should be made longer.
-            if (0 <= offset && path.path_sequence.size() >= offset + bases.size())
+            if (0 <= offset && path.path_.seq().size() >= offset + bases.size())
             {
-                seedCandidates_.push_back(Candidate(path.path_id, offset, reverse, -1U));
+                seedCandidates_.push_back(Candidate(path.pathId_, offset, reverse, -1U));
             }
             ++ppIt;
         }
@@ -272,7 +290,7 @@ void KmerAligner<KMER_LENGTH>::KmerAlignerImpl::align(
     for (const auto& ac : seedCandidates_)
     {
         candidates.push_back(
-            Candidate(ac.pathId_, ac.position_, ac.reverse_, countMismatches(bases, path.path_sequence, ac.position_)));
+            Candidate(ac.pathId_, ac.position_, ac.reverse_, countMismatches(bases, path.path_.seq(), ac.position_)));
         std::push_heap(candidates.begin(), candidates.end(), Candidate::lessMismatches);
         if (candidates.capacity() == candidates.size())
         {
@@ -292,45 +310,13 @@ void KmerAligner<KMER_LENGTH>::KmerAlignerImpl::align(
 }
 
 template <unsigned KMER_LENGTH>
-Path KmerAligner<KMER_LENGTH>::KmerAlignerImpl::makePath(
-    const Json::Value& p, const graphs::Graph& g, const std::unordered_map<std::string, uint64_t>& node_id_map)
+void KmerAligner<KMER_LENGTH>::KmerAlignerImpl::setGraph(
+    graphtools::Graph const* g, std::list<graphtools::Path> const& paths)
 {
-    assert(p.isMember("nodes"));
-    assert(p.isMember("path_id"));
-    assert(p.isMember("sequence"));
-    Path path;
-    path.path_id = p["path_id"].asString();
-    path.sequence_id = p["sequence"].asString();
-    for (const auto& n : p["nodes"])
-    {
-        const auto node_name = n.asString();
-        const auto node_id = node_id_map.at(node_name);
-        path.starts.emplace(path.path_sequence.size(), path.node_ids.size());
-        auto node = g.nodes.find(node_id);
-        assert(node != g.nodes.cend());
-        path.path_sequence += node->second->sequence();
-        path.node_ids.push_back(node_id);
-        path.node_names.push_back(node_name);
-    }
-    makeKmers<true>(path.path_sequence.begin(), path.path_sequence.end(), path.kmerPositions_);
-    return path;
-}
-
-template <unsigned KMER_LENGTH>
-void KmerAligner<KMER_LENGTH>::KmerAlignerImpl::setGraph(graphs::Graph const& g, Json::Value const& paths)
-{
-    std::unordered_map<std::string, uint64_t> node_id_map;
-
-    for (const auto& n : g.nodes)
-    {
-        assert(node_id_map.count(n.second->name()) == 0);
-        node_id_map[n.second->name()] = n.first;
-        node_lengths_[n.first] = n.second->sequence().size();
-    }
-
+    graph_ = g;
     for (const auto& p : paths)
     {
-        paths_.emplace_back(makePath(p, g, node_id_map));
+        paths_.emplace_back(Path(paths_.size(), p, g));
     }
 
     // This has to be number of paths + 1 because we want to know if any of the paths
@@ -341,44 +327,22 @@ void KmerAligner<KMER_LENGTH>::KmerAlignerImpl::setGraph(graphs::Graph const& g,
 
 char getCigarOp(const char s, const char r) { return s == r ? 'M' : s == 'N' ? 'N' : r == 'N' ? 'N' : 'X'; }
 
-template <typename It> int calculateSoftClip(It& itRef, It& itSeq, std::size_t& length)
+/**
+ * \brief Soft clip the ends that fall on N-containing source and sink
+ */
+template <typename It> int calculateSoftClip(It itRef, It itSeq, std::size_t length)
 {
-    int clip = 0;
-    static const std::size_t MATCHES_IN_A_ROW_NEEDED = 5;
-    int matchesNeeded = std::min(length, MATCHES_IN_A_ROW_NEEDED);
-    int matchesInARow = 0;
-    while (length && matchesInARow < matchesNeeded)
-    {
-        if (*itRef != *itSeq)
-        {
-            matchesInARow = 0;
-        }
-        else
-        {
-            ++matchesInARow;
-        }
-        ++itRef;
-        ++itSeq;
-        --length;
-        ++clip;
-    }
-    if (matchesNeeded == matchesInARow)
-    {
-        clip -= matchesNeeded;
-        itRef -= matchesNeeded;
-        itSeq -= matchesNeeded;
-        length += matchesNeeded;
-    }
-    return clip;
+    return std::distance(itRef, std::find_if(itRef, itRef + length, [](const char c) { return 'N' != c; }));
 }
 
 /**
+ * \param  matches will be incremented by the number of matches found
  * \return CIGAR with mismatches clipped on left if first is set
  *         or on right if last is set. If the entire sequence is
  *         clipped, an empty CIGAR is returned
  */
-std::string makeCigarBit(
-    std::string::const_iterator itRef, std::string::const_iterator& itSeq, std::size_t length, int& pos, int& matches)
+std::string
+makeCigarBit(std::string::const_iterator itRef, std::string::const_iterator& itSeq, std::size_t length, int& matches)
 {
     std::string ret;
 
@@ -431,12 +395,14 @@ int KmerAligner<KMER_LENGTH>::KmerAlignerImpl::buildCigar(
         }
         if (this_length > 0)
         {
-            const auto this_node_length = node_lengths_.find(path.node_ids[start_node->second])->second;
+            const auto this_node_length = graph_->nodeSeq(start_node->second).size();
             assert(this_start + this_length <= this_node_length);
-            std::string::const_iterator itRef = path.path_sequence.begin() + this_start + start_node->first;
+            // note seq() returns string by value. Make sure it does not get destroyed...
+            const std::string& path_sequence = path.path_.seq();
+            std::string::const_iterator itRef = path_sequence.begin() + this_start + start_node->first;
             int matches = 0;
-            const std::string bit = makeCigarBit(itRef, itSeq, this_length, start, matches);
-            cigar += std::to_string(path.node_ids[start_node->second]) + "[";
+            const std::string bit = makeCigarBit(itRef, itSeq, this_length, matches);
+            cigar += std::to_string(start_node->second) + "[";
             if (leftClip)
             {
                 cigar += std::to_string(leftClip) + "S";
@@ -461,50 +427,32 @@ int KmerAligner<KMER_LENGTH>::KmerAlignerImpl::buildCigar(
     return start;
 }
 
-typename Path::NodeStarts::const_iterator findStartNode(const Path& path, std::size_t pos)
-{
-    // lower bound returns first node after start unless pos matches exactly, make sure path is not empty
-    assert(path.starts.size() >= 1);
-    typename Path::NodeStarts::const_iterator ret = path.starts.lower_bound(pos);
-    if (ret == path.starts.end())
-    {
-        ret = std::prev(path.starts.end());
-    }
-    else if (ret->first > pos)
-    {
-        ret = std::prev(ret);
-    }
-
-    return ret;
-}
-
 template <unsigned KMER_LENGTH>
 bool KmerAligner<KMER_LENGTH>::KmerAlignerImpl::updateAlignment(
     const Path& path, std::size_t pos, bool is_reverse_match, const std::string& bases, const std::string& rev_bases,
     common::Read& read) const
 {
     std::string::const_iterator itSeq = (is_reverse_match ? rev_bases : bases).begin();
-    std::string::const_iterator itRef = path.path_sequence.begin() + pos;
+    // note seq() returns string by value. Make sure it does not get destroyed...
+    const std::string& path_sequence = path.path_.seq();
+    std::string::const_iterator itRef = path_sequence.begin() + pos;
     std::size_t length = bases.size();
     const int leftClip = calculateSoftClip(itRef, itSeq, length);
-    LOG()->debug("updateAlignment leftClip={}", leftClip);
     pos += leftClip;
 
     std::reverse_iterator<std::string::const_iterator> ritRef(itRef + length);
     std::reverse_iterator<std::string::const_iterator> ritSeq(itSeq + length);
-    const int rightClip = calculateSoftClip(ritRef, ritSeq, length);
+    const int rightClip = calculateSoftClip(ritRef, ritSeq, length - leftClip);
 
-    typename Path::NodeStarts::const_iterator start_node = findStartNode(path, pos);
-    assert(start_node != path.starts.end());
+    typename Path::NodeStarts::const_iterator startNode = path.findStartNode(pos);
+    assert(startNode != path.starts.end());
 
-    std::string cigar;
-
+    std::string graphCigar;
     int alignment_score = 0;
     // buildCigar might introduce soft clips at the start
     int start = buildCigar(
-        pos - start_node->first, itSeq, length, start_node, path, leftClip, rightClip, cigar, alignment_score);
-
-    LOG()->debug("updateAlignment cigar={}", cigar);
+        pos - startNode->first, itSeq + leftClip, length - leftClip - rightClip, startNode, path, leftClip, rightClip,
+        graphCigar, alignment_score);
 
     read.set_graph_pos(start);
 
@@ -522,23 +470,30 @@ bool KmerAligner<KMER_LENGTH>::KmerAlignerImpl::updateAlignment(
         read.set_is_graph_reverse_strand(read.is_reverse_strand());
     }
 
-    read.set_graph_cigar(cigar);
+    read.set_graph_cigar(graphCigar);
     read.set_graph_alignment_score(alignment_score);
     read.set_graph_mapq(60);
     read.set_is_graph_alignment_unique(true);
-    read.set_graph_mapping_status(reads::MAPPED);
+    read.set_graph_mapping_status(common::Read::MAPPED);
     return true;
 }
 
+/**
+ * \return best path id
+ * \precondition non-empty candidates list
+ */
 template <unsigned KMER_LENGTH>
 void KmerAligner<KMER_LENGTH>::KmerAlignerImpl::pickBest(
     const std::string& bases, const std::string& rvBases, const Candidates& candidates, common::Read& read) const
 {
+    assert(!candidates.empty());
     const auto bestIt = std::min_element(candidates.begin(), candidates.end(), Candidate::lessMismatches);
     const Candidate& best = *bestIt;
-    const std::string& alignPathId = best.pathId_;
-    const Path& path = *std::find_if(
-        paths_.begin(), paths_.end(), [&alignPathId](const Path& p) { return p.path_id == alignPathId; });
+    if (best.mismatchCount_ > 2)
+    {
+        return;
+    }
+    const Path& path = paths_[best.pathId_];
     updateAlignment(path, best.position_, best.reverse_, bases, rvBases, read);
 
     for (auto secondBestIt = std::min_element(bestIt + 1, candidates.end(), Candidate::lessMismatches);
@@ -550,17 +505,13 @@ void KmerAligner<KMER_LENGTH>::KmerAlignerImpl::pickBest(
         if (secondBest.mismatchCount_ == best.mismatchCount_)
         {
             common::Read secondBestRead = read;
-            const std::string& secondBestPathId = secondBest.pathId_;
-            const Path& secondBestPath
-                = *std::find_if(paths_.begin(), paths_.end(), [&secondBestPathId](const Path& p) {
-                      return p.path_id == secondBestPathId;
-                  });
+            const Path& secondBestPath = paths_[secondBest.pathId_];
             updateAlignment(secondBestPath, secondBest.position_, secondBest.reverse_, bases, rvBases, secondBestRead);
             if (secondBestRead.graph_cigar() != read.graph_cigar() || secondBestRead.graph_pos() != read.graph_pos())
             {
                 read.set_graph_mapq(0);
                 read.set_is_graph_alignment_unique(false);
-                read.set_graph_mapping_status(reads::BAD_ALIGN);
+                read.set_graph_mapping_status(common::Read::BAD_ALIGN);
                 break;
             }
         }
@@ -574,14 +525,14 @@ void KmerAligner<KMER_LENGTH>::KmerAlignerImpl::pickBest(
 
 template <unsigned KMER_LENGTH> void KmerAligner<KMER_LENGTH>::KmerAlignerImpl::alignRead(common::Read& read) const
 {
-    read.set_graph_mapping_status(reads::UNMAPPED);
+    read.set_graph_mapping_status(common::Read::UNMAPPED);
     candidates_.clear();
     const std::string bases = read.bases();
     fwKmerPositions_.clear();
-    makeKmers<true>(bases.begin(), bases.end(), fwKmerPositions_);
-    const auto rvBases = common::reverseComplement(bases);
+    makeKmers<KMER_LENGTH>(bases.begin(), bases.end(), fwKmerPositions_);
+    const auto rvBases = graphtools::reverseComplement(bases);
     rvKmerPositions_.clear();
-    makeKmers<true>(rvBases.begin(), rvBases.end(), rvKmerPositions_);
+    makeKmers<KMER_LENGTH>(rvBases.begin(), rvBases.end(), rvKmerPositions_);
     for (const auto& path : paths_)
     {
         align(bases, fwKmerPositions_, rvBases, rvKmerPositions_, path, candidates_);
@@ -620,7 +571,7 @@ KmerAligner<KMER_LENGTH>& KmerAligner<KMER_LENGTH>::operator=(KmerAligner&& rhs)
  * @param paths list of paths
  */
 template <unsigned KMER_LENGTH>
-void KmerAligner<KMER_LENGTH>::setGraph(graphs::Graph const& g, Json::Value const& paths)
+void KmerAligner<KMER_LENGTH>::setGraph(graphtools::Graph const* g, std::list<graphtools::Path> const& paths)
 {
     impl_->setGraph(g, paths);
 }
@@ -638,7 +589,7 @@ template <unsigned KMER_LENGTH> void KmerAligner<KMER_LENGTH>::alignRead(common:
 {
     ++attempted_;
     impl_->alignRead(read);
-    mapped_ += reads::MAPPED == read.graph_mapping_status();
+    mapped_ += common::Read::MAPPED == read.graph_mapping_status();
 }
 
 template class KmerAligner<16>;

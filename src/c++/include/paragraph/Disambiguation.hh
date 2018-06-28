@@ -37,11 +37,9 @@
 
 #include "Parameters.hh"
 #include "common/Read.hh"
-#include "variant/Variant.hh"
-#include "json/json.h"
+#include "graphcore/Graph.hh"
+#include "graphcore/PathFamily.hh"
 
-#include <graphs/WalkableGraph.hh>
-#include <unordered_map>
 #include <vector>
 
 namespace paragraph
@@ -58,18 +56,6 @@ namespace paragraph
 Json::Value alignAndDisambiguate(const Parameters& parameters, common::ReadBuffer& all_reads);
 
 /**
- * Internal functions (exposed for testing)
- */
-
-/**
- * Take apart CIGAR string and collect variant candidates
- * @param read read after alignment
- * @param target vector of candidate lists for nodes
- */
-void updateVariantCandidateLists(
-    graphs::Graph& g, common::Read const& read, std::unordered_map<uint64_t, variant::VariantCandidateList>& target);
-
-/**
  * Node and edge filters / return True to indicate a node or edge is supported by a read
  */
 typedef std::function<bool(common::Read&, std::string const& node)> ReadSupportsNode;
@@ -77,7 +63,7 @@ typedef std::function<bool(common::Read&, std::string const& node1, std::string 
 
 /**
  * Update sequence labels in read according to nodes the read has traversed
- * @param g graph structure
+ * @param g graph, passed by reference
  * @param reads list of aligned reads
  * @param nodefilter filter to check if a read supports a particular node
  * @param edgefilter filter to check if a read supports a particular edge
@@ -85,6 +71,6 @@ typedef std::function<bool(common::Read&, std::string const& node1, std::string 
  *              Each path must give a "sequence" and a list of nodes.
  */
 void disambiguateReads(
-    graphs::WalkableGraph& g, std::vector<common::p_Read>& reads, ReadSupportsNode nodefilter = nullptr,
-    ReadSupportsEdge edgefilter = nullptr, Json::Value const& paths = Json::Value(Json::objectValue));
+    graphtools::Graph* g, std::vector<common::p_Read>& reads, ReadSupportsNode nodefilter = nullptr,
+    ReadSupportsEdge edgefilter = nullptr);
 }

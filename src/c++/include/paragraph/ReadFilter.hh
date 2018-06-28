@@ -36,7 +36,7 @@
 #pragma once
 
 #include "common/Read.hh"
-#include "graphs/WalkableGraph.hh"
+#include "graphcore/Graph.hh"
 
 #include <map>
 #include <memory>
@@ -66,5 +66,5 @@ public:
  * @return a read filter
  */
 std::unique_ptr<ReadFilter>
-createReadFilter(graphs::WalkableGraph const* graph, bool remove_nonuniq, double bad_align_frac, int32_t kmer_len = 0);
+createReadFilter(graphtools::Graph const* graph, bool remove_nonuniq, double bad_align_frac, int32_t kmer_len = 0);
 }

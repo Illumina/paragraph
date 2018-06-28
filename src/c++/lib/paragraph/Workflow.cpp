@@ -39,11 +39,16 @@
 #include <thread>
 
 #include <boost/filesystem.hpp>
+#include <boost/iostreams/device/file.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
 
-#include "common/Error.hh"
+#include "common/JsonHelpers.hh"
 #include "common/Threads.hh"
 #include "paragraph/Disambiguation.hh"
 #include "paragraph/Workflow.hh"
+
+#include "common/Error.hh"
 
 namespace paragraph
 {
@@ -51,11 +56,12 @@ namespace paragraph
 Workflow::Workflow(
     bool jointInputs, const InputPaths& inputPaths, const InputPaths& inputIndexPaths,
     const std::vector<std::string>& graph_spec_paths, const std::string& output_file_path,
-    const std::string& output_folder_path, const Parameters& parameters, const std::string& reference_path,
-    const std::string& target_regions)
+    const std::string& output_folder_path, bool gzipOutput, const Parameters& parameters,
+    const std::string& reference_path, const std::string& target_regions)
     : graphSpecPaths_(graph_spec_paths)
     , outputFilePath_(output_file_path)
     , outputFolderPath_(output_folder_path)
+    , gzipOutput_(gzipOutput)
     , parameters_(parameters)
     , referencePath_(reference_path)
     , targetRegions_(target_regions)
@@ -92,7 +98,9 @@ std::string Workflow::processGraph(
     common::ReadBuffer allReads;
     for (common::BamReader& reader : readers)
     {
-        common::extractReads(reader, parameters.target_regions(), (int)(parameters.max_reads()), allReads);
+        common::extractReads(
+            reader, parameters.target_regions(), (int)(parameters.max_reads()), parameters.longest_alt_insertion(),
+            allReads);
     }
     Json::Value outputJson = alignAndDisambiguate(parameters, allReads);
     if (inputPaths.size() == 1)
@@ -107,37 +115,37 @@ std::string Workflow::processGraph(
             outputJson["bam"].append(inputPath);
         }
     }
-    return Json::FastWriter().write(outputJson);
+    return common::writeJson(outputJson);
 }
 
 void Workflow::makeOutputFile(const std::string& output, const std::string& graphSpecPath)
 {
-    boost::filesystem::path inputPath(graphSpecPath);
+    const boost::filesystem::path inputPath(graphSpecPath);
     boost::filesystem::path outputPath = boost::filesystem::path(outputFolderPath_) / inputPath.filename();
-    std::ofstream ofs(outputPath.string());
-    if (!ofs)
+    if (gzipOutput_)
+    {
+        outputPath += ".gz";
+    }
+    boost::iostreams::basic_file_sink<char> of(outputPath.string());
+    if (!of.is_open())
     {
         error("ERROR: Failed to open output file '%s'. Error: '%s'", outputPath.string().c_str(), std::strerror(errno));
     }
-    dumpOutput(output, ofs, outputPath.string());
+
+    boost::iostreams::filtering_ostream fos;
+    if (gzipOutput_)
+    {
+        fos.push(boost::iostreams::gzip_compressor());
+    }
+    fos.push(of);
+
+    dumpOutput(output, fos, outputPath.string());
 }
 
-void Workflow::processGraphs(std::ofstream& outputFileStream)
+void Workflow::processGraphs(std::ostream& outputFileStream)
 {
     for (Input& input : unprocessedInputs_)
     {
-        std::vector<common::BamReader> readers;
-        //        for (const std::string& inputPath : input.inputPaths_)
-        for (size_t i = 0; i != input.inputPaths_.size(); ++i)
-        {
-            //            LOG()->info("Opening {} with {}", inputPath, referencePath_);
-            //            readers.push_back(common::BamReader(inputPath, referencePath_));
-            const auto& bamPath = input.inputPaths_[i];
-            const auto& bamIndexPath = input.inputIndexPaths_[i];
-            LOG()->info("Opening {}/{} with {}", bamPath, bamIndexPath, referencePath_);
-            readers.emplace_back(bamPath, bamIndexPath, referencePath_);
-        }
-
         std::lock_guard<std::mutex> lock(mutex_);
         while (graphSpecPaths_.end() != input.unprocessedGraphs_)
         {
@@ -145,6 +153,17 @@ void Workflow::processGraphs(std::ofstream& outputFileStream)
             std::string output;
             ASYNC_BLOCK_WITH_CLEANUP([this](bool failure) { terminate_ |= failure; })
             {
+                std::vector<common::BamReader> readers;
+                //        for (const std::string& inputPath : input.inputPaths_)
+                for (size_t i = 0; i != input.inputPaths_.size(); ++i)
+                {
+                    //            LOG()->info("Opening {} with {}", inputPath, referencePath_);
+                    //            readers.push_back(common::BamReader(inputPath, referencePath_));
+                    const auto& bamPath = input.inputPaths_[i];
+                    const auto& bamIndexPath = input.inputIndexPaths_[i];
+                    LOG()->info("Opening {}/{} with {}", bamPath, bamIndexPath, referencePath_);
+                    readers.emplace_back(bamPath, bamIndexPath, referencePath_);
+                }
                 if (terminate_)
                 {
                     LOG()->warn("terminating");
@@ -164,13 +183,14 @@ void Workflow::processGraphs(std::ofstream& outputFileStream)
                 }
             }
 
-            if ("-" == outputFilePath_)
+            if (!outputFilePath_.empty())
             {
-                dumpOutput(output, std::cout, "standard output");
-            }
-            else if (!outputFilePath_.empty())
-            {
+                if (firstPrinted_)
+                {
+                    outputFileStream << ',';
+                }
                 dumpOutput(output, outputFileStream, outputFilePath_);
+                firstPrinted_ = true;
             }
         }
     }
@@ -178,29 +198,43 @@ void Workflow::processGraphs(std::ofstream& outputFileStream)
 
 void Workflow::run()
 {
-    std::ofstream outputFileStream;
+    boost::iostreams::filtering_ostream fos;
+    if (gzipOutput_)
+    {
+        fos.push(boost::iostreams::gzip_compressor());
+    }
     if (!outputFilePath_.empty())
     {
         if ("-" != outputFilePath_)
         {
             LOG()->info("Output file path: {}", outputFilePath_);
-            outputFileStream.open(outputFilePath_);
-            if (!outputFileStream)
+            boost::iostreams::basic_file_sink<char> of(outputFilePath_);
+            if (!of.is_open())
             {
                 error(
                     "ERROR: Failed to open output file '%s'. Error: '%s'", outputFilePath_.c_str(),
                     std::strerror(errno));
             }
+            fos.push(of);
         }
         else
         {
             LOG()->info("Output to stdout");
+            fos.push(std::cout);
         }
     }
 
-    common::CPU_THREADS(parameters_.threads()).execute([this, &outputFileStream]() {
-        processGraphs(outputFileStream);
-    });
+    if (!outputFilePath_.empty() && 1 < graphSpecPaths_.size())
+    {
+        fos << "[";
+    }
+
+    common::CPU_THREADS(parameters_.threads()).execute([this, &fos]() { processGraphs(fos); });
+
+    if (!outputFilePath_.empty() && 1 < graphSpecPaths_.size())
+    {
+        fos << "]\n";
+    }
 }
 
 } /* namespace workflow */

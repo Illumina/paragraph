@@ -19,6 +19,8 @@
 #
 
 import logging
+import json
+import gzip
 
 
 def parse_region(region_string):
@@ -52,3 +54,12 @@ class LoggingWriter(object):  # pylint: disable=too-few-public-methods
         message = message.replace("\n", "")
         if message:
             logging.log(self.level, message)
+
+
+def load_json(filename):
+    """ Load JSON from text file or gzip """
+    if filename.endswith("gz"):
+        f = gzip.open(filename, "rt")
+    else:
+        f = open(filename, "rt")
+    return json.load(f)

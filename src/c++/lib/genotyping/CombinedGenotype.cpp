@@ -33,14 +33,15 @@
  *
  */
 
+#include "genotyping/CombinedGenotype.hh"
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "common/Error.hh"
-#include "genotyping/CombinedGenotype.hh"
 
 using std::string;
 using std::vector;
@@ -56,7 +57,7 @@ combinedGenotype(GenotypeSet const& genotypes, const BreakpointGenotyper* p_geno
     size_t num_pass_genotypes = countUniqGenotypes(genotypes, true);
     if (num_pass_genotypes == 0)
     {
-        int num_fail_genotypes = countUniqGenotypes(genotypes, false);
+        auto num_fail_genotypes = static_cast<int>(countUniqGenotypes(genotypes, false));
         if (num_fail_genotypes == 0)
         {
             result.filter = "MISSING";
@@ -126,11 +127,12 @@ Genotype reportConsensusGenotypes(GenotypeSet const& genotypes, bool pass_only)
     struct GLInfo
     {
         explicit GLInfo(GenotypeVector gt_, double gl_)
-            : gt(gt_)
+            : gt(std::move(gt_))
             , gl(gl_)
         {
         }
-        explicit GLInfo(GLInfo const& rhs) = default;
+
+        GLInfo(GLInfo const& rhs) = default;
         GenotypeVector gt;
         double gl = std::numeric_limits<double>::min();
     };
@@ -219,7 +221,7 @@ Genotype genotypeByTotalCounts(
     GenotypeSet const& genotypes, bool use_pass_only, const BreakpointGenotyper* p_genotyper, double depth,
     int read_length)
 {
-    assert(p_genotyper != NULL && depth > 0 && read_length > 0);
+    assert(p_genotyper != nullptr && depth > 0 && read_length > 0);
 
     std::set<string> filters;
     filters.insert("CONFLICT");
@@ -268,7 +270,7 @@ Genotype genotypeByTotalCounts(
     // genotype with mean
     for (auto& s : sum_counts)
     {
-        s = std::round((double)s / num_bp);
+        s = static_cast<int>(std::round((double)s / num_bp));
     }
     const auto input_counts = sum_counts;
     const auto sum_gt = p_genotyper->genotype(depth, read_length, input_counts);

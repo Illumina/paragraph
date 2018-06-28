@@ -24,8 +24,8 @@
 // OR TORT INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "common/JsonHelpers.hh"
 #include "common/ReadReader.hh"
-#include "graphs/Graph.hh"
 #include "grm/KmerAligner.hh"
 #include "paragraph/Disambiguation.hh"
 
@@ -34,8 +34,10 @@
 #include <string>
 #include <vector>
 
-#include "gmock/gmock.h"
+#include "common/Error.hh"
 #include "gtest/gtest.h"
+
+using graphtools::Graph;
 
 using std::cerr;
 using std::endl;
@@ -45,14 +47,13 @@ using std::vector;
 
 using namespace testing;
 using namespace common;
-using namespace graphs;
 
 class KmerAlignerTest : public Test
 {
 public:
-    vector<Read> reads{ 8 };
+    vector<Read> reads{ 6 };
 
-    WalkableGraph graph;
+    Graph graph{ 0 };
 
     void SetUp() override
     {
@@ -63,37 +64,27 @@ public:
         reads[4].setCoreInfo("f5", "TTTTTTCCCCCCCCTTTTT", "###################");
         // this read won't align uniquely here since we can move the A matches around
         reads[5].setCoreInfo("f6", "AAAAAAAAAAAAAAAAAAA", "###################");
-        // test for full clipping of flank nodes
-        reads[6].setCoreInfo("f7", "TTTTTTCCCCCCCCGGGGG", "###################");
-        reads[7].setCoreInfo("f8", "GGGGGGCCCCCCCCTTTTT", "###################");
+        //        // test for full clipping of flank nodes
+        //        reads[6].setCoreInfo("f7", "TTTTTTCCCCCCCCGGGGG", "###################");
+        //        reads[7].setCoreInfo("f8", "GGGGGGCCCCCCCCTTTTT", "###################");
+        for (auto& read : reads)
+        {
+            read.set_mate_chrom_id(0);
+            read.set_mate_pos(0);
+        }
 
-        Graph init_graph;
-        init_graph.header = std::unique_ptr<GraphHeader>(new GraphHeader());
-        init_graph.header->add_sequencenames("P");
-        init_graph.header->add_sequencenames("Q");
-        init_graph.header->add_sequencenames("D");
+        graph = Graph{ 4 };
+        graph.setNodeName(0, "LF");
+        graph.setNodeSeq(0, "AAAAAAAAAAA");
 
-        init_graph.nodes[0] = std::make_shared<Node>();
-        init_graph.nodes[0]->set_id(0);
-        init_graph.nodes[0]->set_name("LF");
-        init_graph.nodes[0]->set_sequence("AAAAAAAAAAA");
+        graph.setNodeName(1, "P1");
+        graph.setNodeSeq(1, "TTTTTTTT");
 
-        init_graph.nodes[1] = std::make_shared<Node>();
-        init_graph.nodes[1]->set_id(1);
-        init_graph.nodes[1]->set_name("P1");
-        init_graph.nodes[1]->set_sequence("TTTTTTTT");
-        init_graph.nodes[1]->add_sequence_ids(0);
+        graph.setNodeName(2, "Q1");
+        graph.setNodeSeq(2, "GGGGGGGG");
 
-        init_graph.nodes[2] = std::make_shared<Node>();
-        init_graph.nodes[2]->set_id(2);
-        init_graph.nodes[2]->set_name("Q1");
-        init_graph.nodes[2]->set_sequence("GGGGGGGG");
-        init_graph.nodes[2]->add_sequence_ids(1);
-
-        init_graph.nodes[3] = std::make_shared<Node>();
-        init_graph.nodes[3]->set_id(3);
-        init_graph.nodes[3]->set_name("RF");
-        init_graph.nodes[3]->set_sequence("AAAAAAAAAAA");
+        graph.setNodeName(3, "RF");
+        graph.setNodeSeq(3, "AAAAAAAAAAA");
 
         /**
          *
@@ -105,22 +96,16 @@ public:
          *  *-> Q1 -----*
          */
 
-        init_graph.edges.emplace_back(new Edge());
-        init_graph.edges[0]->set_from(0);
-        init_graph.edges[0]->set_to(1);
-        init_graph.edges.emplace_back(new Edge());
-        init_graph.edges[1]->set_from(0);
-        init_graph.edges[1]->set_to(2);
-        init_graph.edges.emplace_back(new Edge());
-        init_graph.edges[2]->set_from(1);
-        init_graph.edges[2]->set_to(3);
-        init_graph.edges.emplace_back(new Edge());
-        init_graph.edges[3]->set_from(2);
-        init_graph.edges[3]->set_to(3);
-        init_graph.edges.emplace_back(new Edge());
-        init_graph.edges[4]->set_from(0);
-        init_graph.edges[4]->set_to(3);
-        init_graph.edges[4]->add_sequence_ids(2);
+        graph.addEdge(0, 1);
+        graph.addEdge(0, 2);
+        graph.addEdge(0, 3);
+        graph.addEdge(1, 3);
+        graph.addEdge(2, 3);
+        graph.addLabelToEdge(0, 1, "P");
+        graph.addLabelToEdge(1, 3, "P");
+        graph.addLabelToEdge(0, 2, "Q");
+        graph.addLabelToEdge(2, 3, "Q");
+        graph.addLabelToEdge(0, 3, "D");
 
         auto paths = Json::Value(Json::arrayValue);
 
@@ -153,14 +138,14 @@ public:
         LOG()->set_level(spdlog::level::err);
 
         grm::KmerAligner<10> aligner;
-        aligner.setGraph(init_graph, paths);
-        for (size_t i = 0; i < reads.size(); ++i)
+        const std::list<graphtools::Path> grmPaths = grm::pathsFromJson(&graph, paths);
+        aligner.setGraph(&graph, grmPaths);
+        for (auto& read : reads)
         {
-            aligner.alignRead(reads[i]);
+            aligner.alignRead(read);
         }
         auto rb_reads = toReadBuffer(reads);
-        graph = init_graph;
-        paragraph::disambiguateReads(graph, rb_reads, nullptr, nullptr, paths);
+        paragraph::disambiguateReads(&graph, rb_reads);
         for (size_t i = 0; i < rb_reads.size(); ++i)
         {
             reads[i] = *(rb_reads[i]);
@@ -171,52 +156,44 @@ public:
 TEST_F(KmerAlignerTest, Aligns)
 {
     const std::string expected[]
-        = { "{\"fragmentId\":\"f1\",\"bases\":\"AAAAAAAATTTTTTTTAAAAAAAA\",\"quals\":\"########################\","
-            "\"chromId\":-1,\"pos\":-1,\"isFirstMate\":true,\"mateChromId\":-1,\"matePos\":-1,\"graphPos\":3,"
-            "\"graphCigar\":\"0[8M]1[8M]3[8M]\",\"graphMapq\":60,\"graphAlignmentScore\":24,\"isGraphAlignmentUnique\":"
-            "true,\"graphNodesSupported\":[\"LF\",\"P1\",\"RF\"],\"graphEdgesSupported\":[\"LF_P1\",\"P1_RF\"],"
-            "\"graphSequencesSupported\":[\"P\"],\"graphMappingStatus\":\"MAPPED\"}",
-            "{\"fragmentId\":\"f2\",\"bases\":\"AAAAAAATTTTTTTTAAAAAA\",\"quals\":\"#####################\","
-            "\"chromId\":-1,\"pos\":-1,\"isFirstMate\":true,\"mateChromId\":-1,\"matePos\":-1,\"graphPos\":4,"
-            "\"graphCigar\":\"0[7M]1[8M]3[6M]\",\"graphMapq\":60,\"graphAlignmentScore\":21,\"isGraphAlignmentUnique\":"
-            "true,\"isGraphReverseStrand\":true,\"graphNodesSupported\":[\"LF\",\"P1\",\"RF\"],\"graphEdgesSupported\":"
-            "[\"LF_P1\",\"P1_RF\"],\"graphSequencesSupported\":[\"P\"],\"graphMappingStatus\":\"MAPPED\"}",
-            "{\"fragmentId\":\"f3\",\"bases\":\"AAAAAGGGGGGGGAAAAAA\",\"quals\":\"###################\",\"chromId\":-1,"
-            "\"pos\":-1,\"isFirstMate\":true,\"mateChromId\":-1,\"matePos\":-1,\"graphPos\":6,\"graphCigar\":\"0[5M]2["
-            "8M]3[6M]\",\"graphMapq\":60,\"graphAlignmentScore\":19,\"isGraphAlignmentUnique\":true,"
-            "\"graphNodesSupported\":[\"LF\",\"Q1\",\"RF\"],\"graphEdgesSupported\":[\"LF_Q1\",\"Q1_RF\"],"
-            "\"graphSequencesSupported\":[\"Q\"],\"graphMappingStatus\":\"MAPPED\"}",
-            "{\"fragmentId\":\"f4\",\"bases\":\"AAAAGGGGGGGGAAAAAA\",\"quals\":\"##################\",\"chromId\":-1,"
-            "\"pos\":-1,\"isFirstMate\":true,\"mateChromId\":-1,\"matePos\":-1,\"graphPos\":7,\"graphCigar\":\"0[4M]2["
-            "8M]3[6M]\",\"graphMapq\":60,\"graphAlignmentScore\":18,\"isGraphAlignmentUnique\":true,"
-            "\"graphNodesSupported\":[\"LF\",\"Q1\",\"RF\"],\"graphEdgesSupported\":[\"LF_Q1\",\"Q1_RF\"],"
-            "\"graphSequencesSupported\":[\"Q\"],\"graphMappingStatus\":\"MAPPED\"}",
-            "{\"fragmentId\":\"f5\",\"bases\":\"AAAAAGGGGGGGGAAAAAA\",\"quals\":\"###################\",\"chromId\":-1,"
-            "\"pos\":-1,\"isFirstMate\":true,\"mateChromId\":-1,\"matePos\":-1,\"graphPos\":6,\"graphCigar\":\"0[5M]2["
-            "8M]3[6M]\",\"graphMapq\":60,\"graphAlignmentScore\":19,\"isGraphAlignmentUnique\":true,"
-            "\"isGraphReverseStrand\":true,\"graphNodesSupported\":[\"LF\",\"Q1\",\"RF\"],\"graphEdgesSupported\":["
-            "\"LF_Q1\",\"Q1_RF\"],\"graphSequencesSupported\":[\"Q\"],\"graphMappingStatus\":\"MAPPED\"}",
+        // clang-format off
+        = { "{\"bases\":\"AAAAAAAATTTTTTTTAAAAAAAA\",\"chromId\":-1,\"fragmentId\":\"f1\","
+                    "\"graphAlignmentScore\":24,\"graphCigar\":\"0[8M]1[8M]3[8M]\","
+                    "\"graphEdgesSupported\":[\"LF_P1\",\"P1_RF\"],\"graphMappingStatus\":\"MAPPED\","
+                    "\"graphMapq\":60,\"graphNodesSupported\":[\"LF\",\"P1\",\"RF\"],"
+                    "\"graphPos\":3,\"graphSequencesSupported\":[\"P\"],"
+                    "\"isFirstMate\":true,"
+                    "\"isGraphAlignmentUnique\":true,"
+                    "\"pos\":-1,\"quals\":\"########################\"}",
+            "{\"bases\":\"AAAAAAATTTTTTTTAAAAAA\",\"chromId\":-1,\"fragmentId\":\"f2\","
+                    "\"graphAlignmentScore\":21,\"graphCigar\":\"0[7M]1[8M]3[6M]\","
+                    "\"graphEdgesSupported\":[\"LF_P1\",\"P1_RF\"],\"graphMappingStatus\":\"MAPPED\","
+                    "\"graphMapq\":60,\"graphNodesSupported\":[\"LF\",\"P1\",\"RF\"],"
+                    "\"graphPos\":4,\"graphSequencesSupported\":[\"P\"],"
+                    "\"isFirstMate\":true,\"isGraphAlignmentUnique\":true,"
+                    "\"isGraphReverseStrand\":true,\"pos\":-1,\"quals\":\"#####################\"}",
+            "{\"bases\":\"AAAAAGGGGGGGGAAAAAA\",\"chromId\":-1,\"fragmentId\":\"f3\","
+                    "\"graphAlignmentScore\":19,\"graphCigar\":\"0[5M]2[8M]3[6M]\","
+                    "\"graphEdgesSupported\":[\"LF_Q1\",\"Q1_RF\"],\"graphMappingStatus\":\"MAPPED\","
+                    "\"graphMapq\":60,\"graphNodesSupported\":[\"LF\",\"Q1\",\"RF\"],"
+                    "\"graphPos\":6,\"graphSequencesSupported\":[\"Q\"],"
+                    "\"isFirstMate\":true,\"isGraphAlignmentUnique\":true,"
+                    "\"pos\":-1,\"quals\":\"###################\"}",
+            "{\"bases\":\"AAAAGGGGGGGGAAAAAA\",\"chromId\":-1,\"fragmentId\":\"f4\",\"graphAlignmentScore\":18,\"graphCigar\":\"0[4M]2[8M]3[6M]\",\"graphEdgesSupported\":[\"LF_Q1\",\"Q1_RF\"],\"graphMappingStatus\":\"MAPPED\",\"graphMapq\":60,\"graphNodesSupported\":[\"LF\",\"Q1\",\"RF\"],\"graphPos\":7,\"graphSequencesSupported\":[\"Q\"],\"isFirstMate\":true,\"isGraphAlignmentUnique\":true,\"pos\":-1,\"quals\":\"##################\"}",
+            "{\"bases\":\"AAAAAGGGGGGGGAAAAAA\",\"chromId\":-1,\"fragmentId\":\"f5\",\"graphAlignmentScore\":19,\"graphCigar\":\"0[5M]2[8M]3[6M]\",\"graphEdgesSupported\":[\"LF_Q1\",\"Q1_RF\"],\"graphMappingStatus\":\"MAPPED\",\"graphMapq\":60,\"graphNodesSupported\":[\"LF\",\"Q1\",\"RF\"],\"graphPos\":6,\"graphSequencesSupported\":[\"Q\"],\"isFirstMate\":true,\"isGraphAlignmentUnique\":true,\"isGraphReverseStrand\":true,\"pos\":-1,\"quals\":\"###################\"}",
             // this is the repeat one
-            "{\"fragmentId\":\"f6\",\"bases\":\"AAAAAAAAAAAAAAAAAAA\",\"quals\":\"###################\",\"chromId\":-1,"
-            "\"pos\":-1,\"isFirstMate\":true,\"mateChromId\":-1,\"matePos\":-1,\"graphCigar\":\"0[11M]3[8M]\","
-            "\"graphAlignmentScore\":19,\"graphMappingStatus\":\"BAD_ALIGN\"}",
-            // test for full clipping of flank nodes
-            "{\"fragmentId\":\"f7\",\"bases\":\"CCCCCGGGGGGGGAAAAAA\",\"quals\":\"###################\",\"chromId\":-1,"
-            "\"pos\":-1,\"isFirstMate\":true,\"mateChromId\":-1,\"matePos\":-1,\"graphCigar\":\"2[5S8M]3"
-            "[6M]\",\"graphMapq\":60,\"graphAlignmentScore\":14,\"isGraphAlignmentUnique\":true,"
-            "\"isGraphReverseStrand\":true,\"graphNodesSupported\":[\"Q1\",\"RF\"],\"graphEdgesSupported\":["
-            "\"Q1_RF\"],\"graphSequencesSupported\":[\"Q\"],\"graphMappingStatus\":\"MAPPED\"}",
-            "{\"fragmentId\":\"f8\",\"bases\":\"AAAAAGGGGGGGGCCCCCC\",\"quals\":\"###################\",\"chromId\":-1,"
-            "\"pos\":-1,\"isFirstMate\":true,\"mateChromId\":-1,\"matePos\":-1,\"graphPos\":6,\"graphCigar\":\"0[5M]2["
-            "8M6S]\",\"graphMapq\":60,\"graphAlignmentScore\":13,\"isGraphAlignmentUnique\":true,"
-            "\"isGraphReverseStrand\":true,\"graphNodesSupported\":[\"LF\",\"Q1\"],\"graphEdgesSupported\":["
-            "\"LF_Q1\"],\"graphSequencesSupported\":[\"Q\"],\"graphMappingStatus\":\"MAPPED\"}" };
-    ASSERT_EQ(8ull, reads.size());
+            "{\"bases\":\"AAAAAAAAAAAAAAAAAAA\",\"chromId\":-1,\"fragmentId\":\"f6\",\"graphAlignmentScore\":19,\"graphCigar\":\"0[11M]3[8M]\",\"graphMappingStatus\":\"BAD_ALIGN\",\"isFirstMate\":true,\"pos\":-1,\"quals\":\"###################\"}"//,
+//            // test for full clipping of flank nodes
+//            "{\"bases\":\"CCCCCGGGGGGGGAAAAAA\",\"chromId\":-1,\"fragmentId\":\"f7\",\"graphAlignmentScore\":14,\"graphCigar\":\"2[5S8M]3[6M]\",\"graphEdgesSupported\":[\"Q1_RF\"],\"graphMappingStatus\":\"MAPPED\",\"graphMapq\":60,\"graphNodesSupported\":[\"Q1\",\"RF\"],\"graphSequencesSupported\":[\"Q\"],\"isFirstMate\":true,\"isGraphAlignmentUnique\":true,\"isGraphReverseStrand\":true,\"pos\":-1,\"quals\":\"###################\"}",
+//            "{\"bases\":\"AAAAAGGGGGGGGCCCCCC\",\"chromId\":-1,\"fragmentId\":\"f8\",\"graphAlignmentScore\":13,\"graphCigar\":\"0[5M]2[8M6S]\",\"graphEdgesSupported\":[\"LF_Q1\"],\"graphMappingStatus\":\"MAPPED\",\"graphMapq\":60,\"graphNodesSupported\":[\"LF\",\"Q1\"],\"graphPos\":6,\"graphSequencesSupported\":[\"Q\"],\"isFirstMate\":true,\"isGraphAlignmentUnique\":true,\"isGraphReverseStrand\":true,\"pos\":-1,\"quals\":\"###################\"}"
+            };
+    // clang-format on
+    ASSERT_EQ(6ull, reads.size());
     int i = 0;
+
     for (auto const& read : reads)
     {
-        std::string str;
-        google::protobuf::util::MessageToJsonString(*((google::protobuf::Message*)&read), &str);
+        const std::string str = common::writeJson(read.toJson(), false);
         // std::cerr << str << std::endl;
         ASSERT_EQ(expected[i++], str);
     }

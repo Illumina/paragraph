@@ -48,6 +48,9 @@
 #include "common/Error.hh"
 #include "common/Program.hh"
 
+// define to dump argc/argv
+// #define GRMPY_TRACE
+
 using std::string;
 namespace po = boost::program_options;
 
@@ -58,8 +61,8 @@ class Options : public common::Options
 public:
     Options();
 
-    common::Options::Action parse(int argc, const char* argv[]);
-    void postProcess(boost::program_options::variables_map& vm);
+    common::Options::Action parse(const char* moduleName, int argc, const char* argv[]);
+    void postProcess(boost::program_options::variables_map& vm) override;
 
     string reference_path;
     std::vector<std::string> graph_spec_paths;
@@ -70,61 +73,81 @@ public:
     int sample_threads = std::thread::hardware_concurrency();
     int max_reads_per_event = 10000;
     float bad_align_frac = 0.8f;
-    bool exact_sequence_matching = true;
+    bool path_sequence_matching = false;
     bool graph_sequence_matching = true;
+    bool klib_sequence_matching = false;
     bool kmer_sequence_matching = false;
     int bad_align_uniq_kmer_len = 0;
-    bool gzip_output = false;
+    string alignment_output_path;
+    bool infer_read_haplotypes = false;
 
-    std::string usagePrefix() const { return "grmpy -r <reference> -g <graphs> -m <manifest> [optional arguments]"; }
+    bool gzip_output = false;
+    bool progress = true;
+
+    std::string usagePrefix() const override
+    {
+        return "grmpy -r <reference> -g <graphs> -m <manifest> [optional arguments]";
+    }
 };
 
 Options::Options()
 {
-    namedOptions_.add_options()("help,h", "Produce help message.")(
-        "reference,r", po::value<string>(), "Reference genome fasta file.")(
-        "graph-spec,g", po::value<std::vector<string>>()->multitoken(), "JSON file(s) describing the graph(s)")(
-        "genotyping-parameters,G", po::value<string>(), "JSON file with genotyping model parameters")(
-        "manifest,m", po::value<string>(), "Manifest of samples with path and bam stats.")(
-        "output-file,o", po::value<string>(),
-        "Output file name. Will output tabular format to stdout if omitted or '-'.")(
-        "output-folder,O", po::value<string>(),
-        "Output folder path. paragraph will attempt to create "
-        "the folder but not the entire path. Will output to stdout if neither of output-file or "
-        "output-folder provided. If specified, paragraph will produce one output file for each "
-        "input file bearing the same name.")(
-        "max-reads-per-event,M", po::value<int>(&max_reads_per_event)->default_value(max_reads_per_event),
-        "Maximum number of reads to process for a single event.")(
-        "bad-align-frac", po::value<float>(&bad_align_frac)->default_value(bad_align_frac),
-        "Fraction of read that needs to be mapped in order for it to be used.")(
-        "exact-sequence-matching",
-        po::value<bool>(&exact_sequence_matching)->default_value(exact_sequence_matching)->implicit_value(true),
-        "Use exact sequence match to find the best candidate among all available paths")(
-        "graph-sequence-matching",
-        po::value<bool>(&graph_sequence_matching)->default_value(graph_sequence_matching)->implicit_value(true),
-        "Enables smith waterman graph alignment")(
-        "kmer-sequence-matching",
-        po::value<bool>(&kmer_sequence_matching)->default_value(kmer_sequence_matching)->implicit_value(true),
-        "Use kmer aligner.")(
-        "bad-align-uniq-kmer-len", po::value<int>(&bad_align_uniq_kmer_len)->default_value(bad_align_uniq_kmer_len),
-        "Kmer length for uniqueness check during read filtering.")(
-        "sample-threads,t", po::value<int>(&sample_threads)->default_value(sample_threads),
-        "Number of threads for parallel sample processing.")(
-        "gzip-output,z", po::value<bool>(&gzip_output)->default_value(gzip_output)->implicit_value(true),
-        "gzip-compress output files."
-        "If -O is used, output file names are appended with .gz");
-    unnamedOptions_.add_options()("alignment-threads", po::value<int>()->default_value(1), "Deprecated. Don't use.");
+    // clang-format off
+    namedOptions_.add_options()
+            ("reference,r", po::value<string>(&reference_path), "Reference genome fasta file.")
+            ("graph-spec,g", po::value<std::vector<string>>()->multitoken(), "JSON file(s) describing the graph(s)")
+            ("genotyping-parameters,G", po::value<string>(&genotyping_parameter_path), "JSON file with genotyping model parameters")
+            ("manifest,m", po::value<string>(), "Manifest of samples with path and bam stats.")
+            ("output-file,o", po::value<string>(&output_file_path),
+             "Output file name. Will output to stdout if omitted or '-'.")
+            ("output-folder,O", po::value<string>(&output_folder_path),
+             "Output folder path. paragraph will attempt to create "
+             "the folder but not the entire path. Will output to stdout if neither of output-file or "
+             "output-folder provided. If specified, paragraph will produce one output file for each "
+             "input file bearing the same name.")
+            ("alignment-output-folder,A", po::value<string>(&alignment_output_path)->default_value(alignment_output_path),
+             "Output folder for alignments. Note these can become very large and are only required"
+             "for curation / visualisation or faster reanalysis.")
+            ("infer-read-haplotypes",
+             po::value<bool>(&infer_read_haplotypes)->default_value(infer_read_haplotypes)->implicit_value(true),
+             "Infer haplotype paths using read and fragment information.")
+            ("max-reads-per-event,M", po::value<int>(&max_reads_per_event)->default_value(max_reads_per_event),
+             "Maximum number of reads to process for a single event.")
+            ("bad-align-frac", po::value<float>(&bad_align_frac)->default_value(bad_align_frac),
+             "Fraction of read that needs to be mapped in order for it to be used.")
+            ("path-sequence-matching",
+             po::value<bool>(&path_sequence_matching)->default_value(path_sequence_matching)->implicit_value(true),
+             "Enables alignment to paths")
+            ("graph-sequence-matching",
+             po::value<bool>(&graph_sequence_matching)->default_value(graph_sequence_matching)->implicit_value(true),
+             "Enables smith waterman graph alignment")
+            ("klib-sequence-matching",
+             po::value<bool>(&klib_sequence_matching)->default_value(klib_sequence_matching)->implicit_value(true),
+             "Use klib smith-waterman aligner.")
+            ("kmer-sequence-matching",
+             po::value<bool>(&kmer_sequence_matching)->default_value(kmer_sequence_matching)->implicit_value(true),
+             "Use kmer aligner.")
+            ("bad-align-uniq-kmer-len", po::value<int>(&bad_align_uniq_kmer_len)->default_value(bad_align_uniq_kmer_len),
+             "Kmer length for uniqueness check during read filtering.")
+            ("sample-threads,t", po::value<int>(&sample_threads)->default_value(sample_threads),
+             "Number of threads for parallel sample processing.")
+            ("gzip-output,z", po::value<bool>(&gzip_output)->default_value(gzip_output)->implicit_value(true),
+             "gzip-compress output files. If -O is used, output file names are appended with .gz")
+            ("progress", po::value<bool>(&progress)->default_value(progress)->implicit_value(true))
+            ;
+    // clang-format on
 }
 
 /**
  * \brief remembers the original argv array and hands over to the base implementation
  */
-Options::Action Options::parse(int argc, const char* argv[])
+Options::Action Options::parse(const char* moduleName, int argc, const char* argv[])
 {
     const std::vector<std::string> allOptions(argv, argv + argc);
-    std::cerr << "argc: " << argc << " argv: " << boost::join(allOptions, " ") << std::endl;
-
-    common::Options::Action ret = common::Options::parse(argc, argv);
+#ifdef GRMPY_TRACE
+    LOG()->info("argc: {} argv: {}", argc, boost::join(allOptions, " "));
+#endif
+    common::Options::Action ret = common::Options::parse(moduleName, argc, argv);
     return ret;
 }
 
@@ -134,7 +157,6 @@ void Options::postProcess(boost::program_options::variables_map& vm)
 
     if (vm.count("reference"))
     {
-        reference_path = vm["reference"].as<string>();
         logger->info("Reference path: {}", reference_path);
         assertFileExists(reference_path);
     }
@@ -156,20 +178,37 @@ void Options::postProcess(boost::program_options::variables_map& vm)
         }
     }
 
-    if (vm.count("output-file") != 0u)
-    {
-        output_file_path = vm["output-file"].as<string>();
-    }
-    else if (!vm.count("output-folder"))
+    if (output_file_path.empty() && !vm.count("output-folder"))
     {
         output_file_path = "-";
     }
 
-    if (vm.count("output-folder"))
+    if (!output_folder_path.empty())
     {
-        output_folder_path = vm["output-folder"].as<string>();
         logger->info("Output folder path: {}", output_folder_path);
         boost::filesystem::create_directory(output_folder_path);
+    }
+
+    if (!alignment_output_path.empty())
+    {
+        const bool force = alignment_output_path[0] == '!';
+        if (force)
+        {
+            alignment_output_path = alignment_output_path.substr(1);
+        }
+
+        logger->info("Alignment output folder: {}", alignment_output_path);
+
+        const bool dir_already_exists = boost::filesystem::is_directory(alignment_output_path);
+        if (!force && dir_already_exists)
+        {
+            error("Alignment output folder %s already exists.", alignment_output_path.c_str());
+        }
+
+        if (!dir_already_exists)
+        {
+            boost::filesystem::create_directory(alignment_output_path);
+        }
     }
 
     if (vm.count("manifest"))
@@ -210,26 +249,17 @@ void Options::postProcess(boost::program_options::variables_map& vm)
     {
         error("Error: Manifest file is missing.");
     }
-
-    if (vm.count("genotyping-parameters"))
-    {
-        genotyping_parameter_path = vm["genotyping-parameters"].as<string>();
-    }
-
-    if (vm.count("alignment-threads"))
-    {
-        LOG()->warn("--alignment-threads is deprecated and ignored");
-    }
 }
 
 static void runGrmpy(const Options& options)
 {
     Parameters parameters(
-        options.sample_threads, options.max_reads_per_event, options.bad_align_frac, options.exact_sequence_matching,
-        options.graph_sequence_matching, options.kmer_sequence_matching, options.bad_align_uniq_kmer_len);
+        options.sample_threads, options.max_reads_per_event, options.bad_align_frac, options.path_sequence_matching,
+        options.graph_sequence_matching, options.klib_sequence_matching, options.kmer_sequence_matching,
+        options.bad_align_uniq_kmer_len, options.alignment_output_path, options.infer_read_haplotypes);
     grmpy::Workflow workflow(
         options.graph_spec_paths, options.genotyping_parameter_path, options.manifest, options.output_file_path,
-        options.output_folder_path, options.gzip_output, parameters, options.reference_path);
+        options.output_folder_path, options.gzip_output, parameters, options.reference_path, options.progress);
     workflow.run();
 }
 

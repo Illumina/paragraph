@@ -42,12 +42,10 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
-#include <google/protobuf/util/json_util.h>
 
-#include "graphs/GraphSearch.hh"
-#include "graphs/KmerIndex.hh"
-#include "graphs/KmerIndexOperations.hh"
-
+#include "common/JsonHelpers.hh"
+#include "graphalign/KmerIndex.hh"
+#include "graphalign/KmerIndexOperations.hh"
 #include "paragraph/Disambiguation.hh"
 #include "paragraph/Parameters.hh"
 
@@ -72,8 +70,6 @@ int main(int argc, char const* argv[])
     ("output,o", po::value<string>()->default_value(""), "Output file name. Will output to stdout if omitted.")
     ("reference,r", po::value<string>()->required(), "FASTA with reference genome")
     ("kmer-length,k", po::value<int>()->default_value(-1), "Kmer length (use negative value to autodetect kmer that covers nodes with minimum number of kmers).")
-    ("output-kmers,c", po::value<bool>()->default_value(false), "Output path counts for each kmer")
-    ("output-paths,p", po::value<bool>()->default_value(false), "Output paths for each kmer.")
     ("log-level", po::value<string>()->default_value("info"), "Set log level (error, warning, info).")
     ("log-file", po::value<string>()->default_value(""), "Log to a file instead of stderr.")
     ("log-async", po::value<bool>()->default_value(true), "Enable / disable async logging.");
@@ -120,24 +116,19 @@ int main(int argc, char const* argv[])
             {
                 error("Cannot open %s", graph_spec_path.c_str());
             }
-            Json::Reader reader;
-            reader.parse(input_file, input);
+            input_file >> input;
         }
 
         int32_t kmer_len = vm["kmer-length"].as<int>();
-        const bool must_output_paths = vm["output-paths"].as<bool>();
-        const bool must_output_kmers = vm["output-kmers"].as<bool>();
 
-        graphs::Graph graph;
-        graphs::fromJson(input, reference_path, graph);
-        std::shared_ptr<graphs::WalkableGraph> wgraph_ptr = std::make_shared<graphs::WalkableGraph>(graph);
+        graphtools::Graph graph = grm::graphFromJson(input, reference_path);
 
         if (kmer_len < 0)
         {
             logger->info(
                 "Auto-detecting kmer length that covers all nodes + edges with at least {} unique kmers.", -kmer_len);
-            kmer_len = graphs::findMinCoveringKmerLength(
-                wgraph_ptr, static_cast<size_t>(-kmer_len), static_cast<size_t>(-kmer_len));
+            kmer_len = graphtools::findMinCoveringKmerLength(
+                &graph, static_cast<size_t>(-kmer_len), static_cast<size_t>(-kmer_len));
             if (kmer_len <= 0)
             {
                 error("Cannot detect kmer length!");
@@ -145,7 +136,7 @@ int main(int argc, char const* argv[])
             logger->info("Auto-detected kmer length is {}", kmer_len);
         }
 
-        graphs::KmerIndex index(wgraph_ptr, kmer_len);
+        graphtools::KmerIndex index(graph, kmer_len);
 
         Json::Value output;
         output["graph"] = graph_spec_path;
@@ -154,55 +145,22 @@ int main(int argc, char const* argv[])
         output["total_kmers"] = 0;
         output["unique_kmers"] = 0;
 
-        for (const string& kmer : index.getKmersWithNonzeroCount())
-        {
-            output["total_kmers"] = output["total_kmers"].asUInt64() + 1;
-            Json::Value kmerinfo;
-            kmerinfo["s"] = kmer;
-            kmerinfo["n"] = (uint)index.numPaths(kmer);
-
-            if (must_output_paths)
-            {
-                kmerinfo["paths"] = Json::arrayValue;
-            }
-            const list<graphs::GraphPath> kmer_paths = index.getPaths(kmer);
-            for (const graphs::GraphPath& path : kmer_paths)
-            {
-                if (must_output_paths)
-                {
-                    kmerinfo["paths"].append(path.encode());
-                }
-
-                if (kmer_paths.size() == 1)
-                {
-                    output["unique_kmers"] = output["unique_kmers"].asUInt64() + 1;
-                }
-            }
-
-            if (must_output_paths || must_output_kmers)
-            {
-                output["kmers"].append(kmerinfo);
-            }
-        }
-
         output["kmers_by_node"] = Json::objectValue;
 
-        for (const auto& n : graph.nodes)
+        for (graphtools::NodeId node_id = 0; node_id != graph.numNodes(); ++node_id)
         {
-            output["kmers_by_node"][n.second->name()]
-                = static_cast<Json::UInt64>(index.numUniqueKmersOverlappingNode((uint32_t)n.first));
+            output["kmers_by_node"][graph.nodeName(node_id)]
+                = static_cast<Json::UInt64>(index.numUniqueKmersOverlappingNode((uint32_t)node_id));
         }
 
         if (output_path.empty())
         {
-            Json::StyledWriter fastWriter;
-            std::cout << fastWriter.write(output);
+            std::cout << common::writeJson(output);
         }
         else
         {
-            Json::FastWriter fastWriter;
             std::ofstream output_stream(output_path);
-            output_stream << fastWriter.write(output);
+            output_stream << common::writeJson(output, false);
         }
     }
     catch (const std::exception& e)

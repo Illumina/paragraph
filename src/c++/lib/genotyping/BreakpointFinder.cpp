@@ -47,40 +47,36 @@ using std::vector;
 namespace genotyping
 {
 
+using graphtools::NodeId;
+
 /**
  * Create a map of all breakpoints in a graph
  * @param wgraph the graph
  * @return a breakpoint map for the graph
  */
-BreakpointMap createBreakpointMap(graphs::WalkableGraph const& wgraph)
+BreakpointMap createBreakpointMap(graphtools::Graph const& wgraph)
 {
     BreakpointMap breakpoint_map;
-    const bool has_source_and_sink
-        = wgraph.nodeName(wgraph.source()) == "source" && wgraph.nodeName(wgraph.sink()) == "sink";
+    const auto source_node = static_cast<NodeId>(0);
+    const auto sink_node = static_cast<NodeId>(wgraph.numNodes() - 1);
+    const bool has_source_and_sink = wgraph.nodeName(source_node) == "source" && wgraph.nodeName(sink_node) == "sink";
 
-    for (auto node : wgraph.allNodes())
+    for (auto node = source_node; node <= sink_node; ++node)
     {
-        if (has_source_and_sink && (node == wgraph.source() || node == wgraph.sink()))
+        if (has_source_and_sink && (node == source_node || node == sink_node))
         {
             continue;
         }
 
-        const string node_name = wgraph.nodeName(node);
-        try
+        const string& node_name = wgraph.nodeName(node);
+        if (wgraph.successors(node).size() > 1)
         {
-            breakpoint_map.emplace(node_name + "_", BreakpointStatistics(wgraph, node_name, true));
+            breakpoint_map.emplace(node_name + "_", BreakpointStatistics(wgraph, node, true));
         }
-        catch (std::exception const&)
+
+        if (wgraph.predecessors(node).size() > 1)
         {
-            // ignore exception, only create breakpoints for nodes with multiple out-edges
-        }
-        try
-        {
-            breakpoint_map.emplace(string("_") + node_name, BreakpointStatistics(wgraph, node_name, false));
-        }
-        catch (std::exception const&)
-        {
-            // ignore exception, only create breakpoints for nodes with multiple out-edges
+            breakpoint_map.emplace(string("_") + node_name, BreakpointStatistics(wgraph, node, false));
         }
     }
     return breakpoint_map;

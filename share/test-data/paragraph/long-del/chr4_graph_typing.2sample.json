@@ -1,5 +1,6 @@
 {
     "bam": "/illumina/scratch/popdata/users/schen/grm.py-build/share/data/paragraph/long-del/chr4_graph_typing.bam",
+    "chrom": "chrX",
     "sequencenames": [
         "ALT",
         "REF"

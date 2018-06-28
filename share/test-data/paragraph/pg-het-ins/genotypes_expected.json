@@ -1,0 +1,235 @@
+{
+    "breakpointinfo": [
+        {
+            "mapped_alleles": {
+                "chr1:939570-1:0": "REF"
+            },
+            "name": "_ref-chr1:939571-939720"
+        },
+        {
+            "mapped_alleles": {
+                "chr1:939570-1:0": "REF"
+            },
+            "name": "ref-chr1:939420-939570_"
+        }
+    ],
+    "graphinfo": {
+        "ID": "pg-het-ins.vcf@a0b271829cd687659f140549b64cfcf0b8240b5459dfe9e73d239061169e4343:1",
+        "edges": [
+            {
+                "name": "source_ref-chr1:939420-939570"
+            },
+            {
+                "name": "ref-chr1:939420-939570_chr1:939571-939570:CCCTGGAGGACC",
+                "sequences": [
+                    "chr1:939570-1:1"
+                ]
+            },
+            {
+                "name": "ref-chr1:939420-939570_ref-chr1:939571-939720",
+                "sequences": [
+                    "REF",
+                    "chr1:939570-1:0"
+                ]
+            },
+            {
+                "name": "chr1:939571-939570:CCCTGGAGGACC_ref-chr1:939571-939720",
+                "sequences": [
+                    "chr1:939570-1:1"
+                ]
+            },
+            {
+                "name": "ref-chr1:939571-939720_sink"
+            }
+        ],
+        "nodes": [
+            {
+                "name": "source"
+            },
+            {
+                "name": "ref-chr1:939420-939570"
+            },
+            {
+                "name": "chr1:939571-939570:CCCTGGAGGACC"
+            },
+            {
+                "name": "ref-chr1:939571-939720"
+            },
+            {
+                "name": "sink"
+            }
+        ],
+        "sequencenames": [
+            "ALT",
+            "REF",
+            "chr1:939570-1:0",
+            "chr1:939570-1:1"
+        ],
+        "target_regions": [
+            "chr1:939420-939720"
+        ]
+    },
+    "samples": {
+        "NA12878": {
+            "alleles": {
+                "REF": {
+                    "avr_score": 149.75,
+                    "clip_rate": 0.0055494,
+                    "contig_length": 0,
+                    "gap_rate": 0.0,
+                    "mismatch_rate": 0.00055494,
+                    "num_fwd_reads": 7,
+                    "num_rev_reads": 5
+                },
+                "chr1:939570-1:0": {
+                    "avr_score": 149.75,
+                    "clip_rate": 0.0055494,
+                    "contig_length": 0,
+                    "gap_rate": 0.0,
+                    "mismatch_rate": 0.00055494,
+                    "num_fwd_reads": 7,
+                    "num_rev_reads": 5
+                },
+                "chr1:939570-1:1": {
+                    "avr_score": 146.12,
+                    "clip_rate": 0.0033223,
+                    "contig_length": 12,
+                    "gap_rate": 0.0,
+                    "match_base_depth": 199.5,
+                    "mismatch_rate": 0.005814,
+                    "num_fwd_reads": 7,
+                    "num_rev_reads": 9
+                }
+            },
+            "bad_alignment_pct": 0.0,
+            "breakpoints": {
+                "_ref-chr1:939571-939720": {
+                    "counts": {
+                        "alleles": {
+                            "REF": 12,
+                            "chr1:939570-1:1": 10
+                        },
+                        "edges": {
+                            "chr1:939571-939570:CCCTGGAGGACC_ref-chr1:939571-939720": 10,
+                            "ref-chr1:939420-939570_ref-chr1:939571-939720": 12
+                        }
+                    },
+                    "gt": {
+                        "GL": {
+                            "REF/REF": -28.366,
+                            "REF/chr1:939570-1:1": -11.425,
+                            "chr1:939570-1:1/chr1:939570-1:1": -34.357
+                        },
+                        "GT": "REF/chr1:939570-1:1",
+                        "allele_fractions": {
+                            "REF": 0.54545,
+                            "chr1:939570-1:1": 0.45455
+                        },
+                        "coverage_test_pvalue": 0.00013463,
+                        "num_reads": 22
+                    }
+                },
+                "ref-chr1:939420-939570_": {
+                    "counts": {
+                        "alleles": {
+                            "REF": 12,
+                            "chr1:939570-1:1": 14
+                        },
+                        "edges": {
+                            "ref-chr1:939420-939570_chr1:939571-939570:CCCTGGAGGACC": 14,
+                            "ref-chr1:939420-939570_ref-chr1:939571-939720": 12
+                        }
+                    },
+                    "gt": {
+                        "GL": {
+                            "REF/REF": -35.239,
+                            "REF/chr1:939570-1:1": -9.087,
+                            "chr1:939570-1:1/chr1:939570-1:1": -29.247
+                        },
+                        "GT": "REF/chr1:939570-1:1",
+                        "allele_fractions": {
+                            "REF": 0.46154,
+                            "chr1:939570-1:1": 0.53846
+                        },
+                        "coverage_test_pvalue": 0.001772,
+                        "num_reads": 26
+                    }
+                }
+            },
+            "edges": {
+                "ref-chr1:939420-939570_chr1:939571-939570:CCCTGGAGGACC": {
+                    "clip_rate": 0.0,
+                    "contig_length": 163,
+                    "gap_rate": 0.0,
+                    "match_base_depth": 5.5215,
+                    "mismatch_rate": 0.0077178,
+                    "num_fwd_reads": 7,
+                    "num_rev_reads": 8
+                },
+                "source_ref-chr1:939420-939570": {
+                    "clip_rate": 0.0048808,
+                    "contig_length": 152,
+                    "gap_rate": 0.0,
+                    "match_base_depth": 22.862,
+                    "mismatch_rate": 0.0022969,
+                    "num_fwd_reads": 14,
+                    "num_rev_reads": 14
+                }
+            },
+            "gt": {
+                "GL": {
+                    "REF/REF": -28.366,
+                    "REF/chr1:939570-1:1": -9.087,
+                    "chr1:939570-1:1/chr1:939570-1:1": -29.247
+                },
+                "GT": "REF/chr1:939570-1:1",
+                "allele_fractions": {
+                    "REF": 0.5,
+                    "chr1:939570-1:1": 0.5
+                },
+                "filter": "PASS",
+                "num_reads": 48
+            },
+            "mean_graph": null,
+            "mean_linear": null,
+            "median_graph": 0.0,
+            "median_linear": 0.0,
+            "multi_read": 0,
+            "nodes": {
+                "chr1:939571-939570:CCCTGGAGGACC": {
+                    "clip_rate": 0.0,
+                    "contig_length": 12,
+                    "gap_rate": 0.0,
+                    "match_base_depth": 60.0,
+                    "mismatch_rate": 0.0096286,
+                    "num_fwd_reads": 7,
+                    "num_rev_reads": 8
+                },
+                "ref-chr1:939420-939570": {
+                    "clip_rate": 0.00080906,
+                    "contig_length": 151,
+                    "gap_rate": 0.0,
+                    "match_base_depth": 8.1788,
+                    "mismatch_rate": 0.00080906,
+                    "num_fwd_reads": 14,
+                    "num_rev_reads": 14
+                },
+                "source": {
+                    "clip_rate": 0.0,
+                    "contig_length": 1,
+                    "gap_rate": 0.0,
+                    "match_base_depth": 2519.0,
+                    "mismatch_rate": 0.0039541,
+                    "num_fwd_reads": 15,
+                    "num_rev_reads": 15
+                }
+            },
+            "paired_read": 0,
+            "problematic_graph": 0,
+            "problematic_linear": 0,
+            "single_read": 30,
+            "variance_graph": 0.0,
+            "variance_linear": 0.0
+        }
+    }
+}

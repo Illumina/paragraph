@@ -44,30 +44,23 @@
 namespace grm
 {
 
+using graphtools::NodeId;
+
 template <typename AlignerT>
-ValidationAligner<AlignerT>::ValidationAligner(AlignerT&& aligner, const graphs::Graph& graph, Json::Value const& paths)
+ValidationAligner<AlignerT>::ValidationAligner(
+    AlignerT&& aligner, const graphtools::Graph* graph, std::list<graphtools::Path> const& paths)
     : AlignerT(std::move(aligner))
 {
-    std::unordered_map<std::string, uint64_t> nodeNameToId;
-
-    for (const auto& n : graph.nodes)
-    {
-        assert(nodeNameToId.count(n.second->name()) == 0);
-        nodeNameToId[n.second->name()] = n.first;
-    }
-
     for (const auto& p : paths)
     {
-        std::string pathId = p["path_id"].asString();
-        std::replace(pathId.begin(), pathId.end(), '|', '-');
+        std::string pathId = p.encode();
 
         pathNodes_[pathId] = "";
-        for (const auto& n : p["nodes"])
+        for (const auto& n : p.nodeIds())
         {
-            const auto nodeName = n.asString();
-            pathNodes_[pathId] += (pathNodes_[pathId].empty() ? "" : "->") + std::to_string(nodeNameToId[nodeName]);
+            pathNodes_[pathId] += (pathNodes_[pathId].empty() ? "" : "->") + std::to_string(n);
         }
-        LOG()->debug("Validation path: {} : {}", pathId, pathNodes_[pathId]);
+        LOG()->trace("Validation path: {} : {}", pathId, pathNodes_[pathId]);
     }
 }
 
@@ -76,12 +69,12 @@ template <typename AlignerT> void ValidationAligner<AlignerT>::alignRead(common:
     ++total_;
     AlignerT::alignRead(read, filter);
 
-    if (read.graph_mapping_status() == reads::MAPPED)
+    if (read.graph_mapping_status() == common::Read::MAPPED)
     {
         ++aligned_;
     }
 
-    if (read.graph_mapping_status() == reads::MAPPED)
+    if (read.graph_mapping_status() == common::Read::MAPPED)
     {
         const std::string simulatedPathId = getSimulatedPathId(read);
         const std::string cigarNodes = getNodes(read.graph_cigar());
@@ -91,14 +84,14 @@ template <typename AlignerT> void ValidationAligner<AlignerT>::alignRead(common:
         if (!supportsPath)
         {
             LOG()->debug(
-                "misplaced:{}:{} {}{}", simulatedPathId, pathNodes_[simulatedPathId], cigarNodes,
-                read.asJson().toStyledString());
+                "misplaced:{}:pn'{}' cn'{}'{}", simulatedPathId, pathNodes_[simulatedPathId], cigarNodes,
+                read.toJson().toStyledString());
         }
     }
-    else if (read.graph_mapping_status() == reads::BAD_ALIGN && !read.is_graph_alignment_unique())
+    else if (read.graph_mapping_status() == common::Read::BAD_ALIGN && !read.is_graph_alignment_unique())
     {
         ++repeats_;
-        LOG()->debug("repeat:{}", read.asJson().toStyledString());
+        LOG()->debug("repeat:{}", read.toJson().toStyledString());
     }
 }
 

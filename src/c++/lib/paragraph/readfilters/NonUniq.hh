@@ -35,8 +35,7 @@
  */
 
 #include "common/Error.hh"
-#include "graphs/GraphMapping.hh"
-#include "graphs/GraphMappingOperations.hh"
+#include "graphalign/GraphAlignmentOperations.hh"
 #include "paragraph/ReadFilter.hh"
 
 namespace paragraph

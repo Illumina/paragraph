@@ -35,7 +35,7 @@
 #pragma once
 
 #include "genotyping/BreakpointStatistics.hh"
-#include "graphs/WalkableGraph.hh"
+#include "graphcore/Graph.hh"
 
 #include <map>
 
@@ -49,5 +49,5 @@ typedef std::map<std::string, BreakpointStatistics> BreakpointMap;
  * @param wgraph the graph
  * @return a breakpoint map for the graph
  */
-BreakpointMap createBreakpointMap(graphs::WalkableGraph const& wgraph);
+BreakpointMap createBreakpointMap(graphtools::Graph const& wgraph);
 }

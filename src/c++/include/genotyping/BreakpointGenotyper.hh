@@ -49,8 +49,9 @@ class BreakpointGenotyper
 public:
     /**
      * Initialize a breakpoint genotyper through genotype parameters
+     * @param param Pointer to genotyping parameters
      */
-    explicit BreakpointGenotyper(GenotypingParameters* param);
+    explicit BreakpointGenotyper(std::unique_ptr<GenotypingParameters> const& param);
 
     /**
      * public function to do breakpoint genotyping from read counts on edges

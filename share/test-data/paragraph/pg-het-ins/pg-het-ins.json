@@ -1,30 +1,41 @@
 {
     "edges": [
         {
-            "from": "939571-939570:CCCTGGAGGACC",
-            "to": "ref-chr1:939571-939719"
+            "from": "source",
+            "name": "source_ref-chr1:939420-939570",
+            "to": "ref-chr1:939420-939570"
         },
         {
             "from": "ref-chr1:939420-939570",
-            "to": "939571-939570:CCCTGGAGGACC"
+            "name": "ref-chr1:939420-939570_chr1:939571-939570:CCCTGGAGGACC",
+            "sequences": [
+                "ALT"
+            ],
+            "to": "chr1:939571-939570:CCCTGGAGGACC"
         },
         {
             "from": "ref-chr1:939420-939570",
+            "name": "ref-chr1:939420-939570_ref-chr1:939571-939720",
             "sequences": [
                 "REF"
             ],
-            "to": "ref-chr1:939571-939719"
+            "to": "ref-chr1:939571-939720"
         },
         {
-            "from": "ref-chr1:939571-939719",
+            "from": "chr1:939571-939570:CCCTGGAGGACC",
+            "name": "chr1:939571-939570:CCCTGGAGGACC_ref-chr1:939571-939720",
+            "sequences": [
+                "ALT"
+            ],
+            "to": "ref-chr1:939571-939720"
+        },
+        {
+            "from": "ref-chr1:939571-939720",
+            "name": "ref-chr1:939571-939720_sink",
             "to": "sink"
-        },
-        {
-            "from": "source",
-            "to": "ref-chr1:939420-939570"
         }
     ],
-    "model_name": "Graph from ../grm.py/data/paragraph/pg-het-ins/pg-het-ins.vcf",
+    "model_name": "Graph from pg-het-ins/pg-het-ins.vcf",
     "nodes": [
         {
             "name": "source",
@@ -32,24 +43,16 @@
         },
         {
             "name": "ref-chr1:939420-939570",
-            "reference": "chr1:939420-939570",
-            "sequences": [
-                "REF"
-            ]
+            "reference": "chr1:939420-939570"
         },
         {
-            "name": "939571-939570:CCCTGGAGGACC",
-            "sequence": "CCCTGGAGGACC",
-            "sequences": [
-                "ALT"
-            ]
+            "name": "chr1:939571-939570:CCCTGGAGGACC",
+            "position": "chr1:939571-939570",
+            "sequence": "CCCTGGAGGACC"
         },
         {
-            "name": "ref-chr1:939571-939719",
-            "reference": "chr1:939571-939719",
-            "sequences": [
-                "REF"
-            ]
+            "name": "ref-chr1:939571-939720",
+            "reference": "chr1:939571-939720"
         },
         {
             "name": "sink",
@@ -59,24 +62,9 @@
     "paths": [
         {
             "nodes": [
-                "source",
                 "ref-chr1:939420-939570",
-                "939571-939570:CCCTGGAGGACC",
-                "ref-chr1:939571-939719",
-                "sink"
+                "ref-chr1:939571-939720"
             ],
-            "nucleotide_length": 312,
-            "path_id": "ALT|1",
-            "sequence": "ALT"
-        },
-        {
-            "nodes": [
-                "source",
-                "ref-chr1:939420-939570",
-                "ref-chr1:939571-939719",
-                "sink"
-            ],
-            "nucleotide_length": 300,
             "path_id": "REF|1",
             "sequence": "REF"
         }
@@ -86,6 +74,6 @@
         "REF"
     ],
     "target_regions": [
-        "chr1:939420-939719"
+        "chr1:939420-939720"
     ]
 }

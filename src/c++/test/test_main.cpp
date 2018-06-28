@@ -33,8 +33,8 @@
  *
  */
 
-#include <google/protobuf/stubs/common.h>
 #include <libgen.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string>
 
@@ -54,13 +54,9 @@ int main(int argc, char** argv)
     {
         exit(1);
     }
-    GOOGLE_PROTOBUF_VERIFY_VERSION;
 
     ::testing::AddGlobalTestEnvironment(g_testenv = new GTestEnvironment(actualpath));
     int res = RUN_ALL_TESTS();
-
-    // Optional:  Delete all global objects allocated by libprotobuf.
-    google::protobuf::ShutdownProtobufLibrary();
 
     return res;
 }

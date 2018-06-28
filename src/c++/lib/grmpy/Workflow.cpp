@@ -44,6 +44,7 @@
 #include <boost/iostreams/filtering_stream.hpp>
 
 #include "common/Error.hh"
+#include "common/JsonHelpers.hh"
 #include "common/Threads.hh"
 #include "grmpy/AlignSamples.hh"
 #include "grmpy/CountAndGenotype.hh"
@@ -56,7 +57,7 @@ namespace grmpy
 Workflow::Workflow(
     const std::vector<std::string>& graphSpecPaths, const std::string& genotypingParameterPath,
     const genotyping::Samples& mainfest, const std::string& outputFilePath, const std::string& outputFolderPath,
-    bool gzipOutput, const Parameters& parameters, const std::string& referencePath)
+    bool gzipOutput, const Parameters& parameters, const std::string& referencePath, bool progress)
     : graphSpecPaths_(graphSpecPaths)
     , genotypingParameterPath_(genotypingParameterPath)
     , manifest_(mainfest)
@@ -65,6 +66,7 @@ Workflow::Workflow(
     , gzipOutput_(gzipOutput)
     , parameters_(parameters)
     , referencePath_(referencePath)
+    , progress_(progress)
 {
     alignedSamples_.resize(std::max<std::size_t>(1, graphSpecPaths_.size()));
     for (const genotyping::SampleInfo& sample : manifest_)
@@ -107,9 +109,7 @@ void Workflow::makeOutputFile(const Json::Value& output, const std::string& grap
         fos.push(boost::iostreams::gzip_compressor());
     }
     fos.push(of);
-
-    Json::StyledStreamWriter writer;
-    writer.write(fos, output);
+    fos << common::writeJson(output);
 }
 
 void Workflow::alignSamples()
@@ -118,24 +118,34 @@ void Workflow::alignSamples()
     for (std::size_t i = 0; i < unalignedSamples_.size(); ++i)
     {
         UnalignedSample& input = unalignedSamples_[i];
-        if (graphSpecPaths_.end() != input.unprocessedGraphs_)
+        if (progress_)
         {
-            common::BamReader reader(input.sample_.filename(), input.sample_.index_filename(), referencePath_);
-            while (graphSpecPaths_.end() != input.unprocessedGraphs_)
+            LOG()->critical(
+                "Starting alignment for sample {} ({}/{})", input.sample_.sample_name(), i + 1,
+                unalignedSamples_.size());
+        }
+        common::BamReader reader(input.sample_.filename(), input.sample_.index_filename(), referencePath_);
+        while (graphSpecPaths_.end() != input.unprocessedGraphs_)
+        {
+            const GraphSpecPaths::const_iterator ourGraph = input.unprocessedGraphs_++;
+            ASYNC_BLOCK_WITH_CLEANUP([this](bool failure) { terminate_ |= failure; })
             {
-                const GraphSpecPaths::const_iterator ourGraph = input.unprocessedGraphs_++;
-                ASYNC_BLOCK_WITH_CLEANUP([this](bool failure) { terminate_ |= failure; })
+                if (terminate_)
                 {
-                    if (terminate_)
-                    {
-                        LOG()->warn("terminating");
-                        break;
-                    }
-                    common::unlock_guard<std::mutex> unlock(mutex_);
+                    LOG()->warn("terminating");
+                    break;
+                }
+                common::unlock_guard<std::mutex> unlock(mutex_);
 
-                    alignSingleSample(
-                        parameters_, *ourGraph, referencePath_, reader,
-                        alignedSamples_.at(std::distance(graphSpecPaths_.begin(), ourGraph)).at(i));
+                auto ourGraphIndex = static_cast<unsigned long>(std::distance(graphSpecPaths_.begin(), ourGraph));
+                alignSingleSample(
+                    parameters_, *ourGraph, referencePath_, reader, alignedSamples_.at(ourGraphIndex).at(i));
+
+                if (progress_)
+                {
+                    LOG()->critical(
+                        "Sample {}: Alignment {} / {} finished", input.sample_.sample_name(), ourGraphIndex + 1,
+                        alignedSamples_.size());
                 }
             }
         }
@@ -149,7 +159,9 @@ void Workflow::genotypeGraphs(
     while (alignedSamples_.end() != ungenotypedSamples)
     {
         const std::vector<genotyping::Samples>::const_iterator ourGraphSamples = ungenotypedSamples++;
+        const auto graphIndex = static_cast<unsigned long>(std::distance(alignedSamples_.cbegin(), ourGraphSamples));
         Json::Value output;
+
         ASYNC_BLOCK_WITH_CLEANUP([this](bool failure) { terminate_ |= failure; })
         {
             if (terminate_)
@@ -159,13 +171,15 @@ void Workflow::genotypeGraphs(
             }
             common::unlock_guard<std::mutex> unlock(mutex_);
 
-            const std::string& graphSpecPath = graphSpecPaths_.empty()
-                ? std::string()
-                : graphSpecPaths_.at(std::distance(alignedSamples_.cbegin(), ourGraphSamples));
+            const std::string& graphSpecPath = graphSpecPaths_.empty() ? std::string() : graphSpecPaths_.at(graphIndex);
             output = countAndGenotype(graphSpecPath, referencePath_, genotypingParameterPath_, *ourGraphSamples);
             if (!outputFolderPath_.empty())
             {
                 makeOutputFile(output, graphSpecPath);
+            }
+            if (progress_)
+            {
+                LOG()->critical("Genotyping finished for graph {} / {}", graphIndex + 1, alignedSamples_.size());
             }
         }
 
@@ -175,8 +189,7 @@ void Workflow::genotypeGraphs(
             {
                 outputFileStream << ',';
             }
-            Json::StyledStreamWriter writer;
-            writer.write(outputFileStream, output);
+            outputFileStream << common::writeJson(output);
             firstPrinted_ = true;
         }
     }
@@ -189,7 +202,6 @@ void Workflow::run()
     {
         fos.push(boost::iostreams::gzip_compressor());
     }
-    std::ofstream outputFileStream;
     if (!outputFilePath_.empty())
     {
         if ("-" != outputFilePath_)

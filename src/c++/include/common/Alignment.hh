@@ -47,20 +47,21 @@ namespace common
 
 struct AlignmentParameters
 {
-    AlignmentParameters()
+    AlignmentParameters(
+        const int8_t match = 2, const int8_t mismatch = -2, const int8_t gap_open = 3, const int8_t gap_extension = 1)
     {
         //  a   c   g   t   n
         const int8_t default_substitution_scores[] = {
-            2,  -2, -2, -2, 0, // a
-            -2, 2,  -2, -2, 0, // c
-            -2, -2, 2,  -2, 0, // g
-            -2, -2, -2, 2,  0, // t
-            0,  0,  0,  0,  0, // n
+            match,    mismatch, mismatch, mismatch, 0, // a
+            mismatch, match,    mismatch, mismatch, 0, // c
+            mismatch, mismatch, match,    mismatch, 0, // g
+            mismatch, mismatch, mismatch, match,    0, // t
+            0,        0,        0,        0,        0, // n
         };
 
         memcpy(subs_mat, default_substitution_scores, 25 * sizeof(int8_t));
-        gapo = 3;
-        gape = 1;
+        gapo = gap_open;
+        gape = gap_extension;
     }
 
     int8_t subs_mat[25];
@@ -205,13 +206,79 @@ struct AlignmentResult
         return *this;
     }
 
-    int score;
+    int score = 0;
     std::string hap1;
     std::string hap2;
-    int s1, e1, s2, e2;
-    uint32_t* cigar;
-    int n_cigar;
+    int s1 = 0, e1 = 0, s2 = 0, e2 = 0;
+    uint32_t* cigar = 0;
+    int n_cigar = 0;
 };
+
+enum CigarCode
+{
+    ALIGN = 0, // 'M'
+    INSERT = 1, // 'I'
+    DELETE = 2, // 'D'
+    SKIP = 3, // 'N' Essentially same as 'D' but not treated as a deletion.
+    // Can be used for intron when aligning RNA sample against whole genome reference
+    SOFT_CLIP = 4, // 'S'
+    HARD_CLIP = 5, // 'H'
+    PAD = 6, // 'P'
+    MATCH = 7, // '='
+    MISMATCH = 8, // 'X'
+    UNKNOWN // '?'
+};
+
+class CigarCoder
+{
+    union {
+        struct
+        {
+            CigarCode opCode_ : 4;
+            uint32_t length_ : 28;
+        };
+        uint32_t value_;
+    };
+
+public:
+    static const uint32_t LENGTH_MAX = ~(~uint32_t(0) << 28);
+    CigarCoder(uint64_t length, CigarCode opCode)
+        : opCode_(opCode)
+        , length_(LENGTH_MAX < length ? LENGTH_MAX : length)
+    {
+        assert(ALIGN <= opCode && UNKNOWN >= opCode); //, "Invalid CIGAR code " << opCode);
+        assert(length == length_); //, "Supplied length value does not fit the length_ data field: " << length << "
+                                   // length_:" << length_);
+    }
+
+    explicit CigarCoder(uint32_t value)
+        : value_(value)
+    {
+    }
+
+    uint32_t getValue() const { return value_; }
+    uint32_t getLength() const { return length_; }
+    void dec(uint32_t by) { length_ -= by; }
+    CigarCode getCode() const { return opCode_; }
+};
+
+typedef std::vector<uint32_t> Cigar;
+
+template <typename CigarIT> std::string cigarToString(CigarIT pathCigarIt, const CigarIT pathCigarEnd)
+{
+    static const std::vector<char> CIGAR_CHARS = { 'M', 'I', 'D', 'N', 'S', 'H', 'P', '=', 'X', '?' };
+    std::string ret;
+    while (pathCigarEnd != pathCigarIt)
+    {
+        const CigarCoder c(*pathCigarIt++);
+        ret += std::to_string(c.getLength()) + CIGAR_CHARS[c.getCode()];
+    }
+
+    return ret;
+}
+
+std::string
+makeCigarBit(std::string::const_iterator itRef, std::string::const_iterator& itSeq, std::size_t length, int& matches);
 
 /**
  * @brief Factory interface. Caller has to delete the returned

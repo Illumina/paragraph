@@ -37,7 +37,7 @@
 
 #include <cstddef>
 
-#include "graphs/GraphMapping.hh"
+#include "graphalign/GraphAlignment.hh"
 #include "json/json.h"
 
 namespace paragraph
@@ -65,34 +65,24 @@ public:
     /**
      * simple getters
      */
-    int num_reads() { return num_fwd_strand_reads + num_rev_strand_reads; }
+    int num_reads() const { return num_fwd_strand_reads + num_rev_strand_reads; }
+
+    /* Add mapping stats for a node. will count the read as forward / reverse and
+     * add all types of bases as mapped to the node */
+    void addNodeMapping(const graphtools::Alignment& alignment, bool is_graph_reverse_strand, bool count_clipped_bases);
 
     /**
-     * add mapping stats of a node into the data structure. Do not add read information
-     */
-    void addNodeMappingBases(const graphs::NodeMapping& node_mapping);
-
-    /**
-     * add mapping stats of a node into the data structre
-     */
-    void addNodeMapping(const graphs::NodeMapping& node_mapping, bool is_graph_reverse_strand);
-
-    /**
-     * add clip bases to data structure
-     */
-    void addClipBases(const graphs::NodeMapping& node_mapping) { num_clip_bases += node_mapping.mapping.clipped(); }
-    /**
-     * add mapping stats of an edge into the data structre
+     * Add mapping for an edge: adds read + counts for an edge
      */
     void addEdgeMapping(
-        const graphs::NodeMapping& node_mapping1, const graphs::NodeMapping& node_mapping2,
-        bool is_graph_reverse_strand);
+        const graphtools::Alignment& from_alignment, const graphtools::Alignment& to_alignment,
+        bool is_graph_reverse_strand, bool count_clipped_bases_from, bool count_clipped_bases_to);
 
     /**
-     * add mapping stats of a read to an allele
+     * add mapping stats of a read to an allele, don't count clipping for source / sink where appropriate
      */
     void addAlleleMapping(
-        const graphs::GraphMapping& graph_mapping, bool is_graph_reverse_strand, uint64_t source, uint64_t sink);
+        const graphtools::GraphAlignment& graph_alignment, bool is_graph_reverse_strand, bool has_source_and_sink);
 
     /**
      * output alignment statistics to a JSON value

@@ -39,11 +39,10 @@
 #include <cstring>
 #include <sstream>
 
-#include "Klib.hh"
 #include "KlibGlobal.hh"
+#include "common/Klib.hh"
 
 #include "common/Error.hh"
-#include "common/Genetics.hh"
 
 using namespace variant;
 
@@ -77,32 +76,76 @@ Alignment* makeAlignment(const char* type)
     return NULL;
 }
 
+inline char getCigarOp(const char s, const char r) { return s == r ? 'M' : s == 'N' ? 'N' : r == 'N' ? 'N' : 'X'; }
+
+/**
+ * \param  matches will be incremented by the number of matches found
+ * \return CIGAR with mismatches clipped on left if first is set
+ *         or on right if last is set. If the entire sequence is
+ *         clipped, an empty CIGAR is returned
+ */
+std::string
+makeCigarBit(std::string::const_iterator itRef, std::string::const_iterator& itSeq, std::size_t length, int& matches)
+{
+    std::string ret;
+
+    char lastOp = 0;
+    std::size_t lastOpLen = 0;
+    for (; length; ++itSeq, ++itRef, --length, ++lastOpLen)
+    {
+        const char op = getCigarOp(*itRef, *itSeq);
+        if (op != lastOp)
+        {
+            if (lastOpLen)
+            {
+                ret += std::to_string(lastOpLen) + lastOp;
+                if ('M' == lastOp)
+                {
+                    matches += lastOpLen;
+                }
+            }
+            lastOp = op;
+            lastOpLen = 0;
+        }
+    }
+    if (lastOpLen)
+    {
+        ret += std::to_string(lastOpLen) + lastOp;
+        if ('M' == lastOp)
+        {
+            matches += lastOpLen;
+        }
+    }
+
+    return ret;
+}
+
 /**
  * @brief Format int encoded Cigar string
  *
- * @param tb for padding with "S" : begin
- * @param te for padding with "S" : end
+ * @param qb for padding with "S" : begin
+ * @param qe for padding with "S" : end
  * @param altlen for padding with "S" : length of alternate sequence
  * @param ncigar length of cigar
  * @param cigar int* to cigar entries
  *
  */
-std::string makeCigar(int tb, int te, int altlen, int ncigar, uint32_t* cigar)
+std::string makeCigar(int qb, int qe, int altlen, int ncigar, uint32_t* cigar)
 {
     std::string cig;
 
     if (ncigar > 0)
     {
         std::ostringstream cigar_string;
-        if (tb > 0)
+        if (qb > 0)
         {
-            cigar_string << tb << 'S';
+            cigar_string << qb << 'S';
         }
 
         for (int i = 0; i < ncigar; ++i)
         {
             cigar_string << (cigar[i] >> 4);
-            uint8_t op = cigar[i] & 0x000f;
+            uint8_t op = static_cast<uint8_t>(cigar[i] & 0x000f);
             switch (op)
             {
             case 0:
@@ -117,7 +160,7 @@ std::string makeCigar(int tb, int te, int altlen, int ncigar, uint32_t* cigar)
             }
         }
 
-        int end = altlen - te - 1;
+        int end = altlen - qe - 1;
         if (end > 0)
         {
             cigar_string << end << 'S';
@@ -188,7 +231,7 @@ void getVariantsFromCigar(
                 ++altpos;
             }
             break;
-        case 1: // 'I' -> REF insertion in ALT = ALT deletion
+        case 2: // 'D' -> REF deletion = ALT insertion;
             if (have_rv)
             {
                 target.push_back(rv);
@@ -205,7 +248,7 @@ void getVariantsFromCigar(
             // shift the reference position
             refpos += count;
             break;
-        case 2: // 'D' -> REF deletion = ALT insertion;
+        case 1: // 'I' -> REF insertion in ALT = ALT deletion
             if (have_rv)
             {
                 target.push_back(rv);
@@ -240,7 +283,7 @@ void getCigarStats(
     std::string const& ref, std::string const& alt, int r0, int a0, uint32_t* cigar, int ncigar, int& softclipped,
     int& matches, int& mismatches, int& ins, int& del)
 {
-    softclipped = r0;
+    softclipped = a0;
     matches = 0;
     mismatches = 0;
     ins = 0;
@@ -273,20 +316,20 @@ void getCigarStats(
             }
             break;
         case 1: // 'I' -> REF insertion in ALT = ALT deletion
-            del += count;
+            ins += count;
             // shift the reference position
-            refpos += count;
+            altpos += count;
             break;
         case 2: // 'D' -> REF deletion = ALT insertion;
-            ins += count;
+            del += count;
             // shift the reference position up by one
-            altpos += count;
+            refpos += count;
             break;
         }
     }
 
     // TODO we might want to check if we're at the end of alt here.
-    softclipped += ref.size() - refpos;
+    softclipped += alt.size() - altpos;
 }
 
 /**
@@ -353,7 +396,7 @@ void realignRefVar(
                 ++altpos;
             }
             break;
-        case 1: // 'I' -> REF insertion in ALT = ALT deletion
+        case 2: // 'D' -> REF deletion = ALT insertion;
             rv.start = rstart + refpos;
             rv.end = rstart + refpos + count - 1;
             rv.alt = "";
@@ -361,7 +404,7 @@ void realignRefVar(
             // shift the reference position
             refpos += count;
             break;
-        case 2: // 'D' -> REF deletion = ALT insertion;
+        case 1: // 'I' -> REF insertion in ALT = ALT deletion
             // insert before reference pos
 
             // reference length = end - start + 1 == refpos-1 - refpos + 1 == 0
@@ -371,103 +414,6 @@ void realignRefVar(
             rv.alt = altseq.substr(altpos, count);
             vars.push_back(rv);
 
-            altpos += count;
-            break;
-        }
-    }
-}
-
-/**
- * @brief Decompose a RefVar into primitive variants (subst / ins / del) by means of realigning
- *
- * @param f reference sequence fasta
- * @param chr the chromosome to use
- * @param in_rv the RefVar record
- * @param snps the number of snps
- * @param ins the number of insertions
- * @param dels the number of deletions
- * @param homref the number of calls with no variation
- */
-void realignRefVar(
-    FastaFile const& f, const char* chr, variant::RefVar const& in_rv, Alignment* aln, size_t& snps, size_t& ins,
-    size_t& dels, size_t& homref, size_t& transitions, size_t& transversions)
-{
-    int64_t rstart = in_rv.start, rend = in_rv.end, reflen = rend - rstart + 1;
-    int64_t altlen = (int64_t)in_rv.alt.size();
-
-    if (reflen < 2 || altlen < 2)
-    {
-        // no complex ref / alt => use fast and simple function
-        countRefVarPrimitives(f, chr, in_rv, snps, ins, dels, homref, transitions, transversions);
-        return;
-    }
-
-    std::string refseq = f.query(chr, rstart, rend);
-    std::string altseq = in_rv.alt;
-
-    aln->setRef(refseq.c_str());
-    aln->setQuery(altseq.c_str());
-
-    uint32_t* icigar;
-    int r0, r1, a0, a1;
-    int ncigar = 0;
-    aln->getCigar(r0, r1, a0, a1, ncigar, icigar);
-
-    int refpos = r0;
-    int altpos = a0;
-    bool isValidSnv(false);
-
-    for (int i = 0; i < ncigar; ++i)
-    {
-        uint32_t count = icigar[i] >> 4;
-        uint8_t op = icigar[i] & 0x000f;
-        switch (op)
-        {
-        case 0: // 'M'
-        case 7: // '='
-        case 8: // 'X'
-            for (uint32_t j = 0; j < count; ++j)
-            {
-                // check match / mismatch because ksw doesn't give this to us
-                const char refBase(refseq[refpos]);
-                const char altBase(altseq[altpos]);
-
-                if (altBase != refBase)
-                {
-                    ++snps;
-                    const bool isTransversion(snvIsTransversion(refBase, altBase, isValidSnv));
-
-                    if (isValidSnv)
-                    {
-                        if (isTransversion)
-                        {
-                            ++transversions;
-                        }
-                        else
-                        {
-                            ++transitions;
-                        }
-                    }
-                }
-                else
-                {
-                    ++homref;
-                }
-                ++refpos;
-                ++altpos;
-            }
-            break;
-        case 1: // 'I' -> REF insertion in ALT = ALT deletion
-            dels += count;
-            // shift the reference position
-            refpos += count;
-            break;
-        case 2: // 'D' -> REF deletion = ALT insertion;
-            // insert before reference pos
-
-            // reference length = end - start + 1 == refpos-1 - refpos + 1 == 0
-            // this is interpreted as an insertion before pos.
-            ins += count;
             altpos += count;
             break;
         }

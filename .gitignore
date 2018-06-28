@@ -4,7 +4,7 @@
 *.pyc
 tags
 compile_commands.json
-cmake-build-debug
+cmake-build-*
 .idea
 build
 .vscode
@@ -16,7 +16,7 @@ cppcheck-result
 *-release.tar.gz
 *-buildfolder.tar.gz
 /.settings/
-/.gitignore
 /.cproject
 /.project
 /.pydevproject
+/src/python/.env

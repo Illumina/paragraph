@@ -25,11 +25,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "grm/GraphAligner.hh"
-#include "common/Genetics.hh"
 
-#include <common/StringUtil.hh>
 #include <cstdlib>
-#include <graphs/WalkableGraph.hh>
 #include <gssw.h>
 #include <iostream>
 #include <list>
@@ -37,10 +34,19 @@
 #include <string>
 
 #include "common/Error.hh"
+#include "common/StringUtil.hh"
+#include "graphcore/GraphOperations.hh"
+#include "graphutils/SequenceOperations.hh"
 
 using namespace grm;
 using namespace common;
 using std::string;
+
+using graphtools::Graph;
+using graphtools::NodeId;
+using graphtools::reverseComplement;
+using graphtools::reverseGraph;
+using graphtools::reverseString;
 
 extern "C" {
 #include "gssw.h"
@@ -75,6 +81,7 @@ struct GraphAligner::GraphAlignerImpl
         /* graph_ owns all nodes_[] elements. There probably is a better way to keep track of this */
         graph_(nullptr, safe_gssw_graph_destroy)
         , graph_reversed_(nullptr, safe_gssw_graph_destroy)
+        , original_graph_(nullptr)
     {
     }
 
@@ -85,7 +92,7 @@ struct GraphAligner::GraphAlignerImpl
      * @param gm  graph mapping to extract from
      * @return cigar string
      */
-    static std::string extractCigar(gssw_graph_mapping* gm)
+    static std::string extractCigar(gssw_graph_mapping* gm, std::vector<NodeId> const& node_map)
     {
         std::stringstream cigar;
         // cigar << gm->score << "@" << gm->position;
@@ -94,7 +101,7 @@ struct GraphAligner::GraphAlignerImpl
 
         for (uint32_t i = 0; i < g->length; ++i, ++nc)
         {
-            cigar << nc->node->id << "[";
+            cigar << node_map[nc->node->id] << "[";
             gssw_cigar* c = nc->cigar;
             gssw_cigar_element* e = c->elements;
             for (int32_t j = 0; j < c->length; ++j, ++e)
@@ -108,37 +115,54 @@ struct GraphAligner::GraphAlignerImpl
     }
 
     void initializeGraph(
-        graphs::Graph const& graph, p_gssw_graph& gssw_graph, std::vector<gssw_node*>& nodes,
-        std::vector<std::string>* names = nullptr)
+        Graph const& graph, p_gssw_graph& gssw_graph, std::vector<gssw_node*>& nodes, std::vector<NodeId>& node_map,
+        std::vector<uint32_t>& first_gssw_node)
     {
         nodes.clear();
-        std::unordered_map<int64_t, gssw_node*> node_map;
-        if (names)
-        {
-            names->clear();
-        }
+        node_map.clear();
+        first_gssw_node.clear();
+        first_gssw_node.resize(graph.numNodes());
 
-        for (auto const& n : graph.nodes)
+        uint32_t gssw_node_id = 0;
+        for (NodeId node_id = 0; node_id != graph.numNodes(); ++node_id)
         {
-            // Make nodes. some better transformation / mapping might be
-            // needed to deal with int32/int64 difference for
-            // node ids (e.g. we could use a mapping stored in _impl)
-            // for node ids that fit in 32 bits, this should work though
-            std::string uc_sequence = n.second->sequence();
-            stringutil::toUpper(uc_sequence);
-            gssw_node* nd
-                = gssw_node_create(nullptr, (const uint32_t)n.first, uc_sequence.c_str(), nt_table_.get(), mat_.get());
-            nodes.push_back(nd);
-            node_map[n.first] = nd;
-            if (names)
+            first_gssw_node[node_id] = gssw_node_id;
+            if (node_id != 0 && node_id != graph.numNodes() - 1)
             {
-                names->push_back(n.second->name());
-            }
-        }
+                for (auto sequence : graph.nodeSeqExpansion(node_id))
+                {
+                    stringutil::toUpper(sequence);
 
-        for (auto const& e : graph.edges)
-        {
-            gssw_nodes_add_edge(node_map[e->from()], node_map[e->to()]);
+                    gssw_node* nd
+                        = gssw_node_create(nullptr, gssw_node_id++, sequence.c_str(), nt_table_.get(), mat_.get());
+                    nodes.push_back(nd);
+                    node_map.push_back(node_id);
+                }
+            }
+            else
+            {
+                std::string sequence = graph.nodeSeq(node_id);
+                stringutil::toUpper(sequence);
+                gssw_node* nd
+                    = gssw_node_create(nullptr, gssw_node_id++, sequence.c_str(), nt_table_.get(), mat_.get());
+                nodes.push_back(nd);
+                node_map.push_back(node_id);
+            }
+
+            for (auto to_gssw_node = first_gssw_node[node_id]; to_gssw_node < gssw_node_id; ++to_gssw_node)
+            {
+                for (auto pred : graph.predecessors(node_id))
+                {
+                    // topological ordering
+                    assert(pred < node_id);
+                    auto from_gssw_node = first_gssw_node[pred];
+                    while (from_gssw_node < node_map.size() && node_map[from_gssw_node] == pred)
+                    {
+                        gssw_nodes_add_edge(nodes[from_gssw_node], nodes[to_gssw_node]);
+                        ++from_gssw_node;
+                    }
+                }
+            }
         }
 
         // Make the graph itself.
@@ -150,12 +174,13 @@ struct GraphAligner::GraphAlignerImpl
     }
 
     /** Assumes that DP matrix has been filled out. */
-    static bool alignsEndAtMultNodes(gssw_graph* graph, std::vector<gssw_node*> const& nodes, int32_t read_len)
+    static bool alignsEndAtMultNodes(
+        gssw_graph* graph, std::vector<gssw_node*> const& nodes, std::vector<NodeId> const& node_map, int32_t read_len)
     {
         /** Top local-alignment score. */
         uint16_t top_score = graph->max_node->alignment->score1;
 
-        int num_nodes_where_top_aligns_end = 0;
+        std::set<NodeId> nodes_where_top_aligns_end;
 
         for (size_t i = 0; i < nodes.size(); ++i)
         {
@@ -179,8 +204,12 @@ struct GraphAligner::GraphAlignerImpl
                 }
             }
 
-            num_nodes_where_top_aligns_end += top_align_ends_at_node ? 1 : 0;
-            if (num_nodes_where_top_aligns_end == 2)
+            if (top_align_ends_at_node)
+            {
+                nodes_where_top_aligns_end.insert(node_map[i]);
+            }
+
+            if (nodes_where_top_aligns_end.size() > 1)
             {
                 return true;
             }
@@ -189,7 +218,9 @@ struct GraphAligner::GraphAlignerImpl
         return false;
     }
 
-    bool alignString(gssw_graph* g, std::vector<gssw_node*> nodes, std::string str, p_gssw_graph_mapping& output)
+    bool alignString(
+        gssw_graph* g, std::vector<gssw_node*> const& nodes, std::vector<NodeId> const& node_map, std::string str,
+        p_gssw_graph_mapping& output)
     {
         stringutil::toUpper(str);
         // Compute dynamic programming matrix.
@@ -199,7 +230,7 @@ struct GraphAligner::GraphAlignerImpl
         gssw_graph_mapping* gm = gssw_graph_trace_back(
             g, str.c_str(), (int32_t)str.length(), nt_table_.get(), mat_.get(), gap_open_, gap_extension_);
         output = p_gssw_graph_mapping(gm, gssw_graph_mapping_destroy);
-        return alignsEndAtMultNodes(g, nodes, (int32_t)str.size());
+        return alignsEndAtMultNodes(g, nodes, node_map, (int32_t)str.size());
     }
 
     /** Default alignment parameters. */
@@ -214,11 +245,22 @@ struct GraphAligner::GraphAlignerImpl
     p_gssw_graph graph_;
     /** nodes are owned by graph */
     std::vector<gssw_node*> nodes_;
-    std::vector<std::string> nodenames_;
+
+    /** each node in the input graph may create more than one gssw node */
+    std::vector<NodeId> node_map_;
+    /** stores the first gssw node for each graph node */
+    std::vector<uint32_t> first_gssw_node_;
 
     p_gssw_graph graph_reversed_;
     /** nodes are owned by graph */
     std::vector<gssw_node*> nodes_reversed_;
+    /** each node in the input graph may create more than one gssw node */
+    std::vector<NodeId> node_map_reversed_;
+    /** stores the first gssw node for each graph node */
+    std::vector<uint32_t> first_gssw_node_reversed_;
+
+    /** keep original graphtools graph */
+    Graph const* original_graph_;
 };
 
 GraphAligner::GraphAligner()
@@ -239,12 +281,14 @@ GraphAligner& GraphAligner::operator=(GraphAligner&& rhs) noexcept
     return *this;
 }
 
-void GraphAligner::setGraph(graphs::Graph const& graph)
+void GraphAligner::setGraph(Graph const* graph)
 {
-    _impl->initializeGraph(graph, _impl->graph_, _impl->nodes_, &(_impl->nodenames_));
-    graphs::Graph graph_reverse;
-    reverse(graph, graph_reverse);
-    _impl->initializeGraph(graph_reverse, _impl->graph_reversed_, _impl->nodes_reversed_);
+    _impl->original_graph_ = graph;
+    _impl->initializeGraph(*graph, _impl->graph_, _impl->nodes_, _impl->node_map_, _impl->first_gssw_node_);
+    Graph graph_reverse = reverseGraph(*graph);
+    _impl->initializeGraph(
+        graph_reverse, _impl->graph_reversed_, _impl->nodes_reversed_, _impl->node_map_reversed_,
+        _impl->first_gssw_node_reversed_);
 }
 
 string GraphAligner::align(const string& read, int& mapq, int& position, int& score) const
@@ -275,12 +319,12 @@ void GraphAligner::alignRead(Read& read, unsigned int alignment_flags) const
     GraphAlignerImpl::p_gssw_graph_mapping rgm_fwd_strand{ nullptr, safe_gssw_graph_mapping_destroy };
     GraphAlignerImpl::p_gssw_graph_mapping rgm_reverse_strand{ nullptr, safe_gssw_graph_mapping_destroy };
 
-    const std::string rev_cmp_bases = common::reverseComplement(read.bases());
+    const std::string rev_cmp_bases = reverseComplement(read.bases());
 
     const bool fwd_strand_multi_align
-        = _impl->alignString(_impl->graph_.get(), _impl->nodes_, read.bases(), gm_fwd_strand);
+        = _impl->alignString(_impl->graph_.get(), _impl->nodes_, _impl->node_map_, read.bases(), gm_fwd_strand);
     const bool reverse_strand_multi_align = (alignment_flags & AF_BOTH_STRANDS) != 0u
-        ? _impl->alignString(_impl->graph_.get(), _impl->nodes_, rev_cmp_bases, gm_reverse_strand)
+        ? _impl->alignString(_impl->graph_.get(), _impl->nodes_, _impl->node_map_, rev_cmp_bases, gm_reverse_strand)
         : false;
 
     bool rfwd_strand_multi_align = false;
@@ -291,11 +335,12 @@ void GraphAligner::alignRead(Read& read, unsigned int alignment_flags) const
         string bases_rev = read.bases();
         std::reverse(bases_rev.begin(), bases_rev.end());
 
-        rfwd_strand_multi_align
-            = _impl->alignString(_impl->graph_reversed_.get(), _impl->nodes_reversed_, bases_rev, rgm_fwd_strand);
+        rfwd_strand_multi_align = _impl->alignString(
+            _impl->graph_reversed_.get(), _impl->nodes_reversed_, _impl->node_map_reversed_, bases_rev, rgm_fwd_strand);
         rreverse_strand_multi_align = (alignment_flags & AF_BOTH_STRANDS) != 0u
             ? _impl->alignString(
-                  _impl->graph_.get(), _impl->nodes_, common::reverseComplement(bases_rev), rgm_reverse_strand)
+                  _impl->graph_reversed_.get(), _impl->nodes_reversed_, _impl->node_map_reversed_,
+                  reverseComplement(bases_rev), rgm_reverse_strand)
             : false;
     }
 
@@ -320,13 +365,13 @@ void GraphAligner::alignRead(Read& read, unsigned int alignment_flags) const
     const bool resulting_strand_is_reverse = read.is_reverse_strand() != return_reverse;
     read.set_is_graph_reverse_strand(resulting_strand_is_reverse);
 
-    auto make_node_list = [](gssw_graph_mapping* gm) -> std::list<int> {
+    auto make_node_list = [this](gssw_graph_mapping* gm) -> std::list<int> {
         std::list<int> result;
         auto const& g = gm->cigar;
         auto nc = g.elements;
         for (uint32_t i = 0; i < g.length; ++i, ++nc)
         {
-            result.push_back(nc->node->id);
+            result.push_back(_impl->node_map_[nc->node->id]);
         }
         return result;
     };
@@ -345,7 +390,7 @@ void GraphAligner::alignRead(Read& read, unsigned int alignment_flags) const
         read.set_graph_mapq(reverse_strand_is_unique ? 60 : 0);
         if (alignment_flags & AF_CIGAR)
         {
-            read.set_graph_cigar(_impl->extractCigar(gm_reverse_strand.get()));
+            read.set_graph_cigar(_impl->extractCigar(gm_reverse_strand.get(), _impl->node_map_));
         }
         nodes_passed = make_node_list(gm_reverse_strand.get());
     }
@@ -357,8 +402,10 @@ void GraphAligner::alignRead(Read& read, unsigned int alignment_flags) const
         read.set_graph_mapq(fwd_strand_is_unique ? 60 : 0);
         if (alignment_flags & AF_CIGAR)
         {
-            read.set_graph_cigar(_impl->extractCigar(gm_fwd_strand.get()));
+            read.set_graph_cigar(_impl->extractCigar(gm_fwd_strand.get(), _impl->node_map_));
         }
         nodes_passed = make_node_list(gm_fwd_strand.get());
     }
+
+    LOG()->trace("GraphAligner::alignRead read.cigar={}", read.graph_cigar());
 }

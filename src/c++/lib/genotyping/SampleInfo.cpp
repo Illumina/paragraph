@@ -56,6 +56,27 @@ namespace genotyping
  * @param filename file name of manifest
  * @return list of sample info records
  */
+void SampleInfo::set_sex(std::string sex_string)
+{
+    std::transform(sex_string.begin(), sex_string.end(), sex_string.begin(), ::tolower);
+    if (sex_string.size() > 0 && tolower(sex_string[0]) == 'm')
+    {
+        sex_ = MALE;
+    }
+    else if (sex_string.size() > 0 && tolower(sex_string[0]) == 'f')
+    {
+        sex_ = FEMALE;
+    }
+    else if (sex_string.size() > 0 && tolower(sex_string[0]) == 'u')
+    {
+        sex_ = UNKNOWN;
+    }
+    else
+    {
+        error("illegal sex string: %s", sex_string.c_str());
+    }
+}
+
 Samples loadManifest(const std::string& filename)
 {
     std::ifstream manifest_file(filename.c_str(), std::ifstream::in);
@@ -81,7 +102,7 @@ Samples loadManifest(const std::string& filename)
         {
             common::stringutil::split(line, header, "\t,");
             static const set<string> legal_header_columns = {
-                "id", "path", "index_path", "paragraph", "idxdepth", "depth", "read length",
+                "id", "path", "index_path", "paragraph", "idxdepth", "depth", "read length", "sex",
             };
             size_t j = 0;
             for (auto& h : header)
@@ -156,7 +177,16 @@ Samples loadManifest(const std::string& filename)
         }
         if ((depth < 0 || read_length < 0) && (header_map.count("idxdepth") != 0u))
         {
-            const auto idxdepth_filename = tokens[header_map["idxdepth"]];
+            std::string idxdepth_filename = tokens[header_map["idxdepth"]];
+            boost::filesystem::path p(idxdepth_filename);
+            if (!boost::filesystem::is_regular_file(p))
+            {
+                p = boost::filesystem::path(filename).parent_path() / p;
+            }
+            if (boost::filesystem::is_regular_file(p))
+            {
+                idxdepth_filename = p.string();
+            }
             try
             {
                 Json::Value idxdepth_json = common::getJSON(idxdepth_filename);
@@ -188,9 +218,24 @@ Samples loadManifest(const std::string& filename)
         sid.set_autosome_depth(depth);
         sid.set_read_length(static_cast<unsigned int>(read_length));
 
+        if (header_map.count("sex") != 0u)
+        {
+            string sex_string = tokens[header_map["sex"]];
+            sid.set_sex(sex_string);
+        }
+
         if (header_map.count("paragraph") != 0u)
         {
-            const auto paragraph_filename = tokens[header_map["paragraph"]];
+            std::string paragraph_filename = tokens[header_map["paragraph"]];
+            boost::filesystem::path p(paragraph_filename);
+            if (!boost::filesystem::is_regular_file(p))
+            {
+                p = boost::filesystem::path(filename).parent_path() / p;
+            }
+            if (boost::filesystem::is_regular_file(p))
+            {
+                paragraph_filename = p.string();
+            }
             if (!paragraph_filename.empty())
             {
                 try

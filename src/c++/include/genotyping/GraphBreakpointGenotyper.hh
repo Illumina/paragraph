@@ -46,6 +46,10 @@ namespace genotyping
 class GraphBreakpointGenotyper : public GraphGenotyper
 {
 public:
+    GraphBreakpointGenotyper(unsigned int male_ploidy = 2, unsigned int female_ploidy = 2)
+        : male_ploidy_(male_ploidy)
+        , female_ploidy_(female_ploidy){};
+
     /**
      * set genotyping parameters from JSON
      */
@@ -59,8 +63,17 @@ protected:
 
 private:
     /**
+     * get ploidy according to its sex
+     */
+    unsigned int getSamplePloidy(size_t sample_index);
+
+    /**
      * genotyping parameters
      */
     std::unique_ptr<GenotypingParameters> p_genotype_parameter;
+    std::unique_ptr<GenotypingParameters> p_male_genotype_parameter;
+
+    unsigned int male_ploidy_;
+    unsigned int female_ploidy_;
 };
 }

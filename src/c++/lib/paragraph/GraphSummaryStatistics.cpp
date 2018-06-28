@@ -34,14 +34,16 @@
  */
 
 #include "paragraph/GraphSummaryStatistics.hh"
-#include "graphs/GraphMappingOperations.hh"
+#include "graphalign/GraphAlignmentOperations.hh"
 #include "paragraph/ReadFilter.hh"
 
 namespace paragraph
 {
 
-using graphs::GraphMapping;
-using graphs::NodeMapping;
+using graphtools::Alignment;
+using graphtools::Graph;
+using graphtools::GraphAlignment;
+using graphtools::NodeId;
 using std::map;
 using std::string;
 using std::vector;
@@ -49,80 +51,93 @@ using std::vector;
 /**
  * add summary statistics on graph alignments into JSON output
  */
-void summarizeAlignments(graphs::WalkableGraph& wgraph, vector<common::p_Read>& reads, Json::Value& output)
+void summarizeAlignments(Graph const& graph, common::ReadBuffer const& reads, Json::Value& output)
 {
     std::vector<std::string> gkeys = { "nodes", "edges", "alleles" }; // keys for output items
     std::map<std::string, std::map<std::string, AlignmentStatistics>> gstats; // type -> node/edge/allele -> stats
 
     std::map<std::string, int> allele_score_sum; // allele -> sum of graph mapping scores
     std::map<std::string, int> broken_path; // allele -> #reads support broken path
-    map<uint64_t, size_t> allele_lengths; // sequence id -> length
+    map<std::string, size_t> allele_lengths; // sequence id -> length
 
-    for (auto& n_id : wgraph.allNodes())
+    for (NodeId n_id = 0; n_id < (NodeId)graph.numNodes(); ++n_id)
     {
-        for (auto s : wgraph.node(n_id)->sequence_ids())
+        std::set<std::string> node_predecessor_sequence_ids;
+        for (const auto& pred : graph.predecessors(n_id))
+        {
+            if (graph.hasEdge(pred, n_id))
+            {
+                for (const auto& label : graph.edgeLabels(pred, n_id))
+                {
+                    node_predecessor_sequence_ids.insert(label);
+                }
+            }
+        }
+        std::set<std::string> node_successor_sequence_ids;
+        for (const auto& succ : graph.successors(n_id))
+        {
+            if (graph.hasEdge(n_id, succ))
+            {
+                for (const auto& label : graph.edgeLabels(n_id, succ))
+                {
+                    node_successor_sequence_ids.insert(label);
+                }
+            }
+        }
+        std::list<std::string> node_sequence_ids;
+        std::set_intersection(
+            node_predecessor_sequence_ids.begin(), node_predecessor_sequence_ids.end(),
+            node_successor_sequence_ids.begin(), node_successor_sequence_ids.end(),
+            std::back_inserter(node_sequence_ids));
+
+        for (auto const& s : node_sequence_ids)
         {
             if (allele_lengths.find(s) == allele_lengths.end())
             {
                 allele_lengths[s] = 0;
             }
-            allele_lengths[s] += wgraph.node(n_id)->sequence().size();
+            allele_lengths[s] += graph.nodeSeq(n_id).size();
         }
     }
 
+    const bool has_source_or_sink
+        = (graph.nodeName(0) == "source") || (graph.nodeName(static_cast<NodeId>(graph.numNodes() - 1)) == "sink");
     for (auto& read : reads)
     {
-        if (read->graph_mapping_status() != reads::MappingStatus::MAPPED)
+        if (read->graph_mapping_status() != common::Read::MAPPED)
         {
             continue;
         }
-        GraphMapping graph_mapping
-            = graphs::decodeFromString(read->graph_pos(), read->graph_cigar(), read->bases(), wgraph);
+        GraphAlignment graph_alignment
+            = graphtools::decodeGraphAlignment(read->graph_pos(), read->graph_cigar(), &graph);
 
-        const NodeMapping* ptr_prev_node = nullptr;
         string previous_node_name;
 
-        for (const auto& node_mapping : graph_mapping)
+        for (NodeId node_id = 0; node_id != graph_alignment.size(); ++node_id)
         {
-            // node stat
-            string node_name = wgraph.nodeName(static_cast<uint64_t>(node_mapping.node_id));
+            const bool is_source_or_sink = has_source_or_sink && (node_id == 0 || node_id == graph.numNodes() - 1);
+
+            // node statistics
+            const auto& node_name = graph.nodeName(node_id);
             if (gstats["nodes"].find(node_name) == gstats["nodes"].end())
             {
-                gstats["nodes"][node_name]
-                    = AlignmentStatistics(wgraph.node((uint64_t)node_mapping.node_id)->sequence().size());
+                gstats["nodes"][node_name] = AlignmentStatistics(graph.nodeSeq(node_id).size());
             }
-            gstats["nodes"][node_name].addNodeMapping(node_mapping, read->is_graph_reverse_strand());
-            if ((uint64_t)node_mapping.node_id != wgraph.source() && (uint64_t)node_mapping.node_id != wgraph.sink())
-            {
-                gstats["nodes"][node_name].addClipBases(node_mapping);
-            }
+            gstats["nodes"][node_name].addNodeMapping(
+                graph_alignment[node_id], read->is_graph_reverse_strand(), !is_source_or_sink);
 
             // edge stats
-            if (ptr_prev_node != NULL)
+            if (node_id > 0)
             {
-                string edge_name = previous_node_name + "_" + node_name;
+                const string edge_name = previous_node_name + "_" + node_name;
                 if (gstats["edges"].find(edge_name) == gstats["edges"].end())
                 {
-                    size_t edge_length = wgraph.node(static_cast<uint64_t>(ptr_prev_node->node_id))->sequence().size()
-                        + wgraph.node(static_cast<uint64_t>(node_mapping.node_id))->sequence().size();
+                    const size_t edge_length = graph.nodeSeq(node_id - 1).size() + graph.nodeSeq(node_id).size();
                     gstats["edges"][edge_name] = AlignmentStatistics(edge_length);
                 }
                 gstats["edges"][edge_name].addEdgeMapping(
-                    *ptr_prev_node, node_mapping, read->is_graph_reverse_strand());
-                if ((uint64_t)node_mapping.node_id != wgraph.source()
-                    && (uint64_t)node_mapping.node_id != wgraph.sink())
-                {
-                    gstats["edges"][edge_name].addClipBases(node_mapping);
-                }
-                if ((uint64_t)ptr_prev_node->node_id != wgraph.source()
-                    && (uint64_t)ptr_prev_node->node_id != wgraph.sink())
-                {
-                    gstats["edges"][edge_name].addClipBases(*ptr_prev_node);
-                }
-            }
-            else
-            {
-                ptr_prev_node = &node_mapping;
+                    graph_alignment[node_id - 1], graph_alignment[node_id], read->is_graph_reverse_strand(),
+                    has_source_or_sink && (node_id - 1 == 0), is_source_or_sink);
             }
             previous_node_name = node_name;
         }
@@ -131,14 +146,14 @@ void summarizeAlignments(graphs::WalkableGraph& wgraph, vector<common::p_Read>& 
         {
             if (gstats["alleles"].find(allele) == gstats["alleles"].end())
             {
-                gstats["alleles"][allele] = AlignmentStatistics(allele_lengths[wgraph.sequenceId(allele)]);
+                gstats["alleles"][allele] = AlignmentStatistics(allele_lengths[allele]);
             }
             if (allele_score_sum.find(allele) == allele_score_sum.end())
             {
                 allele_score_sum[allele] = 0;
             }
             gstats["alleles"][allele].addAlleleMapping(
-                graph_mapping, read->is_graph_reverse_strand(), wgraph.source(), wgraph.sink());
+                graph_alignment, read->is_graph_reverse_strand(), has_source_or_sink);
             allele_score_sum[allele] += read->graph_alignment_score();
         }
         for (auto& allele : read->graph_sequences_broken())

@@ -43,7 +43,7 @@
 #include <json/json.h>
 
 #include "common/Region.hh"
-#include "graphs/Graph.hh"
+#include "grm/GraphInput.hh"
 
 namespace paragraph
 {
@@ -53,15 +53,17 @@ class Parameters
 public:
     explicit Parameters(
         int max_reads_in = 10000, int min_reads_for_variant = 1, float min_frac_for_variant = 0.0f,
-        float bad_align_frac = 0.8, int outputs = output_options::ALL, bool exact_sequence_matching = true,
-        bool graph_sequence_matching = true, bool kmer_sequence_matching = false, bool validate_alignments = false)
+        float bad_align_frac = 0.8, int outputs = output_options::ALL, bool path_sequence_matching = false,
+        bool graph_sequence_matching = true, bool klib_sequence_matching = false, bool kmer_sequence_matching = false,
+        bool validate_alignments = false)
         : max_reads_(static_cast<size_t>(max_reads_in))
         , min_reads_for_variant_(min_reads_for_variant)
         , min_frac_for_variant_(min_frac_for_variant)
         , bad_align_frac_(bad_align_frac)
         , output_options_(outputs)
-        , exact_sequence_matching_(exact_sequence_matching)
+        , path_sequence_matching_(path_sequence_matching)
         , graph_sequence_matching_(graph_sequence_matching)
+        , klib_sequence_matching_(klib_sequence_matching)
         , kmer_sequence_matching_(kmer_sequence_matching)
         , validate_alignments_(validate_alignments){};
 
@@ -100,13 +102,15 @@ public:
 
     bool output_enabled(output_options const o) const { return static_cast<const bool>((output_options_ & o) != 0); }
 
-    bool exact_sequence_matching() const { return exact_sequence_matching_; }
+    bool path_sequence_matching() const { return path_sequence_matching_; }
     bool graph_sequence_matching() const { return graph_sequence_matching_; }
+    bool klib_sequence_matching() const { return klib_sequence_matching_; }
     bool kmer_sequence_matching() const { return kmer_sequence_matching_; }
     bool validate_alignments() const { return validate_alignments_; }
+    unsigned longest_alt_insertion() const { return longest_alt_insertion_; }
 
-    int threads() const { return threads_; }
-    void set_threads(int threads) { threads_ = threads; }
+    uint32_t threads() const { return threads_; }
+    void set_threads(uint32_t threads) { threads_ = threads; }
 
     int kmer_len() const { return kmer_len_; }
     void set_kmer_len(int kmer_len) { kmer_len_ = kmer_len; }
@@ -125,16 +129,19 @@ private:
 
     int output_options_; ///< output options
 
-    bool exact_sequence_matching_; ///< enable use of PathAligner
+    bool path_sequence_matching_; ///< enable use of PathAligner
     bool graph_sequence_matching_; ///< enable use of GraphAligner
+    bool klib_sequence_matching_; ///< enable use of KlibAligner
     bool kmer_sequence_matching_; ///< enable use of KmerAligner
     bool validate_alignments_;
 
     Json::Value description_; ///< graph description
+    /// if graph contains long insertions, we might want to read mates that are not in the target region.
+    unsigned longest_alt_insertion_ = 0;
 
     std::list<common::Region> target_regions_; ///< target regions for read retrieval
 
-    int threads_{ 1 }; ///< number of threads for parallel read processing
+    uint32_t threads_{ 1 }; ///< number of threads for parallel read processing
 
     int kmer_len_{ 0 }; ///< kmer length for validation
 

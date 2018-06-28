@@ -26,7 +26,9 @@
 
 #include "common/Fragment.hh"
 
-#include "graphs/GraphMappingOperations.hh"
+#include "graphalign/GraphAlignmentOperations.hh"
+
+#include "common/Error.hh"
 
 namespace common
 {
@@ -36,7 +38,7 @@ namespace common
  * @param coordinates coordinates and graph for length calculation
  * @param read read information
  */
-void Fragment::addRead(graphs::GraphCoordinates const& coordinates, Read const& read)
+void Fragment::addRead(graphtools::GraphCoordinates const& coordinates, Read const& read)
 {
     if (fragment_id.empty())
     {
@@ -61,7 +63,7 @@ void Fragment::addRead(graphs::GraphCoordinates const& coordinates, Read const& 
         bam_fragment_length_ = abs(read.mate_pos() - read.pos()) + read.bases().size();
     }
 
-    if (read.graph_mapping_status() == reads::MAPPED)
+    if (read.graph_mapping_status() == common::Read::MAPPED)
     {
         if (read.is_graph_reverse_strand())
         {
@@ -72,10 +74,10 @@ void Fragment::addRead(graphs::GraphCoordinates const& coordinates, Read const& 
             ++n_graph_forward_reads;
         }
 
-        graphs::GraphMapping mapping
-            = decodeFromString(read.graph_pos(), read.graph_cigar(), read.bases(), coordinates.getGraph());
-        read_positions_.emplace_back(coordinates.canonicalStartAndEnd(mapping));
-        read_lengths_.emplace_back(mapping.querySpan());
+        graphtools::GraphAlignment mapping
+            = graphtools::decodeGraphAlignment(read.graph_pos(), read.graph_cigar(), &coordinates.getGraph());
+        read_positions_.emplace_back(coordinates.canonicalStartAndEnd(mapping.path()));
+        read_lengths_.emplace_back(mapping.queryLength());
         if (read_positions_.size() == 1)
         {
             fragment_length_ = read_lengths_.front();
@@ -168,7 +170,7 @@ void Fragment::addRead(graphs::GraphCoordinates const& coordinates, Read const& 
  * @param output_list output list for fragments
  */
 void readsToFragments(
-    graphs::GraphCoordinates const& coordinates, common::ReadBuffer const& reads,
+    graphtools::GraphCoordinates const& coordinates, common::ReadBuffer const& reads,
     std::list<std::unique_ptr<Fragment>>& output_list)
 {
     std::unordered_map<std::string, Fragment*> fragment_map;

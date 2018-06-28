@@ -770,11 +770,11 @@ TEST(RefVar, Cigar2RefVar)
 {
     {
         const std::string ref = "XXCYY";
-        const std::string alt = "T";
+        const std::string alt = "YYTZZ";
         const std::string cigar = "2S1X2S";
         int ref_left = -1, alt_left = -1;
         const std::list<RefVar> rvl = cigarToRefVar(ref, alt, cigar, ref_left, alt_left);
-        ASSERT_EQ(0, ref_left);
+        ASSERT_EQ(4, ref_left);
         ASSERT_EQ(0, alt_left);
         {
             std::ostringstream oss;
@@ -782,12 +782,12 @@ TEST(RefVar, Cigar2RefVar)
             {
                 oss << x << "; ";
             }
-            ASSERT_EQ(oss.str(), "2-2:T; ");
+            ASSERT_EQ(oss.str(), "0-0:T; ");
         }
     }
     {
-        const std::string ref = "XXGGCTTYY";
-        const std::string alt = "GGTTT";
+        const std::string ref = "GGCTT";
+        const std::string alt = "XXGGTTTXX";
         const std::string cigar = "2S5M2S";
         int ref_left = -1, alt_left = -1;
         const std::list<RefVar> rvl = cigarToRefVar(ref, alt, cigar, ref_left, alt_left, true);
@@ -799,13 +799,13 @@ TEST(RefVar, Cigar2RefVar)
             {
                 oss << x << "; ";
             }
-            ASSERT_EQ(oss.str(), "2-3:.; 4-4:T; 5-6:.; ");
+            ASSERT_EQ(oss.str(), "0-1:.; 2-2:T; 3-4:.; ");
         }
     }
     {
-        const std::string ref = "XXXXCTCYYYYY";
-        const std::string alt = "CTCCC";
-        const std::string cigar = "4S3M2D5S";
+        const std::string ref = "CTC";
+        const std::string alt = "XXXXCTCCCYYYYY";
+        const std::string cigar = "4S3M2I5S";
         int ref_left = -1, alt_left = -1;
         const std::list<RefVar> rvl = cigarToRefVar(ref, alt, cigar, ref_left, alt_left);
         ASSERT_EQ(0, ref_left);
@@ -816,13 +816,13 @@ TEST(RefVar, Cigar2RefVar)
             {
                 oss << x << "; ";
             }
-            ASSERT_EQ(oss.str(), "7-6:CC; ");
+            ASSERT_EQ(oss.str(), "3-2:CC; ");
         }
     }
     {
-        const std::string ref = "XXXXCTCYYYYY";
+        const std::string ref = "CCCTC";
         const std::string alt = "CTCCC";
-        const std::string cigar = "4S3M2D5S";
+        const std::string cigar = "2D3M2I";
         int ref_left = -1, alt_left = -1;
         const std::list<RefVar> rvl = cigarToRefVar(ref, alt, cigar, ref_left, alt_left, true);
         ASSERT_EQ(0, ref_left);
@@ -833,13 +833,13 @@ TEST(RefVar, Cigar2RefVar)
             {
                 oss << x << "; ";
             }
-            ASSERT_EQ(oss.str(), "4-6:.; 7-6:CC; ");
+            ASSERT_EQ(oss.str(), "0-1:; 2-4:.; 5-4:CC; ");
         }
     }
     {
         const std::string ref = "CGACTTGAGACATACACCTGCGCCTAATCACTTCAGAGG";
         const std::string alt = "CGAACCGAGACATACAGCCTACTTCACAT";
-        const std::string cigar = "16M5I5M4I8M1I";
+        const std::string cigar = "16M5D5M4D8M1D";
         int ref_left = -1, alt_left = -1;
         const std::list<RefVar> rvl = cigarToRefVar(ref, alt, cigar, ref_left, alt_left);
         ASSERT_EQ(0, ref_left);

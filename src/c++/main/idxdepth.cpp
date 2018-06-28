@@ -39,12 +39,12 @@
 #include <string>
 #include <vector>
 
+#include "json/json.h"
 #include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
-#include "json/json.h"
-
+#include "common/JsonHelpers.hh"
 #include "idxdepth/DepthEstimation.hh"
 #include "idxdepth/IndexBinning.hh"
 #include "idxdepth/Parameters.hh"
@@ -148,14 +148,12 @@ int main(int argc, char const* argv[])
 
         if (output_path.empty())
         {
-            Json::StyledWriter fastWriter;
-            std::cout << fastWriter.write(output);
+            std::cout << common::writeJson(output);
         }
         else
         {
-            Json::FastWriter fastWriter;
             std::ofstream output_stream(output_path);
-            output_stream << fastWriter.write(output);
+            output_stream << common::writeJson(output, false);
         }
 
         if (!output_path_bins.empty())

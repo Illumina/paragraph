@@ -33,7 +33,7 @@
  *
  */
 
-#include "Klib.hh"
+#include "common/Klib.hh"
 
 namespace common
 {

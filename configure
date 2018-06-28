@@ -37,6 +37,7 @@ Configuration:
   --verbose                   display more information (enables CMAKE_VERBOSE_MAKEFILE)
   --with-cmake=CMAKE          specify the cmake executable [cmake]
   --with-eagle=PATH           specify path to eagle installation
+  --with-graphtools=PATH      specify path to graphtools source. Otherwise external/graph-tools.tar.gz is used
 
 Directory and file names:
   --prefix=PREFIX         install files in tree rooted at PREFIX
@@ -119,6 +120,8 @@ for a in "$@"; do
         paragraph_cmake=`echo $a | sed "s/^--with-cmake=//"`
     elif echo $a | grep "^--with-eagle" > /dev/null 2> /dev/null; then
         paragraph_eagle=`echo $a | sed "s/^--with-eagle=//"`
+    elif echo $a | grep "^--with-graphtools" > /dev/null 2> /dev/null; then
+        graphtools_source_dir=`echo $a | sed "s/^--with-graphtools=//"`
     elif echo $a | grep "^--build-type" > /dev/null 2> /dev/null; then
         paragraph_build_type=`echo $a | sed "s/^--build-type=//"`
     elif echo $a | grep "^--parallel" > /dev/null 2> /dev/null; then
@@ -226,6 +229,10 @@ elif [ "TGZ" == "${paragraph_package}" ]; then
 elif [ "CygwinBinary" == "${paragraph_package}" ]; then
      CMAKE_OPTIONS="${CMAKE_OPTIONS} \
          -DCPACK_GENERATOR:STRING=CygwinBinary"
+fi
+
+if [ "x${graphtools_source_dir}"       != "x" ] ; then
+    CMAKE_OPTIONS="${CMAKE_OPTIONS} -DGRAPHTOOLS_SOURCE_DIR=${graphtools_source_dir}"
 fi
 
 if [ -n "${paragraph_verbose}" ]; then

@@ -111,6 +111,10 @@ double PopulationStatistics::getChisqPvalue() const
     double chisq_val = 0;
     for (auto& gv : genotype_counts)
     {
+        if (gv.first.size() != 2)
+        {
+            continue;
+        }
         uint64_t h1 = gv.first[0];
         uint64_t h2 = gv.first[1];
         if (allele_counts[h1] == 0 || allele_counts[h2] == 0) // skip unobserved alleles
@@ -205,6 +209,10 @@ double PopulationStatistics::getFisherExactPvalue() const
     int observed_num_het = 0;
     for (auto& g : genotype_counts)
     {
+        if (g.first.size() != 2)
+        {
+            continue;
+        }
         if (g.first[0] == het_gv[0] && g.first[1] == het_gv[1])
         {
             observed_num_het = g.second;

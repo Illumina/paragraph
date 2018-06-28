@@ -27,6 +27,7 @@
 #include <chrono>
 #include <htslib/sam.h>
 #include <regex>
+#include <set>
 
 #include "idxdepth/DepthEstimation.hh"
 

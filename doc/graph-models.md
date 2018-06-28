@@ -30,29 +30,29 @@ the main concepts behind our graph genotyping methods.
 
 ## <a name='GraphModels'></a>Graph Models
 
-Graphs may be created from VCF or for particular events specified in 
-a JSON file. For details on the VCF to graph conversion see 
-[graph-tools.md#vcf2paragraph.py](graph-tools.md#vcf2paragraph.py)
-and [README.md#Usingvcf2paragraph.pytorunparaGRAPH](../README.md#Usingvcf2paragraph.pytorunparaGRAPH).
+Graphs may be created directly (as a JSON file) or from a VCF file. For details on the VCF to graph conversion see 
+[graph-tools.md#vcf2paragraph.py](graph-tools.md#vcf2paragraph.py).
 
 Each graph we create contains the following information:
 
-*  **Sequence labels**: Sequence labels are used to tag particular paths through our graph. 
-   Each sequence label corresponds to a set of *paths* through the graph.
 *  **Nodes**: Each node represents a piece of sequence that is at least one nucleotide long. 
-   Nodes may be associated with one or more *sequence labels*. The sequence for each node
-   may be specified explicitly, or can be retrieved from a reference FASTA file. Nodes
-   may thus be associated with linear reference locations.
+   The sequence for each node may be specified explicitly, or can be retrieved from a reference 
+   FASTA file. Nodes may thus be associated with linear reference locations.
 *  **Edges**: Edges connect nodes in a directed fashion (`from` node &rarr; `to` node). 
    Our graphs are required to be directed and acyclic, and edges may be associated with one or 
    more sequence *sequence labels*.
 *  **Paths**: A path is specified by a list of node names, where we required forward edges between each 
    pair of subsequent nodes to exist (i.e. we must be able to walk along our graph along this path).
-   Each path is associated with exactly one sequence label (but one sequence label may correspond
-   to multiple paths). 
+*  **Sequence labels**: Labels on edges are used to tag particular sequences (alleles / haplotypes)
+   through the graph. Each sequence label corresponds to a *path family*, a set of *paths* through the graph.
+   For a single variant the edge (or edges) that would be used when aligning each allele back to the graph
+   should be labeled with a *sequence label* for that allele. Haplotypes work the same way, labeling all 
+   edges that are covered by the haplotype. When alternative (or disjointed) edges are labeled with the same 
+   *sequence label*, the label defines a *path family* (e.g. to describe a partial haplotype). Edges that are
+   part of multiple haplotypes have a sequence label for each.
+   See [graph-counting.md](graph-counting.md).
 
-Graphs may be created for different event types. The following examples 
-illustrate a few such events.
+Graphs may be created for different event types. The following examples illustrate a few such events.
 
 ### <a name='Example1--SimpleSwap'></a>Example 1 -- Simple Swap
 
@@ -66,19 +66,23 @@ paths and disambiguation sequences too.
 ### <a name='Example2--Shortswap'></a>Example 2 -- Short swap
 
 ```bash
-vcf2paragraph.py swap-example-2.vcf swap-example-2.json -r hg19.fa -p 100
+vcf2paragraph.py swap-example-2.vcf swap-example-2.json -r hg19.fa
 paragraph2dot.py swap-example-2.json swap-example-2.dot
 dot -Tsvg swap-example-2.dot > swap-example-2.svg
 ```
 
-Short swap with REF and ALT branch:
+Short swap (MNV) with REF and ALT branch:
 
 ![Short Swap Example](../share/test-data/paragraph/simple/swap-example-2.png)
+
+Since the *CC* is shared between REF and ALT, the variant can be decomposed into two variants on a haplotype; See swap-example-2-split.
+
+![Decomposed Swap Example](../share/test-data/paragraph/simple/swap-example-2-split.png)
 
 ### <a name='Example3--Shortdeletion'></a>Example 3 -- Short deletion
 
 ```bash
-vcf2paragraph.py del-example-3.vcf del-example-3.json -r hg19.fa -p 100
+vcf2paragraph.py del-example-3.vcf del-example-3.json -r hg19.fa
 paragraph2dot.py del-example-3.json del-example-3.dot
 dot -Tsvg del-example-3.dot > del-example-3.svg
 ```
@@ -90,19 +94,20 @@ This is a short deletion with two straightforward paths: REF and ALT.
 ### <a name='Example4--Longdeletion'></a>Example 4 -- Long deletion
 
 ```bash
-vcf2paragraph.py del-example-4.vcf del-example-3.json -r hg19.fa -p 100
+vcf2paragraph.py del-example-4.vcf del-example-3.json -r hg19.fa
 paragraph2dot.py del-example-4.json del-example-3.dot
 dot -Tsvg del-example-4.dot > del-example-3.svg
 ```
 
-This is a longer deletion. We get two branches, one for each breakpoint.
+This is a longer deletion. We get two branches, one for each breakpoint, since the reference node between them is split.
+Both reference edges (covering the deletion breakends) have the same sequence label, defining a *path family* for the REF allele.
 
 ![Long Deletion Example](../share/test-data/paragraph/simple/del-example-4.png)
 
 ### <a name='Example5--LongSwap'></a>Example 5 -- Long Swap
 
 ```bash
-vcf2paragraph.py swap-example-5.vcf swap-example-5.json -r hg19.fa -p 100
+vcf2paragraph.py swap-example-5.vcf swap-example-5.json -r hg19.fa
 paragraph2dot.py swap-example-5.json swap-example-5.dot
 dot -Tsvg swap-example-5.dot > swap-example-5.svg
 ```

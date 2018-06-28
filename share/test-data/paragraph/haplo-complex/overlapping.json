@@ -1,0 +1,285 @@
+{
+    "edges": [
+        {
+            "from": "source",
+            "name": "source_ref-chr5:850-999",
+            "to": "ref-chr5:850-999"
+        },
+        {
+            "from": "ref-chr5:850-999",
+            "name": "ref-chr5:850-999_ref-chr5:1000-1000",
+            "sequences": [
+                "REF",
+                "Seq1"
+            ],
+            "to": "ref-chr5:1000-1000"
+        },
+        {
+            "from": "ref-chr5:850-999",
+            "name": "ref-chr5:850-999_chr5:1000-1000:T",
+            "sequences": [
+                "Seq2"
+            ],
+            "to": "chr5:1000-1000:T"
+        },
+        {
+            "from": "ref-chr5:1000-1000",
+            "name": "ref-chr5:1000-1000_chr5:1006-1006:T",
+            "sequences": [
+                "Seq1"
+            ],
+            "to": "chr5:1006-1006:T"
+        },
+        {
+            "from": "ref-chr5:1000-1000",
+            "name": "ref-chr5:1000-1000_ref-chr5:1001-1002",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:1001-1002"
+        },
+        {
+            "from": "chr5:1006-1006:T",
+            "name": "chr5:1006-1006:T_ref-chr5:1007-1999",
+            "sequences": [
+                "Seq1"
+            ],
+            "to": "ref-chr5:1007-1999"
+        },
+        {
+            "from": "chr5:1000-1000:T",
+            "name": "chr5:1000-1000:T_ref-chr5:1001-1002",
+            "sequences": [
+                "Seq2"
+            ],
+            "to": "ref-chr5:1001-1002"
+        },
+        {
+            "from": "ref-chr5:1001-1002",
+            "name": "ref-chr5:1001-1002_ref-chr5:1003-1003",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:1003-1003"
+        },
+        {
+            "from": "ref-chr5:1001-1002",
+            "name": "ref-chr5:1001-1002_ref-chr5:1004-1006",
+            "sequences": [
+                "Seq2"
+            ],
+            "to": "ref-chr5:1004-1006"
+        },
+        {
+            "from": "ref-chr5:1003-1003",
+            "name": "ref-chr5:1003-1003_ref-chr5:1004-1006",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:1004-1006"
+        },
+        {
+            "from": "ref-chr5:1004-1006",
+            "name": "ref-chr5:1004-1006_ref-chr5:1007-1999",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:1007-1999"
+        },
+        {
+            "from": "ref-chr5:1007-1999",
+            "name": "ref-chr5:1007-1999_ref-chr5:2000-2000",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:2000-2000"
+        },
+        {
+            "from": "ref-chr5:1007-1999",
+            "name": "ref-chr5:1007-1999_chr5:2000-2000:T",
+            "sequences": [
+                "Seq1"
+            ],
+            "to": "chr5:2000-2000:T"
+        },
+        {
+            "from": "ref-chr5:2000-2000",
+            "name": "ref-chr5:2000-2000_chr5:2001-2000:TT",
+            "sequences": [
+                "Seq2"
+            ],
+            "to": "chr5:2001-2000:TT"
+        },
+        {
+            "from": "ref-chr5:2000-2000",
+            "name": "ref-chr5:2000-2000_ref-chr5:2001-2001",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:2001-2001"
+        },
+        {
+            "from": "chr5:2001-2000:TT",
+            "name": "chr5:2001-2000:TT_ref-chr5:2001-2001",
+            "sequences": [
+                "Seq2"
+            ],
+            "to": "ref-chr5:2001-2001"
+        },
+        {
+            "from": "chr5:2000-2000:T",
+            "name": "chr5:2000-2000:T_ref-chr5:2001-2001",
+            "sequences": [
+                "Seq1"
+            ],
+            "to": "ref-chr5:2001-2001"
+        },
+        {
+            "from": "ref-chr5:2001-2001",
+            "name": "ref-chr5:2001-2001_ref-chr5:2002-2002",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:2002-2002"
+        },
+        {
+            "from": "ref-chr5:2001-2001",
+            "name": "ref-chr5:2001-2001_chr5:2002-2002:T",
+            "sequences": [
+                "Seq2"
+            ],
+            "to": "chr5:2002-2002:T"
+        },
+        {
+            "from": "ref-chr5:2001-2001",
+            "name": "ref-chr5:2001-2001_ref-chr5:2003-2152",
+            "sequences": [
+                "Seq1"
+            ],
+            "to": "ref-chr5:2003-2152"
+        },
+        {
+            "from": "ref-chr5:2002-2002",
+            "name": "ref-chr5:2002-2002_ref-chr5:2003-2152",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr5:2003-2152"
+        },
+        {
+            "from": "chr5:2002-2002:T",
+            "name": "chr5:2002-2002:T_ref-chr5:2003-2152",
+            "sequences": [
+                "Seq2"
+            ],
+            "to": "ref-chr5:2003-2152"
+        },
+        {
+            "from": "ref-chr5:2003-2152",
+            "name": "ref-chr5:2003-2152_sink",
+            "to": "sink"
+        }
+    ],
+    "model_name": "Graph from haplo-complex/overlapping.vcf",
+    "nodes": [
+        {
+            "name": "source",
+            "sequence": "NNNNNNNNNN"
+        },
+        {
+            "name": "ref-chr5:850-999",
+            "reference": "chr5:850-999"
+        },
+        {
+            "name": "ref-chr5:1000-1000",
+            "reference": "chr5:1000-1000"
+        },
+        {
+            "name": "chr5:1006-1006:T",
+            "position": "chr5:1006-1006",
+            "sequence": "T"
+        },
+        {
+            "name": "chr5:1000-1000:T",
+            "position": "chr5:1000-1000",
+            "sequence": "T"
+        },
+        {
+            "name": "ref-chr5:1001-1002",
+            "reference": "chr5:1001-1002"
+        },
+        {
+            "name": "ref-chr5:1003-1003",
+            "reference": "chr5:1003-1003"
+        },
+        {
+            "name": "ref-chr5:1004-1006",
+            "reference": "chr5:1004-1006"
+        },
+        {
+            "name": "ref-chr5:1007-1999",
+            "reference": "chr5:1007-1999"
+        },
+        {
+            "name": "ref-chr5:2000-2000",
+            "reference": "chr5:2000-2000"
+        },
+        {
+            "name": "chr5:2001-2000:TT",
+            "position": "chr5:2001-2000",
+            "sequence": "TT"
+        },
+        {
+            "name": "chr5:2000-2000:T",
+            "position": "chr5:2000-2000",
+            "sequence": "T"
+        },
+        {
+            "name": "ref-chr5:2001-2001",
+            "reference": "chr5:2001-2001"
+        },
+        {
+            "name": "ref-chr5:2002-2002",
+            "reference": "chr5:2002-2002"
+        },
+        {
+            "name": "chr5:2002-2002:T",
+            "position": "chr5:2002-2002",
+            "sequence": "T"
+        },
+        {
+            "name": "ref-chr5:2003-2152",
+            "reference": "chr5:2003-2152"
+        },
+        {
+            "name": "sink",
+            "sequence": "NNNNNNNNNN"
+        }
+    ],
+    "paths": [
+        {
+            "nodes": [
+                "ref-chr5:850-999",
+                "ref-chr5:1000-1000",
+                "ref-chr5:1001-1002",
+                "ref-chr5:1003-1003",
+                "ref-chr5:1004-1006",
+                "ref-chr5:1007-1999",
+                "ref-chr5:2000-2000",
+                "ref-chr5:2001-2001",
+                "ref-chr5:2002-2002",
+                "ref-chr5:2003-2152"
+            ],
+            "path_id": "REF|1",
+            "sequence": "REF"
+        }
+    ],
+    "sequencenames": [
+        "REF",
+        "Seq1",
+        "Seq2"
+    ],
+    "target_regions": [
+        "chr5:850-2152"
+    ]
+}

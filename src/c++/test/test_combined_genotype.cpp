@@ -101,8 +101,8 @@ TEST(CombinedGenotype, GenotypeConflictNoConsensus)
     gs.add(alleles, gt1);
     gs.add(alleles, gt2);
 
-    GenotypingParameters param(alleles);
-    BreakpointGenotyper genotyper(&param);
+    auto param = std::unique_ptr<GenotypingParameters>(new GenotypingParameters(alleles, 2));
+    BreakpointGenotyper genotyper(param);
 
     const double read_depth = 10.0;
     const int32_t read_length = 100;
