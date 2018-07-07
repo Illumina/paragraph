@@ -1,0 +1,12 @@
+sudo: required
+
+services:
+  - docker
+
+language: c++
+
+before_install:
+  - `pwd`/src/docker-testing/clang-formatting.sh `pwd`
+
+script:
+  - echo "This tool is tested using Docker"
