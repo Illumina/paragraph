@@ -12,7 +12,7 @@ before_install:
   - src/docker-testing/make_gcc_build.sh $(pwd) build
   - src/docker-testing/make_clang_build.sh $(pwd) build
   - src/docker-testing/testing.sh $(pwd) build-gcc-release.tar.gz
-  - src/docker-testing/valgrind-test.sh $(pwd) build-gcc-release.tar.gz
+  - src/docker-testing/valgrind-testing.sh $(pwd) build-gcc-release.tar.gz
 
 script:
   - echo "This tool is tested using Docker"
