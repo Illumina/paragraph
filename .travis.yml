@@ -1,0 +1,18 @@
+sudo: required
+
+services:
+  - docker
+
+language: c++
+
+before_install:
+  - src/docker-testing/clang-formatting.sh $(pwd)
+  - src/docker-testing/cppcheck.sh $(pwd)
+  - src/docker-testing/python-linting.sh $(pwd)
+  - src/docker-testing/make_gcc_build.sh $(pwd) build
+  - src/docker-testing/make_clang_build.sh $(pwd) build
+  - src/docker-testing/testing.sh $(pwd) build-gcc-release.tar.gz
+  - src/docker-testing/valgrind-testing.sh $(pwd) build-gcc-release.tar.gz
+
+script:
+  - echo "This tool is tested using Docker"
