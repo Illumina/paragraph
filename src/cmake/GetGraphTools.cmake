@@ -4,7 +4,7 @@
 
 if(NOT DEFINED GRAPHTOOLS_SOURCE_DIR)
     set(GRAPHTOOLS_URL         "${CMAKE_SOURCE_DIR}/external/graph-tools.tar.gz")
-    set(GRAPHTOOLS_URL_HASH    "MD5=4689baae42d522122eec266202a1aa9e")
+    set(GRAPHTOOLS_URL_HASH    "MD5=a1109c69402f7abd060dcd7347046b16")
     set(GRAPHTOOLS_SOURCE_DIR  "${CMAKE_BINARY_DIR}/external/graphtools-src")
 endif (NOT DEFINED GRAPHTOOLS_SOURCE_DIR)
 
