@@ -24,36 +24,36 @@
 
 ## <a name='Introduction'></a>Introduction
 
-Accurate genotyping of known variants is a critical component of clinical-grade 
+Accurate genotyping of known variants is a critical component of clinical-grade
 pipelines for analysis of whole-genome sequencing data. It enables us to
 
 - test a sample for presence of specific pathogenic variants,
 - evaluate newly discovered variants,
 - compute background genotype distributions in different populations.
 
-ParaGRAPH aims to facilitate these tasks by providing an accurate genotyper 
-for known deletions, insertions, and substitutions. It can be applied to either 
-a single sample or to a large cohort consisting of hundreds and even thousands 
+ParaGRAPH aims to facilitate these tasks by providing an accurate genotyper
+for known deletions, insertions, and substitutions. It can be applied to either
+a single sample or to a large cohort consisting of hundreds and even thousands
 of samples.
 
-In addition to providing genotyping for deletion / insertion / substitution events, 
-ParaGRAPH provides a suite of graph-based tools to enable joint alignment and genotyping 
+In addition to providing genotyping for deletion / insertion / substitution events,
+ParaGRAPH provides a suite of graph-based tools to enable joint alignment and genotyping
 for other event types. In a typical workflow, we can use these tools to
 
-   * construct a graph that represents variant alleles, 
-   * align reads from one or many BAM files to the graph, 
+   * construct a graph that represents variant alleles,
+   * align reads from one or many BAM files to the graph,
    * use read counts on nodes and edges to re-genotype the variant.
 
-In future releases we will add support for genotyping more variant types using 
-ready-made workflows. 
+In future releases we will add support for genotyping more variant types using
+ready-made workflows.
 
-Paragraph is under active development -- if you have any questions or find 
-bugs, please don't hesitate to contact us by creating Github issues for this 
+Paragraph is under active development -- if you have any questions or find
+bugs, please don't hesitate to contact us by creating Github issues for this
 project!
 
 ## <a name='QuickStart'></a>Quick Start
 
-After [installing](#Installation) the tool, we can try and run a small test 
+After [installing](#Installation) the tool, we can try and run a small test
 dataset we have included to see if everything is working as expected.
 
 Let's assume ParaGRAPH is installed as follows:
@@ -104,7 +104,7 @@ samples. It minimally requires three inputs:
 * a candidate file of variants, which can be in JSON or VCF format,
 * a manifest / list of BAM files and their statistics.
 
-The output is a directory, here we use `/tmp/paragraph-test` (before re-running with the same 
+The output is a directory, here we use `/tmp/paragraph-test` (before re-running with the same
 output path you may want to delete this directory).
 
 ```bash
@@ -112,7 +112,7 @@ $ ${PARAGRAPH}/bin/multigrmpy.py \
     -r ${PARAGRAPH}/share/test-data/genotyping_test_2/swaps.fa \
     -i ${PARAGRAPH}/share/test-data/genotyping_test_2/swaps.vcf \
     -m ${PARAGRAPH}/share/test-data/genotyping_test_2/samples.txt \
-    -o /tmp/paragraph-test 
+    -o /tmp/paragraph-test
 $ tree /tmp/paragraph-test
 ```
 
@@ -145,7 +145,7 @@ The first file to look at is the file `grmpy.log`:
 
 If everything worked well, the genotypes JSON file will give the graph used
 for each candidate variant as well as genotypes and Hardy-Weinberg p-values
-for each sample. 
+for each sample.
 
 In the example above, we have genotyped three events. The BAM files were constructed
 to give the following genotypes for each event:
@@ -208,7 +208,7 @@ sample in around 2-3 hours using 40 CPU cores.
 
 ### <a name='Operatingsystems'></a>Operating systems
 
-ParaGRAPH must be compiled with g++ version 4.9.x or later, or with a recent version of Clang. 
+ParaGRAPH must be compiled with g++ version 4.9.x or later, or with a recent version of Clang.
 We use the C++11 standard, any Posix compliant compiler supporting this standard
 should be usable. We have tested using g++ and Clang on the following systems:
 
@@ -233,8 +233,21 @@ The complete list of requrements can be found in [requirements.txt](requirements
   [http://www.boost.org](http://www.boost.org) and is available under the Boost license:
   [http://www.boost.org/users/license.html](http://www.boost.org/users/license.html).
 
-  We prefer to statically link Boost libraries to Paragraph executables. 
-  This requires that static Boost libraries are generated. This can be achived as follows:
+  You may use your system Boost version, on Ubuntu, you can install the required versions
+  of Boost as follows:
+  ```bash
+  sudo apt install libboost-dev libboost-iostreams-dev libboost-program-options-dev \
+                   libboost-math-dev libboost-system-dev libboost-filesystem-dev
+  ```
+
+  Paragraph includes a copy of Boost 1.61 which can be built automatically during the
+  configuration process. If you prefer to use this over your system's version you can
+  use the `-DUSE_SYSTEM_BOOST=FALSE` cmake option.
+
+  If you have a different Boost version you have precompiled, please follow the instructions below.
+  For versions of Boost that are not installed system-wide, we prefer to statically link Boost libraries
+  to Paragraph executables.
+  This requires that static Boost libraries are generated which can be achived as follows:
 
   ```bash
   cd ~
@@ -249,7 +262,8 @@ The complete list of requrements can be found in [requirements.txt](requirements
 
   ```bash
   export BOOST_ROOT=$HOME/boost_1_65_0_install
-  # Now run cmake + build as shown below.
+  # Now run cmake + build -- note you may have to erase your cache + build folder
+  # for the new settings to become active.
   ```
 
 - Recent versions of Google Test and Google Mock are required.
@@ -332,7 +346,7 @@ The complete list of requrements can be found in [requirements.txt](requirements
                            [--log LOG]
   ```
 
-  The current directory can be accessed as `/data` inside the Docker container, see also 
+  The current directory can be accessed as `/data` inside the Docker container, see also
   [https://docs.docker.com/engine/reference/commandline/run/](https://docs.docker.com/engine/reference/commandline/run/).
 
   To override the default entrypoint run the following command to get an interactive shell in which the paragraph tools
@@ -415,7 +429,7 @@ Consider an insertion specified by the following VCF record:
 ```
 #CHROM   POS      ID    REF   ALT              QUAL    FILTER    INFO    FORMAT    ALT
 chr1     939570   .     T     TCCCTGGAGGACC    0       PASS      .       GT        1
-``` 
+```
 
 ![doc/breakpoint-genotyper.png](doc/breakpoint-genotyper.png)
 
@@ -423,7 +437,7 @@ We can construct a sequence graph that corresponds to this insertion (this uses
 the `vcf2paragraph.py` and `paragraph2dot.py` scripts provided with this package,
 and a hg38 reference sequence which can be obtained from
 [http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips](http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/)).
-The `vcf2paragraph.py` script supports a subset of the VCF file format which is documented in 
+The `vcf2paragraph.py` script supports a subset of the VCF file format which is documented in
 [doc/graph-tools.md](doc/graph-tools.md#vcf2paragraph.py).
 
 ```bash
@@ -438,7 +452,7 @@ The resulting graph has the following structure:
 ![](doc/ins-graph.png)
 
 Nodes and edges may be labelled using sequence tags such as `REF` and
-`ALT`. These induce paths in our sequence graph and identify the different alleles 
+`ALT`. These induce paths in our sequence graph and identify the different alleles
 we would like to genotype.
 
 The JSON File [pg-het-ins.json](share/test-data/paragraph/pg-het-ins/pg-het-ins.json) contains
@@ -471,7 +485,7 @@ The resulting file contains the original graph in JSON format (see [pg-het-ins.j
             "name": "source",
             "sequence": "NNNNNNNNNN"
         },
-        // ... 
+        // ...
     ],
     "edges": [
         {
@@ -504,7 +518,7 @@ We also have the paths induced by the edge labels (this was added by `vcf2paragr
 
 Each node, edge, and path has reads associated with it. We provide read counts for forward
 and reverse strands (`:READS`, `:FWD`, `:REV`) and fragment counts (these counts are corrected
-for the same reads possibly originating from the same sequence fragment in the case of 
+for the same reads possibly originating from the same sequence fragment in the case of
 paired-end sequencing data).
 
 ```javascript
@@ -612,19 +626,19 @@ It is extracted and re-organized from [an expected output](share/test-data/multi
 
 ### <a name='Documentation'></a>Documentation
 
-*    More **information about all tools we provide in this package** can be found in 
+*    More **information about all tools we provide in this package** can be found in
     [doc/graph-tools.md](doc/graph-tools.md).
 
-*   In [doc/graph-models.md](doc/graph-models.md) we describe the graph and genotyping 
+*   In [doc/graph-models.md](doc/graph-models.md) we describe the graph and genotyping
     models we implement.
-    
-*   [Doc/graphs-ashg-2017.pdf](doc/graphs-ashg-2017.pdf) contains the poster about this method we showed at 
+
+*   [Doc/graphs-ashg-2017.pdf](doc/graphs-ashg-2017.pdf) contains the poster about this method we showed at
     [ASHG 2017](http://www.ashg.org/2017meeting/)
 
-*    Some developer documentation about our code analysis and testing process can be found in 
+*    Some developer documentation about our code analysis and testing process can be found in
     [doc/linting-and-testing.md](doc/linting-and-testing.md).
 
-*    Procedures for read level alignment validation 
+*    Procedures for read level alignment validation
     [doc/validation-with-simulated-reads.md](doc/validation-with-simulated-reads.md).
 
 *    How we count reads for variants and paths
@@ -643,8 +657,8 @@ It is extracted and re-organized from [an expected output](share/test-data/multi
 
 ## <a name='License'></a>License
 
-The [LICENSE](LICENSE) file contains information about libraries and other tools we use, 
+The [LICENSE](LICENSE) file contains information about libraries and other tools we use,
 and license information for these.
-Paragraph itself is distributed under the simplified BSD license. The full license text 
-can be found at 
+Paragraph itself is distributed under the simplified BSD license. The full license text
+can be found at
 https://github.com/Illumina/licenses/blob/master/Simplified-BSD-License.txt
