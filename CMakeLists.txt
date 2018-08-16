@@ -27,11 +27,11 @@ include(cxx)
 include(configureFiles)
 
 include(FindZLIB)
+include(GetBoost)
 include(GetHtslib)
 include(GetGoogleTest)
 include(GetGraphTools)
 include(GetSpdlog)
-include(GetBoost)
 
 include_directories(${GRM_SOURCE_DIR}/external/src/c++/include)
 include_directories(${GRM_SOURCE_DIR}/external/jsoncpp)

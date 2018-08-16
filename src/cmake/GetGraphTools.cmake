@@ -4,11 +4,11 @@
 
 if(NOT DEFINED GRAPHTOOLS_SOURCE_DIR)
     set(GRAPHTOOLS_URL         "${CMAKE_SOURCE_DIR}/external/graph-tools.tar.gz")
-    set(GRAPHTOOLS_URL_HASH    "MD5=a1109c69402f7abd060dcd7347046b16")
+    set(GRAPHTOOLS_URL_HASH    "MD5=b2e90e588a68b572a8b7bccc45e2e451")
     set(GRAPHTOOLS_SOURCE_DIR  "${CMAKE_BINARY_DIR}/external/graphtools-src")
 endif (NOT DEFINED GRAPHTOOLS_SOURCE_DIR)
 
-FILE(WRITE "${CMAKE_BINARY_DIR}/external/graphtools-build/CMakeLists.txt" "\
+FILE(WRITE "${CMAKE_BINARY_DIR}/external/graphtools-build/CMakeLists.txt" "
 cmake_minimum_required(VERSION 3.1.0)
 project(graphtools-build NONE)
 include(ExternalProject)
@@ -25,7 +25,26 @@ ExternalProject_Add(graphtools
         )"
 )
 
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+function (getListOfVarsStartingWith _prefix _varResult)
+    get_cmake_property(_vars VARIABLES)
+    string (REGEX MATCHALL "(^|;)${_prefix}[A-Za-z0-9_]*" _matchedVars "${_vars}")
+    set (${_varResult} ${_matchedVars} PARENT_SCOPE)
+endfunction()
+
+set(BOOST_OPTION "")
+
+getListOfVarsStartingWith("BOOST_" matchedVars)
+foreach (_var IN LISTS matchedVars)
+    #message("Passing Boost option: ${_var}=${${_var}}")
+    set(BOOST_OPTION " -D${_var}=${${_var}}")
+endforeach()
+getListOfVarsStartingWith("Boost_" matchedVars)
+foreach (_var IN LISTS matchedVars)
+    #message("Passing Boost option: ${_var}=${${_var}}")
+    set(BOOST_OPTION " -D${_var}=${${_var}}")
+endforeach()
+
+execute_process(COMMAND ${CMAKE_COMMAND} ${BOOST_OPTION} -G "${CMAKE_GENERATOR}" .
         RESULT_VARIABLE result
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/graphtools-build )
 if(result)
