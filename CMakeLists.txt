@@ -27,6 +27,7 @@ include(cxx)
 include(configureFiles)
 
 include(FindZLIB)
+include(GetBoost)
 include(GetHtslib)
 include(GetGoogleTest)
 include(GetGraphTools)
@@ -48,17 +49,8 @@ add_custom_command(TARGET copy_data
 
 find_package (Threads REQUIRED)
 
-set(Boost_USE_STATIC_LIBS        ON)  # only find static libs
-set(Boost_USE_MULTITHREADED      ON)
-set(Boost_USE_STATIC_RUNTIME     ON)
-find_package(Boost 1.5 COMPONENTS iostreams program_options filesystem system REQUIRED)
-
 include_directories(${ZLIB_INCLUDE_DIR})
 include_directories(${BZIP2_INCLUDE_DIR})
-
-# boost sometimes generates warnings; we won't patch them so let's disable them using SYSTEM
-include_directories(SYSTEM ${Boost_INCLUDE_DIR})
-link_directories(${Boost_LIBRARY_DIRS})
 
 # make libraries first
 add_subdirectory (src/c++/lib)
