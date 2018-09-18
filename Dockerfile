@@ -1,13 +1,13 @@
-FROM ubuntu:17.04
+FROM ubuntu:16.04
 
 RUN apt-get -qq update && apt-get install -yq \
   autoconf \
   automake \
   build-essential \
   cmake \
-  libboost-all-dev \
   libfreetype6-dev \
   liblzma-dev \
+  libboost-all-dev \
   libpng-dev \
   libtool \
   m4 \
