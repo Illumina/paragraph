@@ -40,11 +40,11 @@
 TEST(Grmpy, GenotypesSingleSwap)
 {
     std::string graph_path
-        = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/chr4_graph_typing.2sample.json";
+        = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/chrX_graph_typing.2sample.json";
     std::string reference_path
-        = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/chr4_graph_typing.fa";
+        = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/chrX_graph_typing.fa";
     std::string manifest_path
-        = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/chr4_graph_typing.manifest";
+        = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/chrX_graph_typing.manifest";
     std::string genotype_parameter_path
         = g_testenv->getBasePath() + "/../share/test-data/paragraph/long-del/param.json";
     grmpy::Parameters parameters;

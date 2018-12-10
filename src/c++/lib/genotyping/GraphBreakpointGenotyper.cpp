@@ -72,15 +72,18 @@ void GraphBreakpointGenotyper::runGenotyping()
             }
             auto sample_ploidy = getSamplePloidy(sample_index);
             double expected_depth = depth_readlength.first * ((double)sample_ploidy / female_ploidy_);
+            double depth_sd = getDepthSD(sample_index);
+            const BreakpointGenotyperParameter b_param(
+                expected_depth, depth_readlength.second, depth_sd, p_genotype_parameter->usePoissonDepth());
 
             if (getSamplePloidy(sample_index) == male_ploidy_)
             {
-                const auto gt = male_genotyper.genotype(expected_depth, depth_readlength.second, counts);
+                const auto gt = male_genotyper.genotype(b_param, counts);
                 setGenotype(samplename, breakpointname, gt);
             }
             else // treat unknown as female
             {
-                const auto gt = genotyper.genotype(expected_depth, depth_readlength.second, counts);
+                const auto gt = genotyper.genotype(b_param, counts);
                 setGenotype(samplename, breakpointname, gt);
             }
             ++sample_index;
@@ -97,9 +100,10 @@ void GraphBreakpointGenotyper::runGenotyping()
             all_breakpoint_gts.add(allelenames, getGenotype(samplename, breakpointname));
         }
         auto const& depth_readlength = getDepthAndReadlength(sample_index);
-        setGenotype(
-            samplename, "",
-            combinedGenotype(all_breakpoint_gts, &genotyper, depth_readlength.first, depth_readlength.second));
+        auto depth_sd = getDepthSD(sample_index);
+        const BreakpointGenotyperParameter b_param(
+            depth_readlength.first, depth_readlength.second, depth_sd, p_genotype_parameter->usePoissonDepth());
+        setGenotype(samplename, "", combinedGenotype(all_breakpoint_gts, &b_param, &genotyper));
         ++sample_index;
     }
 }

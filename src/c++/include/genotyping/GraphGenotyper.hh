@@ -144,6 +144,13 @@ protected:
     std::pair<double, int> const& getDepthAndReadlength(size_t sample_index) const;
 
     /**
+     * Get depth standard deviation for a sample
+     * @param sample_index
+     * @return std deviation of average depth. if not available, return 0
+     */
+    double getDepthSD(size_t sample_index) const;
+
+    /**
      * Get sex integer for a sample
      */
     SampleInfo::Sex getSampleSex(size_t sample_index) const;

@@ -70,4 +70,3 @@ find_package(Boost 1.58 COMPONENTS iostreams program_options filesystem system R
 # boost sometimes generates warnings; we won't patch them so let's disable them using SYSTEM
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
-

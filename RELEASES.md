@@ -1,5 +1,16 @@
 # Paragraph Release Notes / Change Log
 
+# Version 2.1
+
+| Date Y-m-d | Ticket  | Description                                                          |
+|------------|---------|----------------------------------------------------------------------|
+| 2018-12-06 | GT-675  | Fix filters and alignment stats. Change depth test threshold on lower end |
+| 2018-11-08 | GT-660  | Optimize GQ for variant genotypes                                    |
+| 2018-11-02 | GT-656  | Improvement for simple SV genotyping                                 |
+| 2018-07-19 | GT-501  | Breakpoint depth test based on normal distribution                   |
+| 2018-07-16 | GT-539  | VCF now output genotypes for all samples in manifest and input VCF   |
+| 2018-06-28 | GT-527  | --graph-sequence-matching yes fails with boost 1.63                  |
+
 # Version 2.0
 
 | Date Y-m-d | Ticket  | Description                                                          |

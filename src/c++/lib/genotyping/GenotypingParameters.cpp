@@ -44,7 +44,8 @@ namespace genotyping
 GenotypingParameters::GenotypingParameters(const vector<string>& _allele_names, unsigned int ploidy)
     : ploidy_(ploidy)
     , num_alleles(static_cast<const unsigned int>(_allele_names.size()))
-    , coverage_test_cutoff(-1.0)
+    , coverage_test_cutoff(std::make_pair(0.02, 0.0001))
+    , min_pass_gq(20)
     , allele_names(_allele_names)
     , min_overlap_bases(16)
     , reference_allele("REF")
@@ -52,6 +53,7 @@ GenotypingParameters::GenotypingParameters(const vector<string>& _allele_names, 
     , other_allele_error_rate(0.05)
     , other_het_haplotype_fraction(0.5)
     , other_genotype_fraction(1)
+    , use_poisson_depth(false)
 {
     setPossibleGenotypes();
 }
@@ -97,10 +99,6 @@ void GenotypingParameters::setFromJson(Json::Value& param_json)
         {
             min_overlap_bases = field.asUInt();
         }
-        if (key == "coverage_test_cutoff")
-        {
-            coverage_test_cutoff = field.asDouble();
-        }
         else if (key == "reference_allele")
         {
             reference_allele = field.asString();
@@ -129,6 +127,16 @@ void GenotypingParameters::setFromJson(Json::Value& param_json)
         {
             ploidy_ = (unsigned int)field.asInt();
         }
+    }
+
+    if (param_json.isMember("coverage_test_cutoff"))
+    {
+        if (param_json["coverage_test_cutoff"].size() != 2)
+        {
+            error("Error: coverage_test_cutoff needs to be a list of 2 values: lower end, upper end.");
+        }
+        coverage_test_cutoff.first = param_json["coverage_test_cutoff"][0].asDouble();
+        coverage_test_cutoff.first = param_json["coverage_test_cutoff"][1].asDouble();
     }
 
     if (param_json.isMember("allele_error_rates")
@@ -163,6 +171,22 @@ void GenotypingParameters::setFromJson(Json::Value& param_json)
             {
                 setGenotypeFractions(param_json["genotype_fractions"], conversion_index);
             }
+        }
+    }
+
+    if (param_json.isMember("use_poisson_depth"))
+    {
+        if (param_json["use_poisson_depth"] == "true")
+        {
+            use_poisson_depth = true;
+        }
+        else if (param_json["use_poisson_depth"] == "false")
+        {
+            use_poisson_depth = false;
+        }
+        else
+        {
+            error("In genotyping parameter JSON use_poisson_depth only allows true or false.");
         }
     }
 }

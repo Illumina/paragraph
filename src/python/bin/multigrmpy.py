@@ -251,9 +251,10 @@ def run(args):
         logging.root.removeHandler(handler)
     logging.basicConfig(filename=args.logfile, format='%(asctime)s %(levelname)-8s %(message)s', level=loglevel)
 
-    # check format of manifest
+    # manifest sanity check
     with open(args.manifest) as manifest_file:
-        headers = {"id": False, "path": False, "idxdepth": False, "depth": False, "read length": False, "sex": False}
+        headers = {"id": False, "path": False, "idxdepth": False, "depth": False,
+                   "read length": False, "sex": False, "depth variance": False}
         for line in manifest_file:
             if line.startswith("#"):
                 line = line[1:]
@@ -335,13 +336,25 @@ def run(args):
         raise
 
     try:
+        sample_names = []
+        with open(args.manifest) as manifest_file:
+            id_index = -1
+            for line in manifest_file:
+                line = line.rstrip()
+                if line.startswith('#'):
+                    line = line[1:]
+                f = line.split('\t')
+                if id_index == -1:
+                    id_index = f.index("id")
+                    continue
+                sample_names.append(f[id_index])
         if args.input.endswith("vcf") or args.input.endswith("vcf.gz"):
             grmpyOutput = vcfupdate.read_grmpy(result_json_path)
             result_vcf_path = os.path.join(args.output, "genotypes.vcf.gz")
             vcf_input_path = os.path.join(args.output, "variants.vcf.gz")
             if not os.path.exists(vcf_input_path) or not os.path.isfile(vcf_input_path):
                 vcf_input_path = args.input
-            vcfupdate.update_vcf_from_grmpy(vcf_input_path, grmpyOutput, result_vcf_path)
+            vcfupdate.update_vcf_from_grmpy(vcf_input_path, grmpyOutput, result_vcf_path, sample_names)
     except Exception:  # pylint: disable=W0703
         traceback.print_exc(file=LoggingWriter(logging.ERROR))
         raise

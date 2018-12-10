@@ -1,5 +1,11 @@
 {
+    "ploidy": 2,
     "min_overlap_bases": 16,
+    "min_pass_gq": 20,
+    "coverage_test_cutoff": [
+        0.01,
+        0.0001
+    ],
     "allele_names": [
         "REF",
         "ALT"
@@ -17,8 +23,8 @@
         "0/1": 0.3,
         "1/1": 0.2
     },
+    "reference_allele": "REF",
     "reference_allele_error_rate": 0.05,
     "other_allele_error_rate": 0.05,
-    "other_genotype_fraction": 0.33,
-    "ploidy": 2
+    "other_genotype_fraction": 0.33
 }

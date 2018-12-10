@@ -1,5 +1,5 @@
 {
-    "bam": "/illumina/scratch/popdata/users/schen/grm.py-build/share/data/paragraph/long-del/chr4_graph_typing.bam",
+    "bam": "/illumina/scratch/popdata/users/schen/grm.py-build/share/data/paragraph/long-del/chrX_graph_typing.bam",
     "chrom": "chrX",
     "sequencenames": [
         "ALT",
@@ -44,7 +44,7 @@
             "to": "MID_R"
         }
     ],
-    "ID": "chr4_graph_typing",
+    "ID": "chrX_graph_typing",
     "nodes": [
         {
             "name": "source",
@@ -53,19 +53,19 @@
         {
             "end": 8816,
             "name": "MID_R",
-            "reference": "chr4:8667-8816",
+            "reference": "chrX:8667-8816",
             "start": 8667
         },
         {
             "name": "LF",
-            "reference": "chr4:850-999",
+            "reference": "chrX:850-999",
             "sequences": [
                 "REF"
             ]
         },
         {
             "name": "RF",
-            "reference": "chr4:8817-8965",
+            "reference": "chrX:8817-8965",
             "sequences": [
                 "REF"
             ]
@@ -73,7 +73,7 @@
         {
             "end": 1149,
             "name": "MID_L",
-            "reference": "chr4:1000-1149",
+            "reference": "chrX:1000-1149",
             "start": 1000
         },
         {
@@ -116,9 +116,9 @@
             "sequence": "REF"
         }
     ],
-    "reference": "/illumina/scratch/popdata/users/schen/grm.py-build/share/data/paragraph/long-del/chr4_graph_typing.fa",
+    "reference": "/illumina/scratch/popdata/users/schen/grm.py-build/share/data/paragraph/long-del/chrX_graph_typing.fa",
     "target_regions": [
-        "chr4:850-1149",
-        "chr4:8667-8965"
+        "chrX:850-1149",
+        "chrX:8667-8965"
     ]
 }

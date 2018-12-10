@@ -44,6 +44,24 @@
 
 namespace genotyping
 {
+
+/**
+ * structure for passing parameter into breakpoint genotyper
+ */
+struct BreakpointGenotyperParameter
+{
+    BreakpointGenotyperParameter(double _read_depth, int32_t _read_length, double _depth_sd, bool _use_poisson_depth)
+        : read_depth(_read_depth)
+        , read_length(_read_length)
+        , depth_sd(_depth_sd)
+        , use_poisson_depth(_use_poisson_depth){};
+
+    double read_depth;
+    int32_t read_length;
+    double depth_sd;
+    bool use_poisson_depth;
+};
+
 class BreakpointGenotyper
 {
 public:
@@ -55,11 +73,13 @@ public:
 
     /**
      * public function to do breakpoint genotyping from read counts on edges
-     * @param read_depth expected / mean read depth
-     * @param read_length read length
-     * @param read counts for each allele
+     * @param read_depth Expected / mean read depth
+     * @param read_length Read length
+     * @param read counts Number of reads for each allele
+     * @param depth variance Variance of depth across genome. If non-positive, Poission test will be used
      */
-    Genotype genotype(double read_depth, int32_t read_length, const std::vector<int32_t>& read_counts_per_allele) const;
+    Genotype
+    genotype(const BreakpointGenotyperParameter& param, const std::vector<int32_t>& read_counts_per_allele) const;
 
 private:
     /**
@@ -75,8 +95,15 @@ private:
 
     /**
      * cutoff for coverage test p value
+     * 1. lower end
+     * 2. upper end
      */
-    double coverage_test_cutoff_;
+    std::pair<double, double> coverage_test_cutoff_;
+
+    /**
+     * minimum GQ for a PASS event
+     */
+    int min_pass_gq_;
 
     /**
      *  genotyping specific stats

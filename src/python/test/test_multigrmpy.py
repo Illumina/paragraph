@@ -27,7 +27,6 @@ GRMPY_INSTALL = None
 if "GRMPY_INSTALL" in os.environ:
     GRMPY_INSTALL = os.environ["GRMPY_INSTALL"]
 
-
 hg38_locations = [
     "/Users/pkrusche/workspace/human_genome/hg38.fa",
     "/illumina/sync/igenomes/Homo_sapiens/NCBI/GRCh38Decoy/Sequence/WholeGenomeFasta/genome.fa",
@@ -55,19 +54,26 @@ class TestMultiGrmpy(unittest.TestCase):
         self.manifest = os.path.join(GRMPY_ROOT, "share", "test-data", "round-trip-genotyping", "samples.txt")
 
         self.swaps_input_vcf = os.path.join(GRMPY_ROOT, "share", "test-data", "genotyping_test_2", "swaps.vcf")
-        self.swaps_expected_genotypes_json = os.path.join(GRMPY_ROOT, "share", "test-data", "genotyping_test_2", "expected-genotypes.json")
-        self.swaps_expected_genotypes_vcf = os.path.join(GRMPY_ROOT, "share", "test-data", "genotyping_test_2", "expected-genotypes.vcf")
-        self.swaps_expected_variants_json = os.path.join(GRMPY_ROOT, "share", "test-data", "genotyping_test_2", "expected-variants.json")
+        self.swaps_expected_genotypes_json = os.path.join(GRMPY_ROOT, "share", "test-data", "genotyping_test_2",
+                                                          "expected-genotypes.json")
+        self.swaps_expected_genotypes_vcf = os.path.join(GRMPY_ROOT, "share", "test-data", "genotyping_test_2",
+                                                         "expected-genotypes.vcf")
+        self.swaps_expected_variants_json = os.path.join(GRMPY_ROOT, "share", "test-data", "genotyping_test_2",
+                                                         "expected-variants.json")
         self.swaps_reference = os.path.join(GRMPY_ROOT, "share", "test-data", "genotyping_test_2", "swaps.fa")
         self.swaps_manifest = os.path.join(GRMPY_ROOT, "share", "test-data", "genotyping_test_2", "samples.txt")
 
-        self.hg38_input_vcf = os.path.join(GRMPY_ROOT, "share", "test-data", "paragraph", "pg-het-ins", "pg-het-ins.vcf")
-        self.hg38_expected_genotypes_json = os.path.join(GRMPY_ROOT, "share", "test-data", "paragraph", "pg-het-ins", "genotypes_expected.json")
-        self.hg38_expected_variants_json = os.path.join(GRMPY_ROOT, "share", "test-data", "paragraph", "pg-het-ins", "variants_expected.json")
+        self.hg38_input_vcf = os.path.join(GRMPY_ROOT, "share", "test-data", "paragraph", "pg-het-ins",
+                                           "pg-het-ins.vcf")
+        self.hg38_expected_genotypes_json = os.path.join(GRMPY_ROOT, "share", "test-data", "paragraph", "pg-het-ins",
+                                                         "genotypes_expected.json")
+        self.hg38_expected_variants_json = os.path.join(GRMPY_ROOT, "share", "test-data", "paragraph", "pg-het-ins",
+                                                        "variants_expected.json")
         self.hg38_reference = HG38
         self.hg38_manifest = os.path.join(GRMPY_ROOT, "share", "test-data", "paragraph", "pg-het-ins", "manifest.txt")
 
-    @unittest.skipIf(not GRMPY_INSTALL, "No compiled/install path specified, please set the GRMPY_INSTALL variable to point to an installation.")
+    @unittest.skipIf(not GRMPY_INSTALL,
+                     "No compiled/install path specified, please set the GRMPY_INSTALL variable to point to an installation.")
     def test_multigrmpy(self):
         import multigrmpy
 
@@ -77,7 +83,8 @@ class TestMultiGrmpy(unittest.TestCase):
                 "manifest": self.manifest,
                 "reference": self.reference,
                 "output": output_dir,
-                "grmpy": os.path.join(os.path.dirname(__file__), "module-wrapper.sh") + " " + os.path.join(GRMPY_INSTALL, "bin", "grmpy"),
+                "grmpy": os.path.join(os.path.dirname(__file__), "module-wrapper.sh") + " " + os.path.join(
+                    GRMPY_INSTALL, "bin", "grmpy"),
                 "verbose": False,
                 "quiet": True,
                 "logfile": None,
@@ -112,7 +119,8 @@ class TestMultiGrmpy(unittest.TestCase):
                         self.assertEqual(item["samples"]["sample1"]["gt"]["GT"], "./.")
                         self.assertEqual(item["samples"]["sample2"]["gt"]["GT"], "S1/S1")
 
-    @unittest.skipIf(not GRMPY_INSTALL, "No compiled/install path specified, please set the GRMPY_INSTALL variable to point to an installation.")
+    @unittest.skipIf(not GRMPY_INSTALL,
+                     "No compiled/install path specified, please set the GRMPY_INSTALL variable to point to an installation.")
     def test_multigrmpy_expected_genotypes(self):
         import multigrmpy
 
@@ -122,7 +130,8 @@ class TestMultiGrmpy(unittest.TestCase):
                 "manifest": self.swaps_manifest,
                 "reference": self.swaps_reference,
                 "output": output_dir,
-                "grmpy": os.path.join(os.path.dirname(__file__), "module-wrapper.sh") + " " + os.path.join(GRMPY_INSTALL, "bin", "grmpy"),
+                "grmpy": os.path.join(os.path.dirname(__file__), "module-wrapper.sh") + " " + os.path.join(
+                    GRMPY_INSTALL, "bin", "grmpy"),
                 "verbose": False,
                 "quiet": True,
                 "logfile": None,
@@ -230,8 +239,8 @@ class TestMultiGrmpy(unittest.TestCase):
                 raise Exception("Swaps test converted variants don't match! If this is expected and new behavior, "
                                 "cp test_swaps_variants.json %s" % self.swaps_expected_variants_json)
 
-
-    @unittest.skipIf(not GRMPY_INSTALL, "No compiled/install path specified, please set the GRMPY_INSTALL variable to point to an installation.")
+    @unittest.skipIf(not GRMPY_INSTALL,
+                     "No compiled/install path specified, please set the GRMPY_INSTALL variable to point to an installation.")
     @unittest.skipIf(not HG38, "No hg38 reference fasta file was found.")
     def test_multigrmpy_pg_het_ins(self):
         import multigrmpy
@@ -242,7 +251,8 @@ class TestMultiGrmpy(unittest.TestCase):
                 "manifest": self.hg38_manifest,
                 "reference": self.hg38_reference,
                 "output": output_dir,
-                "grmpy": os.path.join(os.path.dirname(__file__), "module-wrapper.sh") + " " + os.path.join(GRMPY_INSTALL, "bin", "grmpy"),
+                "grmpy": os.path.join(os.path.dirname(__file__), "module-wrapper.sh") + " " + os.path.join(
+                    GRMPY_INSTALL, "bin", "grmpy"),
                 "verbose": False,
                 "quiet": True,
                 "logfile": None,

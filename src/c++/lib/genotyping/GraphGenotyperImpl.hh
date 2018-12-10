@@ -48,6 +48,11 @@ struct GraphGenotyper::GraphGenotyperImpl
     std::vector<std::pair<double, int>> depths;
 
     /**
+     * depth variance per sample
+     */
+    std::vector<double> depth_sds;
+
+    /**
      * sex information per sample
      */
     std::vector<SampleInfo::Sex> sexes;

@@ -34,6 +34,7 @@
 
 #pragma once
 
+#include <set>
 #include <utility>
 
 #include "json/json.h"
@@ -73,6 +74,12 @@ struct Genotype
     std::vector<double> gl;
 
     /**
+     * Genotype quality
+     * -10log10(1 - gl/sum(gl))
+     */
+    int gq = -1;
+
+    /**
      *  fractions of edge count
      */
     std::vector<double> allele_fractions;
@@ -90,7 +97,7 @@ struct Genotype
     /**
      * filter description (include PASS)
      */
-    std::string filter;
+    std::set<std::string> filters;
 
     /**
      * relabel index-based genotypes with given new labels
@@ -106,8 +113,12 @@ struct Genotype
     /**
      *  output string of most likely genotype
      */
-    std::string toString() const;
-    std::string toString(std::vector<std::string> const& allele_names) const;
+    std::string toString(const std::vector<std::string>* p_allele_names = NULL) const;
+
+    /**
+     * output string of filter
+     */
+    std::string filterString() const;
 
     /**
      * get major information as a single string (simplified)

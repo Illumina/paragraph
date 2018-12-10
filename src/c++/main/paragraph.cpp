@@ -105,16 +105,16 @@ Options::Options()
          "Comma-separated list of target regions, e.g. chr1:1-20,chr2:2-40. "
          "This overrides the target regions in the graph spec.")
         ("path-sequence-matching",
-         po::value<bool>(&path_sequence_matching)->default_value(path_sequence_matching)->implicit_value(true),
+         po::value<bool>(&path_sequence_matching)->default_value(path_sequence_matching),
          "Enable path seeding aligner")
         ("graph-sequence-matching",
-         po::value<bool>(&graph_sequence_matching)->default_value(graph_sequence_matching)->implicit_value(true),
+         po::value<bool>(&graph_sequence_matching)->default_value(graph_sequence_matching),
          "Enables smith waterman graph alignment")
         ("klib-sequence-matching",
-         po::value<bool>(&klib_sequence_matching)->default_value(klib_sequence_matching)->implicit_value(true),
+         po::value<bool>(&klib_sequence_matching)->default_value(klib_sequence_matching),
          "Use klib smith-waterman aligner.")
         ("kmer-sequence-matching",
-         po::value<bool>(&kmer_sequence_matching)->default_value(kmer_sequence_matching)->implicit_value(true),
+         po::value<bool>(&kmer_sequence_matching)->default_value(kmer_sequence_matching),
          "Use kmer aligner.")
         ("validate-alignments", po::value<bool>(&validate_alignments)->default_value(validate_alignments)->implicit_value(true),
          "Use information in the input bam read names to collect statistics about the accuracy of alignments. "

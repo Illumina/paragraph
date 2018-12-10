@@ -38,6 +38,8 @@
 #include "graphcore/Graph.hh"
 #include "grm/GraphInput.hh"
 
+#include <sstream>
+
 namespace grmpy
 {
 
@@ -60,16 +62,20 @@ Json::Value countAndGenotype(
     unsigned int male_ploidy = 2;
     unsigned int female_ploidy = 2;
 
-    if (root.isMember("chrom"))
+    for (auto t_region : root["target_regions"])
     {
-        if (root["chrom"] == "chrX" || root["chrom"] == "X")
+        std::stringstream ss(t_region.asString());
+        std::string chrom;
+        getline(ss, chrom, ':');
+        if (chrom == "chrX" || chrom == "X")
         {
             male_ploidy = 1;
         }
-    }
-    else
-    {
-        LOG()->info("Cannot find chrom in graph. Assume the graph comes from chr1~22");
+        else if (chrom == "chrY" || chrom == "Y")
+        {
+            male_ploidy = 1;
+            female_ploidy = 1;
+        }
     }
 
     genotyping::GraphBreakpointGenotyper graph_genotyper(male_ploidy, female_ploidy);

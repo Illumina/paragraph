@@ -1,5 +1,19 @@
 # Filters used in genotyper output
 
+## Breakpoint level filters
+
+* **GQ**
+
+Low genotype quality for this breakpoint
+
+* **NO_READS**
+
+No reads in this breakpoint
+
+* **BP_DEPTH**
+
+Total number of reads on this breakpoint (from all alleles) fail the coverage test
+
 ## Variant level filters
 
 * **PASS**
@@ -10,20 +24,10 @@ Variant PASS all filters
 
 Variant has genotype conflicts in one or more breakpoints
 
-* **EXIST_BAD_BP**
+* **BP_NO_GT**
 
-Varaint has one or more breakpoint that fails breakpoint-level filter
+Exist one or more breakpoint with missing genotypes
 
-* **ALL_BAD_BP**
+* **NO_VALID_GT**
 
-All breakpoints in this variant fail breakpoint-level filter
-
-* **MISSING**
-
-Variant has one or more breakpoints with no spanning read
-
-## Breakpoint level filters
-
-* **DEPTH**
-
-Total number of reads on this breakpoint (from all alleles) fail the coverage test
+All breakpoints have missing genotypes
