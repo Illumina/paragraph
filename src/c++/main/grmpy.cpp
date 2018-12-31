@@ -116,16 +116,16 @@ Options::Options()
             ("bad-align-frac", po::value<float>(&bad_align_frac)->default_value(bad_align_frac),
              "Fraction of read that needs to be mapped in order for it to be used.")
             ("path-sequence-matching",
-             po::value<bool>(&path_sequence_matching)->default_value(path_sequence_matching)->implicit_value(true),
+             po::value<bool>(&path_sequence_matching)->default_value(path_sequence_matching),
              "Enables alignment to paths")
             ("graph-sequence-matching",
-             po::value<bool>(&graph_sequence_matching)->default_value(graph_sequence_matching)->implicit_value(true),
+             po::value<bool>(&graph_sequence_matching)->default_value(graph_sequence_matching),
              "Enables smith waterman graph alignment")
             ("klib-sequence-matching",
-             po::value<bool>(&klib_sequence_matching)->default_value(klib_sequence_matching)->implicit_value(true),
+             po::value<bool>(&klib_sequence_matching)->default_value(klib_sequence_matching),
              "Use klib smith-waterman aligner.")
             ("kmer-sequence-matching",
-             po::value<bool>(&kmer_sequence_matching)->default_value(kmer_sequence_matching)->implicit_value(true),
+             po::value<bool>(&kmer_sequence_matching)->default_value(kmer_sequence_matching),
              "Use kmer aligner.")
             ("bad-align-uniq-kmer-len", po::value<int>(&bad_align_uniq_kmer_len)->default_value(bad_align_uniq_kmer_len),
              "Kmer length for uniqueness check during read filtering.")

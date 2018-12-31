@@ -111,35 +111,38 @@ void summarizeAlignments(Graph const& graph, common::ReadBuffer const& reads, Js
         GraphAlignment graph_alignment
             = graphtools::decodeGraphAlignment(read->graph_pos(), read->graph_cigar(), &graph);
 
-        string previous_node_name;
-
-        for (NodeId node_id = 0; node_id != graph_alignment.size(); ++node_id)
+        NodeId pred_node_id;
+        for (size_t alignment_index = 0; alignment_index != graph_alignment.size(); ++alignment_index)
         {
-            const bool is_source_or_sink = has_source_or_sink && (node_id == 0 || node_id == graph.numNodes() - 1);
+            NodeId current_node_id = graph_alignment.getNodeIdByIndex(alignment_index);
+            const bool is_source_or_sink
+                = has_source_or_sink && (current_node_id == 0 || current_node_id == graph.numNodes() - 1);
 
             // node statistics
-            const auto& node_name = graph.nodeName(node_id);
+            const auto& node_name = graph.nodeName(current_node_id);
             if (gstats["nodes"].find(node_name) == gstats["nodes"].end())
             {
-                gstats["nodes"][node_name] = AlignmentStatistics(graph.nodeSeq(node_id).size());
+                gstats["nodes"][node_name] = AlignmentStatistics(graph.nodeSeq(current_node_id).size());
             }
             gstats["nodes"][node_name].addNodeMapping(
-                graph_alignment[node_id], read->is_graph_reverse_strand(), !is_source_or_sink);
+                graph_alignment[alignment_index], read->is_graph_reverse_strand(), !is_source_or_sink);
 
-            // edge stats
-            if (node_id > 0)
+            // edge statistics
+            if (alignment_index > 0)
             {
-                const string edge_name = previous_node_name + "_" + node_name;
+                const string edge_name = graph.nodeName(pred_node_id) + "_" + node_name;
                 if (gstats["edges"].find(edge_name) == gstats["edges"].end())
                 {
-                    const size_t edge_length = graph.nodeSeq(node_id - 1).size() + graph.nodeSeq(node_id).size();
+                    const size_t edge_length
+                        = graph.nodeSeq(pred_node_id).size() + graph.nodeSeq(current_node_id).size();
                     gstats["edges"][edge_name] = AlignmentStatistics(edge_length);
                 }
                 gstats["edges"][edge_name].addEdgeMapping(
-                    graph_alignment[node_id - 1], graph_alignment[node_id], read->is_graph_reverse_strand(),
-                    has_source_or_sink && (node_id - 1 == 0), is_source_or_sink);
+                    graph_alignment[alignment_index - 1], graph_alignment[alignment_index],
+                    read->is_graph_reverse_strand(), has_source_or_sink && (current_node_id - 1 == 0),
+                    is_source_or_sink);
             }
-            previous_node_name = node_name;
+            pred_node_id = current_node_id;
         }
 
         for (auto& allele : read->graph_sequences_supported())

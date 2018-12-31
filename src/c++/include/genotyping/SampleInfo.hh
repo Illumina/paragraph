@@ -67,7 +67,9 @@ public:
     unsigned int read_length() const { return read_length_; }
     void set_read_length(unsigned int read_length) { read_length_ = read_length; }
     double autosome_depth() const { return autosome_depth_; }
-    void set_autosome_depth(double autosome_depth) { autosome_depth_ = autosome_depth; }
+    void set_autosome_depth(double autosome_depth);
+    double depth_sd() const { return depth_sd_; }
+    void set_depth_sd(double depth_sd) { depth_sd_ = depth_sd; }
 
     /**
      * Getters / setters for sex information
@@ -93,6 +95,7 @@ private:
     std::string index_filename_;
     unsigned int read_length_ = 0;
     double autosome_depth_ = 0.0;
+    double depth_sd_ = 0.0;
     Sex sex_ = UNKNOWN;
     Json::Value alignment_data_ = Json::nullValue;
 };

@@ -31,9 +31,9 @@ valgrind --leak-check=full --xml=yes \
 		 --xml-file=${WORKSPACE}/valgrind3.xml \
          --suppressions=${WORKSPACE}/src/sh/valgrind-suppressions.supp \
            ${WORKSPACE}/install/bin/grmpy \
-           -r  ${WORKSPACE}/share/test-data/paragraph/long-del/chr4_graph_typing.fa \
-           -g  ${WORKSPACE}/share/test-data/paragraph/long-del/chr4_graph_typing.2sample.json\
-           -m ${WORKSPACE}/share/test-data/paragraph/long-del/chr4_graph_typing.manifest \
+           -r  ${WORKSPACE}/share/test-data/paragraph/long-del/chrX_graph_typing.fa \
+           -g  ${WORKSPACE}/share/test-data/paragraph/long-del/chrX_graph_typing.2sample.json\
+           -m ${WORKSPACE}/share/test-data/paragraph/long-del/chrX_graph_typing.manifest \
            -o t${WORKSPACE}/vg_test.json
 
 python ${WORKSPACE}/src/sh/valgrind-check.py ${WORKSPACE}/valgrind3.xml

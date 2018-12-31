@@ -29,6 +29,7 @@
 #include <fstream>
 #include <list>
 #include <map>
+#include <math.h>
 #include <set>
 #include <string>
 #include <vector>
@@ -45,17 +46,15 @@ using std::vector;
 namespace genotyping
 {
 
-/**
- * Load manifest file. A manifest contains
- *
- *  * Sample names
- *  * Sample BAM/CRAM file locations
- *  * Depth estimates, or location of idxdepth output
- *  * (optionally) location of alignment JSON
- *
- * @param filename file name of manifest
- * @return list of sample info records
- */
+void SampleInfo::set_autosome_depth(double autosome_depth)
+{
+    autosome_depth_ = autosome_depth;
+    if (depth_sd_ == 0)
+    {
+        depth_sd_ = sqrt(autosome_depth_ * 5);
+    }
+}
+
 void SampleInfo::set_sex(std::string sex_string)
 {
     std::transform(sex_string.begin(), sex_string.end(), sex_string.begin(), ::tolower);
@@ -77,6 +76,17 @@ void SampleInfo::set_sex(std::string sex_string)
     }
 }
 
+/**
+ * Load manifest file. A manifest contains
+ *
+ *  * Sample names
+ *  * Sample BAM/CRAM file locations
+ *  * Depth estimates, or location of idxdepth output
+ *  * (optionally) location of alignment JSON
+ *
+ * @param filename file name of manifest
+ * @return list of sample info records
+ */
 Samples loadManifest(const std::string& filename)
 {
     std::ifstream manifest_file(filename.c_str(), std::ifstream::in);
@@ -101,9 +111,9 @@ Samples loadManifest(const std::string& filename)
         if (header.empty())
         {
             common::stringutil::split(line, header, "\t,");
-            static const set<string> legal_header_columns = {
-                "id", "path", "index_path", "paragraph", "idxdepth", "depth", "read length", "sex",
-            };
+            static const set<string> legal_header_columns
+                = { "id",    "path",        "index_path", "paragraph",      "idxdepth",
+                    "depth", "read length", "sex",        "depth variance", "depth sd" };
             size_t j = 0;
             for (auto& h : header)
             {
@@ -217,6 +227,43 @@ Samples loadManifest(const std::string& filename)
 
         sid.set_autosome_depth(depth);
         sid.set_read_length(static_cast<unsigned int>(read_length));
+
+        if (header_map.count("depth sd") != 0u)
+        {
+            double depth_sd = 0;
+            try
+            {
+                depth_sd = stod(tokens[header_map["depth sd"]]);
+            }
+            catch (const std::exception&)
+            {
+            }
+            if (depth_sd <= 0)
+            {
+                error("Depth sd is not positive in sample %s", sid.sample_name().c_str());
+            }
+            sid.set_depth_sd(depth_sd);
+        }
+        else
+        {
+            if (header_map.count("depth variance") != 0u)
+            {
+                double depth_variance = 0;
+                try
+                {
+                    depth_variance = stod(tokens[header_map["depth variance"]]);
+                }
+                catch (const std::exception&)
+                {
+                }
+                if (depth_variance <= 0)
+                {
+                    error("Depth variance is not positive in sample %s", sid.sample_name().c_str());
+                }
+                double depth_sd = sqrt(depth_variance);
+                sid.set_depth_sd(depth_sd);
+            }
+        }
 
         if (header_map.count("sex") != 0u)
         {

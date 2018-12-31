@@ -27,12 +27,15 @@
 #include "genotyping/BreakpointGenotyper.hh"
 #include "common/Error.hh"
 #include <algorithm>
+#include <boost/math/distributions/normal.hpp>
 #include <boost/math/distributions/poisson.hpp>
 #include <boost/math/special_functions/binomial.hpp>
 #include <cmath>
 #include <limits>
+#include <math.h>
 #include <numeric>
 
+using boost::math::normal_distribution;
 using boost::math::poisson_distribution;
 using std::map;
 using std::vector;
@@ -47,6 +50,7 @@ BreakpointGenotyper::BreakpointGenotyper(std::unique_ptr<GenotypingParameters> c
     : n_alleles_(param->numAlleles())
     , ploidy_(param->ploidy())
     , coverage_test_cutoff_(param->coverageTestCutoff())
+    , min_pass_gq_(param->minPassGQ())
     , min_overlap_bases_(param->minOverlapBases())
     , possible_genotypes(param->possibleGenotypes())
 {
@@ -86,22 +90,25 @@ BreakpointGenotyper::BreakpointGenotyper(std::unique_ptr<GenotypingParameters> c
     }
 };
 
-Genotype BreakpointGenotyper::genotype(double read_depth, int32_t read_length, const vector<int32_t>& read_counts) const
+Genotype BreakpointGenotyper::genotype(
+    const BreakpointGenotyperParameter& param, const std::vector<int32_t>& read_counts_per_allele) const
 {
-    if (read_counts.size() != n_alleles_)
+    if (read_counts_per_allele.size() != n_alleles_)
     {
-        error("Error: number of read counts and alleles mismatches. %i != %i.", (int)read_counts.size(), n_alleles_);
+        error(
+            "Error: number of read counts and alleles mismatches. %i != %i.", (int)read_counts_per_allele.size(),
+            n_alleles_);
     }
     Genotype result;
 
     // compute adjusted depth
-    const double multiplier = (read_length - min_overlap_bases_) / (double)read_length;
+    const double multiplier = (param.read_length - min_overlap_bases_) / (double)param.read_length;
     assert(multiplier > 0);
-    const double lambda = read_depth * multiplier;
-    const int32_t total_num_reads = std::accumulate(read_counts.begin(), read_counts.end(), 0);
+    const double lambda = param.read_depth * multiplier;
+    const int32_t total_num_reads = std::accumulate(read_counts_per_allele.begin(), read_counts_per_allele.end(), 0);
     if (total_num_reads == 0)
     {
-        result.filter = "NO_READS";
+        result.filters.insert("NO_READS");
         return result;
     }
     result.num_reads = total_num_reads;
@@ -111,7 +118,7 @@ Genotype BreakpointGenotyper::genotype(double read_depth, int32_t read_length, c
 
     for (const auto& igt : possible_genotypes)
     {
-        const double gl = genotypeLikelihood(lambda, igt, read_counts);
+        const double gl = genotypeLikelihood(lambda, igt, read_counts_per_allele);
         result.gl_name.push_back(igt);
         result.gl.push_back(gl);
 
@@ -123,26 +130,70 @@ Genotype BreakpointGenotyper::genotype(double read_depth, int32_t read_length, c
         }
     }
 
+    // compute GQ and set filter
+    double sum_gl = 0;
+    for (auto l : result.gl)
+    {
+        sum_gl += exp(l);
+    }
+    double pr_gt_error = (double)1.0 - exp(best_gl) / sum_gl;
+    if (pr_gt_error == 0)
+    {
+        result.gq = 100;
+    }
+    else
+    {
+        double gq_log10 = log10(pr_gt_error);
+        if (gq_log10 < -10)
+        {
+            result.gq = 100;
+        }
+        else
+        {
+            result.gq = -10 * gq_log10;
+        }
+    }
+    if (result.gq < min_pass_gq_)
+    {
+        result.filters.insert("GQ");
+    }
+
     // compute allele fractions
     result.allele_fractions.resize(n_alleles_, 0.0);
     for (unsigned int al = 0; al < n_alleles_; ++al)
     {
-        result.allele_fractions[al] = ((double)read_counts[al]) / total_num_reads;
+        result.allele_fractions[al] = ((double)read_counts_per_allele[al]) / total_num_reads;
     }
 
     // compute coverage test p value
-    const poisson_distribution<> coverage_distribution(lambda);
-    double coverage_test_pvalue = cdf(coverage_distribution, total_num_reads);
+    double coverage_test_pvalue;
+    if (param.use_poisson_depth) // use poisson test for depth (more stringent)
+    {
+        const poisson_distribution<> poisson_coverage_distribution(lambda);
+        coverage_test_pvalue = cdf(poisson_coverage_distribution, total_num_reads);
+    }
+    else // use normal test for depth (default)
+    {
+        const normal_distribution<> normal_coverage_distribution(lambda, param.depth_sd);
+        coverage_test_pvalue = cdf(normal_coverage_distribution, total_num_reads);
+    }
+
     if (coverage_test_pvalue > 0.5)
     {
         coverage_test_pvalue = 1 - coverage_test_pvalue;
+        if (coverage_test_pvalue < coverage_test_cutoff_.first)
+        {
+            result.filters.insert("BP_DEPTH");
+        }
+    }
+    else
+    {
+        if (coverage_test_pvalue < coverage_test_cutoff_.second)
+        {
+            result.filters.insert("BP_DEPTH");
+        }
     }
     result.coverage_test_pvalue = coverage_test_pvalue;
-
-    if (coverage_test_pvalue < coverage_test_cutoff_)
-    {
-        result.filter = "DEPTH";
-    }
 
     return result;
 }

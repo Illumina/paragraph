@@ -163,6 +163,7 @@ Graph graphFromJson(Json::Value const& in, string const& reference, bool store_r
             }
         }
     }
+
     return result;
 }
 

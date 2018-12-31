@@ -66,7 +66,9 @@ public:
 
     unsigned int numAlleles() const { return num_alleles; }
 
-    double coverageTestCutoff() const { return coverage_test_cutoff; }
+    std::pair<double, double> coverageTestCutoff() const { return coverage_test_cutoff; }
+
+    int minPassGQ() const { return min_pass_gq; }
 
     unsigned int minOverlapBases() const { return min_overlap_bases; }
 
@@ -81,6 +83,8 @@ public:
     double otherHetHaplotypeFraction() const { return other_het_haplotype_fraction; }
 
     const std::vector<GenotypeVector>& possibleGenotypes() const { return possible_genotypes; };
+
+    bool usePoissonDepth() const { return use_poisson_depth; }
 
 private:
     /**
@@ -117,9 +121,14 @@ private:
     unsigned int num_alleles;
 
     /**
-     * cutoff for coverage test p value
+     * cutoff for coverage test p value. lower end, upper end.
      */
-    double coverage_test_cutoff;
+    std::pair<double, double> coverage_test_cutoff;
+
+    /**
+     * min GQ for a PASS event
+     */
+    int min_pass_gq;
 
     /**
      * allele names from graph input
@@ -164,5 +173,7 @@ private:
     double other_het_haplotype_fraction;
 
     double other_genotype_fraction;
+
+    bool use_poisson_depth;
 };
 };

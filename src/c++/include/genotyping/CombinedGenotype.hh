@@ -55,10 +55,12 @@ namespace genotyping
  * @param genotyper Breakpoint genotyper for additional genotyping
  * @param depth Depth of this sample
  * @param read_length Read length of this sample
+ * @param depth_sd Depth standard deviation
  * @return final GT
  */
 Genotype combinedGenotype(
-    GenotypeSet const& genotypes, const BreakpointGenotyper* p_genotyper = NULL, double depth = 0, int read_length = 0);
+    GenotypeSet const& genotypes, const BreakpointGenotyperParameter* b_param = NULL,
+    const BreakpointGenotyper* p_genotyper = NULL);
 
 /**
  * Count number of unique genotypes in the genotype set
@@ -84,6 +86,6 @@ Genotype reportConsensusGenotypes(GenotypeSet const& genotypes, bool pass_only);
  * @return Final GT from total counts
  */
 Genotype genotypeByTotalCounts(
-    GenotypeSet const& genotypes, bool use_pass_only, const BreakpointGenotyper* p_genotyper, double depth,
-    int read_length);
+    GenotypeSet const& genotypes, bool use_pass_only, const BreakpointGenotyper* p_genotyper,
+    const BreakpointGenotyperParameter* b_param);
 };

@@ -66,37 +66,34 @@ GenotypeVector genotypeVectorFromString(std::string& gt_str)
     return gv;
 }
 
-string Genotype::toString() const
+string Genotype::toString(const vector<string>* p_allele_names) const
 {
     string gt_str;
     if (gt.empty())
     {
-        gt_str = "."; // TODO: change this for haploid
+        gt_str = ".";
     }
     else
     {
-        auto str = static_cast<std::string (*)(int)>(std::to_string);
-        gt_str = join(gt | transformed(str), "/");
+        if (p_allele_names == NULL)
+        {
+            auto al = static_cast<std::string (*)(int)>(std::to_string);
+            gt_str = join(gt | transformed(al), "/");
+        }
+        else
+        {
+            auto al = [p_allele_names](int g) { return (*p_allele_names)[g]; };
+            gt_str = join(gt | transformed(al), "/");
+        }
     }
     return gt_str;
 }
 
-string Genotype::toString(vector<string> const& allele_names) const
+std::string Genotype::filterString() const
 {
-    string gt_str;
-    if (gt.empty())
-    {
-        gt_str = "./.";
-    }
-    else
-    {
-        auto al = [&allele_names](int g) { return allele_names[g]; };
-        gt_str = join(gt | transformed(al), "/");
-    }
-    return gt_str;
+    string filter_string = boost::algorithm::join(filters, ";");
+    return filter_string;
 }
-
-Genotype::operator std::string() const { return toString(); }
 
 /**
  * relabel genotypes
@@ -139,7 +136,7 @@ void Genotype::relabel(std::vector<uint64_t> const& new_labels)
 Json::Value Genotype::toJson(vector<string> const& allele_names) const
 {
     Json::Value json_result;
-    json_result["GT"] = toString(allele_names);
+    json_result["GT"] = toString(&allele_names);
 
     if (!gl.empty())
     {
@@ -155,6 +152,11 @@ Json::Value Genotype::toJson(vector<string> const& allele_names) const
         }
     }
 
+    if (gq != -1)
+    {
+        json_result["GQ"] = gq;
+    }
+
     if (!allele_fractions.empty())
     {
         json_result["allele_fractions"] = Json::objectValue;
@@ -167,9 +169,13 @@ Json::Value Genotype::toJson(vector<string> const& allele_names) const
             json_result["allele_fractions"][allele_name] = allele_fraction;
         }
     }
-    if (!filter.empty())
+    if (!filters.empty())
     {
-        json_result["filter"] = filter;
+        json_result["filters"] = Json::arrayValue;
+        for (auto f : filters)
+        {
+            json_result["filters"].append(f);
+        }
     }
     if (!gt.empty())
     {
@@ -181,4 +187,6 @@ Json::Value Genotype::toJson(vector<string> const& allele_names) const
     }
     return json_result;
 }
+
+Genotype::operator std::string() const { return toString(); }
 }

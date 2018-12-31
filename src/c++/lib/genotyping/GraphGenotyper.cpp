@@ -122,6 +122,7 @@ void GraphGenotyper::addAlignment(SampleInfo const& sampleinfo)
         breakpoint.second.addCounts(alignment);
     }
     _impl->depths.emplace_back(depth, read_length);
+    _impl->depth_sds.emplace_back(sampleinfo.depth_sd());
     _impl->sexes.emplace_back(sampleinfo.sex());
 
     // extract extra information and check we have the same event
@@ -412,6 +413,13 @@ std::pair<double, int> const& GraphGenotyper::getDepthAndReadlength(size_t sampl
 {
     return _impl->depths[sample_index];
 }
+
+/**
+ * Get depth standard deviation for a sample
+ * @param sample_index
+ * @return std deviation of average depth. if not available, return 0
+ */
+double GraphGenotyper::getDepthSD(size_t sample_index) const { return _impl->depth_sds[sample_index]; };
 
 /**
  * Get sex integer for a sample

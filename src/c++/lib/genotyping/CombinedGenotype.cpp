@@ -34,6 +34,7 @@
  */
 
 #include "genotyping/CombinedGenotype.hh"
+#include <algorithm>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 #include <set>
@@ -49,8 +50,8 @@ using std::vector;
 namespace genotyping
 {
 
-Genotype
-combinedGenotype(GenotypeSet const& genotypes, const BreakpointGenotyper* p_genotyper, double depth, int read_length)
+Genotype combinedGenotype(
+    GenotypeSet const& genotypes, const BreakpointGenotyperParameter* b_param, const BreakpointGenotyper* p_genotyper)
 {
     Genotype result;
 
@@ -60,7 +61,7 @@ combinedGenotype(GenotypeSet const& genotypes, const BreakpointGenotyper* p_geno
         auto num_fail_genotypes = static_cast<int>(countUniqGenotypes(genotypes, false));
         if (num_fail_genotypes == 0)
         {
-            result.filter = "MISSING";
+            result.filters.insert("NO_VALID_GT");
         }
         else if (num_fail_genotypes == 1)
         {
@@ -68,7 +69,7 @@ combinedGenotype(GenotypeSet const& genotypes, const BreakpointGenotyper* p_geno
         }
         else
         {
-            result = genotypeByTotalCounts(genotypes, false, p_genotyper, depth, read_length);
+            result = genotypeByTotalCounts(genotypes, false, p_genotyper, b_param);
         }
     }
     else if (num_pass_genotypes == 1)
@@ -77,12 +78,12 @@ combinedGenotype(GenotypeSet const& genotypes, const BreakpointGenotyper* p_geno
     }
     else
     {
-        result = genotypeByTotalCounts(genotypes, true, p_genotyper, depth, read_length);
+        result = genotypeByTotalCounts(genotypes, true, p_genotyper, b_param);
     }
 
-    if (result.filter.empty())
+    if (result.filters.empty())
     {
-        result.filter = "PASS";
+        result.filters.insert("PASS");
     }
 
     return result;
@@ -90,7 +91,7 @@ combinedGenotype(GenotypeSet const& genotypes, const BreakpointGenotyper* p_geno
 
 size_t countUniqGenotypes(GenotypeSet const& genotypes, bool pass_only)
 {
-    std::set<GenotypeVector> votes_for;
+    std::set<GenotypeVector> voted_gts;
     for (auto& bp : genotypes)
     {
         if (bp.gt.empty())
@@ -100,7 +101,7 @@ size_t countUniqGenotypes(GenotypeSet const& genotypes, bool pass_only)
 
         if (pass_only)
         {
-            if (!bp.filter.empty())
+            if (!bp.filters.empty())
             {
                 continue;
             }
@@ -108,21 +109,15 @@ size_t countUniqGenotypes(GenotypeSet const& genotypes, bool pass_only)
 
         Genotype sorted_bp = bp;
         std::sort(sorted_bp.gt.begin(), sorted_bp.gt.end());
-        votes_for.insert(sorted_bp.gt);
+        voted_gts.insert(sorted_bp.gt);
     }
 
-    return votes_for.size();
+    return voted_gts.size();
 }
 
 Genotype reportConsensusGenotypes(GenotypeSet const& genotypes, bool pass_only)
 {
     Genotype result;
-    std::set<string> filters;
-
-    if (!pass_only)
-    {
-        filters.insert("ALL_BAD_BP");
-    }
 
     struct GLInfo
     {
@@ -140,33 +135,34 @@ Genotype reportConsensusGenotypes(GenotypeSet const& genotypes, bool pass_only)
     result.num_reads = 0;
     result.allele_fractions.clear();
 
+    std::vector<int> gqs;
     for (auto& bp : genotypes)
     {
-
         if (bp.gt.empty())
         {
-            filters.insert("MISSING");
+            result.filters.insert("BP_NO_GT");
             continue;
         }
 
-        if (pass_only)
+        if (!bp.filters.empty())
         {
-            if (!bp.filter.empty())
-            {
-                filters.insert("EXIST_BAD_BP");
-                continue;
-            }
+            result.filters.insert(bp.filters.begin(), bp.filters.end());
+            continue;
         }
 
         if (result.gt.empty())
         {
             // sort genotype -- this will need to handle phasing at some point
-            Genotype sorted_bp = bp;
-            std::sort(sorted_bp.gt.begin(), sorted_bp.gt.end());
-            result.gt = sorted_bp.gt;
+            GenotypeVector sorted_bp = bp.gt;
+            std::sort(sorted_bp.begin(), sorted_bp.end());
+            result.gt = sorted_bp;
         }
 
         result.num_reads += bp.num_reads;
+        if (!result.gt.empty())
+        {
+            gqs.emplace_back(bp.gq);
+        }
         if (bp.allele_fractions.size() > result.allele_fractions.size())
         {
             result.allele_fractions.resize(bp.allele_fractions.size(), 0);
@@ -212,23 +208,19 @@ Genotype reportConsensusGenotypes(GenotypeSet const& genotypes, bool pass_only)
         result.gl_name.push_back(gl.second.gt);
     }
 
-    result.filter = boost::algorithm::join(filters, ";");
+    result.gq = gqs.empty() ? 0 : *std::min_element(gqs.begin(), gqs.end());
 
     return result;
 }
 
 Genotype genotypeByTotalCounts(
-    GenotypeSet const& genotypes, bool use_pass_only, const BreakpointGenotyper* p_genotyper, double depth,
-    int read_length)
+    GenotypeSet const& genotypes, bool use_pass_only, const BreakpointGenotyper* p_genotyper,
+    const BreakpointGenotyperParameter* b_param)
 {
-    assert(p_genotyper != nullptr && depth > 0 && read_length > 0);
+    assert(p_genotyper != nullptr && b_param->read_depth > 0 && b_param->read_length > 0);
 
     std::set<string> filters;
     filters.insert("CONFLICT");
-    if (!use_pass_only)
-    {
-        filters.insert("ALL_BAD_BP");
-    }
 
     // get total count vector
     std::vector<int> sum_counts;
@@ -237,16 +229,16 @@ Genotype genotypeByTotalCounts(
     {
         if (use_pass_only)
         {
-            if (!bp.filter.empty())
+            if (!bp.filters.empty())
             {
-                filters.insert("EXIST_BAD_BP");
+                filters.insert(bp.filters.begin(), bp.filters.end());
                 continue;
             }
         }
 
         if (bp.num_reads == 0)
         {
-            filters.insert("MISSING");
+            filters.insert("BP_NO_GT");
             continue;
         }
 
@@ -273,9 +265,9 @@ Genotype genotypeByTotalCounts(
         s = static_cast<int>(std::round((double)s / num_bp));
     }
     const auto input_counts = sum_counts;
-    const auto sum_gt = p_genotyper->genotype(depth, read_length, input_counts);
+    const auto sum_gt = p_genotyper->genotype(*b_param, input_counts);
     Genotype result = sum_gt;
-    result.filter = boost::algorithm::join(filters, ";");
+    result.filters = filters;
     return result;
 }
 }

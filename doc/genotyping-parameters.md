@@ -21,7 +21,7 @@ Below we show all allowed parameter fields:
     // such as 0.00001 for a more conservative callset which only 
     // includes genotypes for calls which have read counts that are
     // close to the median read depth in the BAM file.
-    "coverage_test_cutoff": -1.0,
+    "coverage_test_cutoff": 0.0001,
 
     // Allele names in graph(s).
     //     If other alleles were observed in graph, they will be excluded from analysis.

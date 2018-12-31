@@ -1,3 +1,0 @@
-#id	path	depth	read length	sex
-SAMPLE1	share/test-data/paragraph/long-del/chr4_graph_typing.bam	44.2	150	male
-SAMPLE2	share/test-data/paragraph/long-del/chr4_graph_typing.bam	44.2	150	female

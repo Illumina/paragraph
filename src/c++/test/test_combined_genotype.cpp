@@ -56,7 +56,7 @@ TEST(CombinedGenotype, SimplePass)
     const Genotype combined_genotype = combinedGenotype(gs);
 
     EXPECT_EQ("1/1", combined_genotype.toString());
-    EXPECT_EQ("ALT/ALT", combined_genotype.toString(alleles));
+    EXPECT_EQ("ALT/ALT", combined_genotype.toString(&alleles));
 }
 
 TEST(CombinedGenotype, GenotypeUnphasedMatch)
@@ -67,11 +67,13 @@ TEST(CombinedGenotype, GenotypeUnphasedMatch)
     gt1.gt = { 0, 1 };
     gt1.gl_name = { { 0, 0 }, { 0, 1 }, { 1, 1 } };
     gt1.gl = { -10, -0.1, -10 };
+    gt1.gq = 20;
 
     Genotype gt2;
     gt2.gt = { 1, 0 };
     gt2.gl_name = { { 1, 0 }, { 1, 1 }, { 0, 0 } };
     gt2.gl = { -0.1, -10, -10 };
+    gt2.gq = 30;
 
     GenotypeSet gs;
     gs.add(alleles, gt1);
@@ -80,7 +82,8 @@ TEST(CombinedGenotype, GenotypeUnphasedMatch)
     const Genotype combined_genotype = combinedGenotype(gs);
 
     EXPECT_EQ("0/1", combined_genotype.toString());
-    EXPECT_EQ("PASS", combined_genotype.filter);
+    EXPECT_EQ("PASS", combined_genotype.filterString());
+    EXPECT_EQ(20, combined_genotype.gq);
 }
 
 TEST(CombinedGenotype, GenotypeConflictNoConsensus)
@@ -104,12 +107,15 @@ TEST(CombinedGenotype, GenotypeConflictNoConsensus)
     auto param = std::unique_ptr<GenotypingParameters>(new GenotypingParameters(alleles, 2));
     BreakpointGenotyper genotyper(param);
 
-    const double read_depth = 10.0;
-    const int32_t read_length = 100;
-    const Genotype combined_genotype = combinedGenotype(gs, &genotyper, read_depth, read_length);
+    double read_depth = 10.0;
+    int32_t read_length = 100;
+    double depth_sd = 50;
+    const BreakpointGenotyperParameter b_param(read_depth, read_length, depth_sd, false);
+    const Genotype combined_genotype = combinedGenotype(gs, &b_param, &genotyper);
 
     EXPECT_EQ("0/1", combined_genotype.toString());
-    EXPECT_EQ("CONFLICT", combined_genotype.filter);
+    EXPECT_EQ("CONFLICT", combined_genotype.filterString());
+    EXPECT_EQ(8, combined_genotype.gq);
 }
 
 TEST(CombinedGenotype, GenotypeMissing)
@@ -121,7 +127,8 @@ TEST(CombinedGenotype, GenotypeMissing)
     Genotype gt2;
     gt2.gt = { 0, 1 };
     gt2.gl_name = { { 0, 1 }, { 1, 1 }, { 0, 0 } };
-    gt2.gl = { 0.1, -10, -10 };
+    gt2.gl = { -1, -10, -10 };
+    gt2.gq = 36;
 
     GenotypeSet gs;
     gs.add(alleles, gt1);
@@ -130,5 +137,6 @@ TEST(CombinedGenotype, GenotypeMissing)
     const Genotype combined_genotype = combinedGenotype(gs);
 
     EXPECT_EQ("0/1", combined_genotype.toString());
-    EXPECT_EQ("MISSING", combined_genotype.filter);
+    EXPECT_EQ("BP_NO_GT", combined_genotype.filterString());
+    EXPECT_EQ(36, combined_genotype.gq);
 }

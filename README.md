@@ -156,26 +156,6 @@ to give the following genotypes for each event:
 | swap2     |  chrB           | S1/S1 (homalt)        |
 | swap1     |  chrC           | REF/S1 (heterozygous) |
 
-We can extract these genotypes from the output file using Python script at bin/paragraph-to-csv.py
-
-```
-bin/paragraph-to-csv.py /tmp/paragraph-test/genotype.json.gz --genotype-only
-```
-
-The output will be:
-
-```
-#FORMAT=GT
-#ID SWAPS
-chrA:1500-1509  REF/REF
-chrB:1500-1509  S1/S1
-chrC:1500-1699  REF/S1
-```
-
-The output JSON file contains more information which can be used to link
-events back to the original VCF file, genotype likelihoods, and also to get the
-genotypes of the individual breakpoints.
-
 If the input is a VCF file, then the output folder will contain an updated
 VCF file which allows us to quickly compare the original genotypes from the
 input VCF, and those obtained by grmpy:
@@ -188,6 +168,8 @@ bcftools query -f '[%GT\t%OLD_GT]\n' /tmp/paragraph-test/genotypes.vcf.gz
 1/1     1/1
 0/1     0/1
 ```
+
+Note if the input VCF doesn't contain any sample information, you won't be able to get **OLD_GT** field in this output VCF.
 
 We can see that the genotypes match in our use case, as expected.
 
@@ -233,11 +215,10 @@ The complete list of requrements can be found in [requirements.txt](requirements
   [http://www.boost.org](http://www.boost.org) and is available under the Boost license:
   [http://www.boost.org/users/license.html](http://www.boost.org/users/license.html).
 
-  You may use your system Boost version, on Ubuntu, you can install the required versions
-  of Boost as follows:
+You may use your system Boost version, on Ubuntu, you can install the required versions of Boost as follows:
   ```bash
   sudo apt install libboost-dev libboost-iostreams-dev libboost-program-options-dev \
-                   libboost-math-dev libboost-system-dev libboost-filesystem-dev
+                libboost-math-dev libboost-system-dev libboost-filesystem-dev
   ```
 
   Paragraph includes a copy of Boost 1.61 which can be built automatically during the
@@ -400,12 +381,23 @@ Alternatively, candidate SV events can be specified as vcf.
     chr1	161	test-del	TC	T	.	.	.
    ```
 
-*  **samples.txt**: Manifest that specifies some test BAM files. Required columns: ID, path, depth, read length. Optional column: sex. Tab delimited.
+*  **samples.txt**: Manifest that specifies some test BAM files. Tab delimited.
+
+Required columns: ID, path, depth, read length.
+
+Optional column:
+
+- depth sd: Specify standard deviation for genome depth. Used for the normal test of breakpoint read depth. Default is sqrt(5*depth).
+
+- depth variance: Square of depth sd.
+
+- sex: Affects chrX and chrY genotyping. Allow "male", "female" and "unknown". If not specified, all samples will be treated as female.
+    
     ```
-    id path    depth   read length  sex
-    sample1	sample1.bam 1   50  male
-    sample2	sample2.bam 1   50  female
-    sample3	sample2.bam 1   50  unknown
+    id path    depth   read length  depth sd  sex
+    sample1	sample1.bam 1   50  20  male
+    sample2	sample2.bam 1   50  20  female
+    sample3	sample2.bam 1   50  20  unknown
     ```
 
 *  **dummy.fa** a short dummy reference which only contains `chr1`
@@ -518,8 +510,7 @@ We also have the paths induced by the edge labels (this was added by `vcf2paragr
 
 Each node, edge, and path has reads associated with it. We provide read counts for forward
 and reverse strands (`:READS`, `:FWD`, `:REV`) and fragment counts (these counts are corrected
-for the same reads possibly originating from the same sequence fragment in the case of
-paired-end sequencing data).
+for the same reads possibly originating from the same sequence fragment in the case of paired-end sequencing data).
 
 ```javascript
     "read_counts_by_edge": {
@@ -631,7 +622,7 @@ It is extracted and re-organized from [an expected output](share/test-data/multi
 
 *   In [doc/graph-models.md](doc/graph-models.md) we describe the graph and genotyping
     models we implement.
-
+    
 *   [Doc/graphs-ashg-2017.pdf](doc/graphs-ashg-2017.pdf) contains the poster about this method we showed at
     [ASHG 2017](http://www.ashg.org/2017meeting/)
 
