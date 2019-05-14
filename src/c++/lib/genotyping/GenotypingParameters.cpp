@@ -45,7 +45,7 @@ GenotypingParameters::GenotypingParameters(const vector<string>& _allele_names, 
     : ploidy_(ploidy)
     , num_alleles(static_cast<const unsigned int>(_allele_names.size()))
     , coverage_test_cutoff(std::make_pair(0.02, 0.0001))
-    , min_pass_gq(20)
+    , min_pass_gq(10)
     , allele_names(_allele_names)
     , min_overlap_bases(16)
     , reference_allele("REF")

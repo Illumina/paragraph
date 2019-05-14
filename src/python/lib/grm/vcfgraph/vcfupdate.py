@@ -51,14 +51,14 @@ def read_grmpy(grmpyJsonName):
     :param grmpyJsonName: input filename
     :return: grmpy output
     """
-    logging.debug(f"Reading {grmpyJsonName}")
+    logging.debug("Reading %s", grmpyJsonName)
     if grmpyJsonName.endswith(".gz"):
         f = gzip.open(grmpyJsonName, "rt")
     else:
         f = open(grmpyJsonName, "rt")
     data = json.load(f)
 
-    logging.debug(f"Ordering by sequences")
+    logging.debug("Ordering by sequences")
     by_sequencename = defaultdict(set)
     by_id = defaultdict(set)
     values = data
@@ -85,7 +85,7 @@ def read_grmpy(grmpyJsonName):
         "by_sequencename": {k: [values[i] for i in r] for k, r in by_sequencename.items()},
     }
 
-    logging.debug(f"Done reading {grmpyJsonName}")
+    logging.debug("Done reading %s", grmpyJsonName)
     return result
 
 
@@ -102,8 +102,7 @@ def update_vcf_from_grmpy(inVcfFilename, grmpyOutput, outVcfFilename, sample_nam
     if sample_names is None:  # get sample names from vcf
         sample_names = vcf_samples
         if not sample_names:
-            logging.error(
-                "Sample names not assigned and input VCF doesn't have sample column. Paragraph VCF output will not contain any genotyping information!")
+            raise Exception("Didn't find sample names in either input or VCF. Paragraph cannot output any genotypes!")
     sample_names = set(sample_names)
     sample_names.update(set(vcf_samples))
     added_samples = sample_names.difference(set(vcf_samples))
@@ -150,8 +149,8 @@ def update_vcf_from_grmpy(inVcfFilename, grmpyOutput, outVcfFilename, sample_nam
     unmatched = 0
     multimatched = 0
     for raw_record in inVariantFile:
-        logging.debug("VCF to graph matching statistics: "
-                      f"{matched} matched, {unmatched} unmatched, {multimatched} multiple matches.")
+        logging.debug("VCF to graph matching statistics: %d matched, %d unmatched, %d multiple matches.",
+                      matched, unmatched, multimatched)
         # reset varIdCounts for every record. This
         # doesn't quite do the right thing when we have
         # multiple VCF variants per block, and where some of these variants

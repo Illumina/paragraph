@@ -42,7 +42,7 @@ def add_variants(graph: GraphContainer, variants):
             add_variants_node(graph, graph.nodes[node], nodeVars)
         except Exception:  # pylint: disable=broad-except
             traceback.print_exc(file=sys.stderr)
-            print(f"Skipping variant records on node {node}: {nodeVars}.", file=sys.stderr)
+            print("Skipping variant records on node {}: {}.".format(node, nodeVars), file=sys.stderr)
 
 
 def split_node(graph: GraphContainer, node, breakpoints):
@@ -55,7 +55,7 @@ def split_node(graph: GraphContainer, node, breakpoints):
     if not breakpoints:
         return node
     breakpoints = sorted(set(breakpoints))
-    logging.debug(f"Splitting {node['name']} at {breakpoints}")
+    logging.debug("Splitting %s at %s ", node['name'], str(breakpoints))
     nodes = []
     lEnd = 0
     for p in breakpoints:
@@ -92,9 +92,10 @@ def add_variants_node(graph: GraphContainer, node, variants):
     """ Add variants to one node in the graph """
     bps = []
     for var in variants:
-        assert var.start <= var.end+1
-        assert not (var.start == var.end+1 and var.alt == "")
-        logging.info(f"{node}: {var}")
+        if var.start > var.end + 1:
+            raise Exception("Variant start({}) > variane end({})!".format(var.start, var.end))
+        if var.start == var.end + 1 and not var.alt:
+            raise Exception("Variant start({}) == end but no insertion sequence is specified.".format(var.start))
         bps.extend((var.start, var.end+1))
     nodes = split_node(graph, node, bps)
     nodesEnding = {node["end"]: node for node in nodes[:-1]}

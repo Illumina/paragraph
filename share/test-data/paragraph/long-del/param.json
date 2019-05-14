@@ -1,7 +1,7 @@
 {
     "ploidy": 2,
     "min_overlap_bases": 16,
-    "min_pass_gq": 20,
+    "min_pass_gq": 10,
     "coverage_test_cutoff": [
         0.01,
         0.0001

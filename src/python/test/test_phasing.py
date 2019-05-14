@@ -74,7 +74,7 @@ class TestParagraphPhasing(unittest.TestCase):
 
         if expected != observed:
             shutil.copy(output_file.name, "phasing_output.json")
-            print(f"Difference between observed 'phasing_output.json' and expected ({expected_fn})", file=sys.stderr)
+            print("Difference between observed 'phasing_output.json' and expected ({})".format(expected_fn), file=sys.stderr)
         self.assertEqual(expected, observed)
         os.remove(output_file.name)
 

@@ -1,5 +1,15 @@
 # Paragraph Release Notes / Change Log
 
+| Date Y-m-d | Ticket  | Description                                                          |
+|------------|---------|----------------------------------------------------------------------|
+
+#Version 2.2
+
+| Date Y-m-d | Ticket  | Description                                                          |
+|------------|---------|----------------------------------------------------------------------|
+| 2019-05-11 | GT-743  | Update interface and error handling                                  |
+| 2018-12-11 | GT-696  | Fix newlines in validation scripts (public repo already fixed)       |
+
 # Version 2.1
 
 | Date Y-m-d | Ticket  | Description                                                          |

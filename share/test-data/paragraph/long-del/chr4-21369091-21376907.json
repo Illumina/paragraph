@@ -20,19 +20,27 @@
         },
         {
             "from": "ref-chr4:21368941-21369090",
-            "name": "ref-chr4:21368941-21369090_ref-chr4:21376908-21377057",
+            "name": "ref-chr4:21368941-21369090_ref-chr4:21369091-21369091",
+            "sequences": [
+                "REF"
+            ],
+            "to": "ref-chr4:21369091-21369091"
+        },
+        {
+            "from": "ref-chr4:21369091-21369091",
+            "name": "ref-chr4:21369091-21369091_ref-chr4:21376908-21377057",
             "sequences": [
                 "ALT"
             ],
             "to": "ref-chr4:21376908-21377057"
         },
         {
-            "from": "ref-chr4:21368941-21369090",
-            "name": "ref-chr4:21368941-21369090_ref-chr4:21369091-21369240",
+            "from": "ref-chr4:21369091-21369091",
+            "name": "ref-chr4:21369091-21369091_ref-chr4:21369092-21369241",
             "sequences": [
                 "REF"
             ],
-            "to": "ref-chr4:21369091-21369240"
+            "to": "ref-chr4:21369092-21369241"
         },
         {
             "from": "ref-chr4:21376908-21377057",
@@ -40,12 +48,12 @@
             "to": "sink"
         },
         {
-            "from": "ref-chr4:21369091-21369240",
-            "name": "ref-chr4:21369091-21369240_sink",
+            "from": "ref-chr4:21369092-21369241",
+            "name": "ref-chr4:21369092-21369241_sink",
             "to": "sink"
         }
     ],
-    "model_name": "Graph from long-del/chr4-21369091-21376907.vcf",
+    "model_name": "Graph from /Users/schen6/Documents/paragraph-tools/share/test-data/paragraph/long-del/chr4-21369091-21376907.vcf",
     "nodes": [
         {
             "name": "source",
@@ -60,12 +68,16 @@
             "reference": "chr4:21368941-21369090"
         },
         {
+            "name": "ref-chr4:21369091-21369091",
+            "reference": "chr4:21369091-21369091"
+        },
+        {
             "name": "ref-chr4:21376908-21377057",
             "reference": "chr4:21376908-21377057"
         },
         {
-            "name": "ref-chr4:21369091-21369240",
-            "reference": "chr4:21369091-21369240"
+            "name": "ref-chr4:21369092-21369241",
+            "reference": "chr4:21369092-21369241"
         },
         {
             "name": "sink",
@@ -84,7 +96,8 @@
         {
             "nodes": [
                 "ref-chr4:21368941-21369090",
-                "ref-chr4:21369091-21369240"
+                "ref-chr4:21369091-21369091",
+                "ref-chr4:21369092-21369241"
             ],
             "path_id": "REF|2",
             "sequence": "REF"
@@ -95,7 +108,7 @@
         "REF"
     ],
     "target_regions": [
-        "chr4:21368941-21369240",
+        "chr4:21368941-21369241",
         "chr4:21376758-21377057"
     ]
 }

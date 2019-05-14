@@ -40,7 +40,20 @@
 using common::Read;
 using common::ReadBuffer;
 using paragraph::Parameters;
+
 using paragraph::alignAndDisambiguate;
+
+auto compare_values = [](Json::Value const& lhs, Json::Value const& rhs) {
+    for (auto const& name : lhs.getMemberNames())
+    {
+        if (name.find("FWD") != std::string::npos || name.find("REV") != std::string::npos)
+        {
+            continue;
+        }
+        ASSERT_TRUE(rhs.isMember(name));
+        ASSERT_EQ(lhs[name].asUInt64(), rhs[name].asUInt64());
+    }
+};
 
 TEST(Paragraph, AlignsSequentially)
 {
@@ -59,26 +72,16 @@ TEST(Paragraph, AlignsSequentially)
         return;
     }
 
-    Parameters parameters(
-        10000, 3, 0.01f, 0.8f,
-        Parameters::output_options::NODE_READ_COUNTS | Parameters::output_options::EDGE_READ_COUNTS
-            | Parameters::output_options::PATH_READ_COUNTS,
-        false, true);
+    Parameters parameters;
     parameters.set_threads(1);
     common::CPU_THREADS().reset(1);
     parameters.load(spec_path, reference_path);
 
     common::ReadBuffer all_reads;
     common::extractReads(
-        bam_path, "", reference_path, parameters.target_regions(), (int)parameters.max_reads(), 1000, all_reads);
+        bam_path, "", reference_path, parameters.target_regions(), (int)parameters.max_reads(), 0, all_reads);
 
-    auto result = paragraph::alignAndDisambiguate(parameters, all_reads);
-
-    //  {
-    //      Json::StyledStreamWriter writer;
-    //      std::ofstream o("test.json");
-    //      writer.write(o, result);
-    //  }
+    auto result = alignAndDisambiguate(parameters, all_reads);
 
     Json::Value expected_result;
     {
@@ -88,37 +91,12 @@ TEST(Paragraph, AlignsSequentially)
         expected_file >> expected_result;
     }
 
-    auto compare_values = [](Json::Value const& lhs, Json::Value const& rhs) {
-        std::set<std::string> lhs_members;
-        for (auto const& name : lhs.getMemberNames())
-        {
-            ASSERT_TRUE(rhs.isMember(name));
-            lhs_members.insert(name);
-
-            ASSERT_EQ(lhs[name].asUInt64(), rhs[name].asUInt64());
-        }
-        for (auto const& name : rhs.getMemberNames())
-        {
-            ASSERT_EQ(1ull, lhs_members.count(name)) << "Missing " << name;
-        }
-    };
-
     ASSERT_TRUE(result.isMember("read_counts_by_node"));
     ASSERT_TRUE(expected_result.isMember("read_counts_by_node"));
     compare_values(expected_result["read_counts_by_node"], result["read_counts_by_node"]);
 
     ASSERT_TRUE(result.isMember("read_counts_by_edge"));
     compare_values(expected_result["read_counts_by_edge"], result["read_counts_by_edge"]);
-    /*
-        ASSERT_TRUE(result.isMember("read_counts_by_sequence"));
-        for (auto const& expected_name : expected_result["read_counts_by_sequence"].getMemberNames())
-        {
-            ASSERT_TRUE(result["read_counts_by_sequence"].isMember(expected_name));
-            compare_values(
-                expected_result["read_counts_by_sequence"][expected_name],
-                result["read_counts_by_sequence"][expected_name]);
-        }
-    */
 }
 
 TEST(Paragraph, AlignsMultithreaded)
@@ -138,20 +116,16 @@ TEST(Paragraph, AlignsMultithreaded)
         return;
     }
 
-    Parameters parameters(
-        10000, 3, 0.01f, 0.8f,
-        Parameters::output_options::NODE_READ_COUNTS | Parameters::output_options::EDGE_READ_COUNTS
-            | Parameters::output_options::PATH_READ_COUNTS,
-        false, true);
+    Parameters parameters;
     parameters.set_threads(4);
     common::CPU_THREADS().reset(4);
     parameters.load(spec_path, reference_path);
 
     common::ReadBuffer all_reads;
     common::extractReads(
-        bam_path, "", reference_path, parameters.target_regions(), (int)parameters.max_reads(), 1000, all_reads);
+        bam_path, "", reference_path, parameters.target_regions(), (int)parameters.max_reads(), 0, all_reads);
 
-    auto result = paragraph::alignAndDisambiguate(parameters, all_reads);
+    auto result = alignAndDisambiguate(parameters, all_reads);
 
     Json::Value expected_result;
     {
@@ -160,21 +134,6 @@ TEST(Paragraph, AlignsMultithreaded)
         ASSERT_TRUE(expected_file.good());
         expected_file >> expected_result;
     }
-
-    auto compare_values = [](Json::Value const& lhs, Json::Value const& rhs) {
-        std::set<std::string> lhs_members;
-        for (auto const& name : lhs.getMemberNames())
-        {
-            ASSERT_TRUE(rhs.isMember(name));
-            lhs_members.insert(name);
-
-            ASSERT_EQ(lhs[name].asUInt64(), rhs[name].asUInt64());
-        }
-        for (auto const& name : rhs.getMemberNames())
-        {
-            ASSERT_EQ(1ull, lhs_members.count(name));
-        }
-    };
 
     ASSERT_TRUE(result.isMember("read_counts_by_node"));
     compare_values(expected_result["read_counts_by_node"], result["read_counts_by_node"]);

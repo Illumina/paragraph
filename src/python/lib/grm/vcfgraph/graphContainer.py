@@ -24,6 +24,7 @@ class GraphContainer:
     """
     Holds a sequence graph in dict format
     """
+
     def __init__(self, name="VCF Graph"):
         self.name = name
         self.chroms = set()
@@ -42,7 +43,7 @@ class GraphContainer:
         return n1["name"] + "_" + n2["name"]
 
     def add_edge(self, nodeFrom, nodeTo, haplos=()):
-        logging.debug(f"Adding edge {nodeFrom['name']} -> {nodeTo['name']}")
+        logging.debug("Adding edge %s -> %s", nodeFrom['name'], nodeTo['name'])
         ekey = self._edgeKey(nodeFrom, nodeTo)
         if ekey not in self.edges:
             assert nodeFrom["name"] != nodeTo["name"], nodeFrom["name"]
@@ -87,7 +88,6 @@ class GraphContainer:
                 if haplo is None or haplo in e["sequences"]:
                     yield e
 
-
     def altNodes(self, chrom=None):
         for n in self.nodes.values():
             if "reference" not in n:
@@ -116,7 +116,7 @@ class GraphContainer:
         self.nodes_starting_at[chrom, start].append(node)
         self.nodes[name] = node
         self.sequences.update(sequences)
-        logging.debug(f"Created ALT node: {node}")
+        logging.debug("Created ALT node: %s", str(node))
         return node
 
     def add_refNode(self, chrom, start, end, sequences=(), name=None):
@@ -135,7 +135,7 @@ class GraphContainer:
         self.nodes_starting_at[chrom, start].append(node)
         self.nodes[node["name"]] = node
         self.sequences.update(sequences)
-        logging.debug(f"Created REF node: {node}")
+        logging.debug("Created REF node: %s", str(node))
         return node
 
     def del_node(self, node):
@@ -153,7 +153,6 @@ class GraphContainer:
               if haplo in n["sequences"]]
         ns.sort(key=lambda n: (n["start"], n["end"]))
         return ns
-
 
     def check(self):
         for e in self.edges.values():
@@ -206,7 +205,6 @@ class GraphContainer:
             tree.merge_overlaps()
             for iv in tree.items():
                 yield f"{chrom}:{iv.begin}-{iv.end-1}"
-
 
     def json_dict(self):
         """

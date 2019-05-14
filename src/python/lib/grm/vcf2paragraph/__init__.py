@@ -47,6 +47,7 @@ def add_reference_information(paragraph_dict, reference_fasta):
 
 def convert_vcf(vcf,
                 ref,
+                ins_info_key,
                 target_regions=None,
                 ref_node_padding=150,
                 ref_node_max_length=1000,
@@ -79,14 +80,14 @@ def convert_vcf(vcf,
         regions = map(parse_region, target_regions) if target_regions else [(None,)*3]
         for (chrom, start, end) in regions:
             if chrom is not None:
-                logging.info(f"Starting work on region: {chrom}:{start}-{end}")
+                logging.info("Starting work on region: %s:%d-%d", chrom, start, end)
             try:
                 vcfGraph = VCFGraph.create_from_vcf(
-                    ref, indexed_vcf.name, chrom, start, end, ref_node_padding, allele_graph)
+                    ref, indexed_vcf.name, ins_info_key, chrom, start, end, ref_node_padding, allele_graph)
             except NoVCFRecordsException:
-                logging.info(f"Region {chrom}:{start}-{end} has no VCF records, skipping.")
+                logging.info("Region %s:%d-%d has no VCF records, skipping.", chrom, start, end)
                 continue
-            logging.info(f"CONSTRUCTED VCF GRAPH:\n{str(vcfGraph)}")
+            logging.info("Constructed VCF graph:\n%s", str(vcfGraph))
             chromGraph = vcfGraph.get_graph(allele_graph)
             if ref_node_max_length:
                 graphUtils.split_ref_nodes(chromGraph, ref_node_max_length, ref_node_padding)
@@ -113,16 +114,7 @@ def convert_vcf(vcf,
     return graph.json_dict()
 
 
-def convert_vcf_to_json(vcf_name,
-                        reference,
-                        read_length=150,
-                        max_ref_node_length=300,
-                        graph_type="alleles",
-                        split_type="lines",
-                        retrieve_ref_sequence=False,
-                        alt_splitting=False,
-                        threads=1,
-                        alt_paths=False):
+def convert_vcf_to_json(args, alt_paths=False):
     """ Convert VCF file to list of JSON graphs
     This function converts each record separately (as opposed to all records jointly like convert_vcf)
     :param vcf_name: VCF file name
@@ -138,7 +130,7 @@ def convert_vcf_to_json(vcf_name,
     :return header, vcf_records, events -- vcf header, matched lists of VCF records and an event
     """
 
-    header, records, block_ids = parse_vcf_lines(vcf_name, read_length, split_type)
+    header, records, block_ids = parse_vcf_lines(args.input, args.read_length, args.split_type)
     variants = [None] * len(block_ids)
 
     to_process = []
@@ -151,15 +143,16 @@ def convert_vcf_to_json(vcf_name,
                 for record in record_block:
                     vcf_out.write(record)
 
-        params = {"reference": reference,
-                  "read_length": read_length,
-                  "max_ref_node_length": max_ref_node_length,
-                  "graph_type": graph_type,
-                  "retrieve_reference_sequence": retrieve_ref_sequence,
-                  "alt_splitting": alt_splitting,
-                  "alt_paths": alt_paths}
+        params = {"reference": args.reference,
+                  "read_length": args.read_length,
+                  "max_ref_node_length": args.max_ref_node_length,
+                  "graph_type": args.graph_type,
+                  "retrieve_reference_sequence": args.retrieve_reference_sequence,
+                  "alt_splitting": args.alt_splitting,
+                  "alt_paths": alt_paths,
+                  "ins_info_key": args.ins_info_key}
 
-        with multiprocessing.Pool(threads) as pool:
+        with multiprocessing.Pool(args.threads) as pool:
             variants = pool.map(run_vcf2paragraph, zip(to_process, itertools.repeat(params)))
 
         if any([x is None for x in variants]):
@@ -253,8 +246,8 @@ def parse_vcf_lines(vcf_path, read_length=150, split_type="full"):
                 record.info["GRMPY_ID"] = bid
                 records.append([record])
                 block_ids.append(bid)
-                logging.debug("New superlocus started at %s:%i -- previous : %s:%s ; read_length = %i",
-                              record.chrom, record.pos, str(current_chr), str(previous_end), read_length)
+                logging.debug("New superlocus started at %s:%i -- previous : %s:%d ; read_length = %i",
+                              str(record.chrom), record.pos, str(current_chr), previous_end, read_length)
             else:
                 bid = block_ids[-1]
                 record.info["GRMPY_ID"] = bid
@@ -284,6 +277,7 @@ def run_vcf2paragraph(event_and_args):
         result["graph"] = convert_vcf(
             event,
             params["reference"],
+            params["ins_info_key"],
             None,
             ref_node_padding=params["read_length"],
             ref_node_max_length=params["max_ref_node_length"],

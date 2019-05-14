@@ -31,7 +31,8 @@ class TestVCF2Paragraph(unittest.TestCase):
                                                  "/long-del/chr4-21369091-21376907.vcf"))
 
         self.test_allele_vcfs = sorted(glob.glob(self.test_data_dir + "/pg-complex/*.vcf"))
-        self.test_allele_vcfs += sorted(glob.glob(os.path.join(GRMPY_ROOT, "share", "test-data", "genotyping_test_2", "chr*.vcf")))
+        self.test_allele_vcfs += sorted(glob.glob(os.path.join(GRMPY_ROOT, "share",
+                                                               "test-data", "genotyping_test_2", "chr*.vcf")))
 
         self.test_insertion_vcfs = sorted(glob.glob(self.test_data_dir + "/insertions/*.vcf"))
 
@@ -90,11 +91,11 @@ class TestVCF2Paragraph(unittest.TestCase):
             except:
                 from shutil import copy
                 current_dir = os.path.abspath(os.path.dirname(__file__))
-                copy(tf1.name + ".pp.json",
-                     os.path.join(current_dir, "test-failed.json"))
-                os.chmod(os.path.join(current_dir, "test-failed.json"), 0o777)
-                print("Failed output saved in %s" %
-                      os.path.join(current_dir, "test-failed.json"))
+                basename = os.path.basename(expected_json)
+                fail_path = os.path.join(current_dir, "test-failed-haplotype." + basename)
+                copy(tf1.name + ".pp.json", fail_path)
+                os.chmod(fail_path, 0o777)
+                print("[test_haplotype_vcfs] failed output saved in %s" % fail_path)
                 raise
             finally:
                 os.remove(tf1.name)
@@ -123,11 +124,11 @@ class TestVCF2Paragraph(unittest.TestCase):
             except:  # pylint: disable=bare-except
                 from shutil import copy
                 current_dir = os.path.abspath(os.path.dirname(__file__))
-                copy(tf1.name + ".pp.json",
-                     os.path.join(current_dir, "test-failed.json"))
-                os.chmod(os.path.join(current_dir, "test-failed.json"), 0o777)
-                print("Failed output saved in %s" %
-                      os.path.join(current_dir, "test-failed.json"))
+                basename = os.path.basename(expected_json)
+                failed_path = os.path.join(current_dir, "test-failed-allele." + basename)
+                copy(tf1.name + ".pp.json", failed_path)
+                os.chmod(failed_path, 0o777)
+                print("[test_allele_graph_vcfs] Failed output saved in %s" % failed_path)
                 raise
             finally:
                 os.remove(tf1.name)
@@ -171,11 +172,11 @@ class TestVCF2Paragraph(unittest.TestCase):
             except:  # pylint: disable=bare-except
                 from shutil import copy
                 current_dir = os.path.abspath(os.path.dirname(__file__))
-                copy(tf1.name + ".pp.json",
-                     os.path.join(current_dir, "test-failed.json"))
-                os.chmod(os.path.join(current_dir, "test-failed.json"), 0o777)
-                print("Failed output saved in %s" %
-                      os.path.join(current_dir, "test-failed.json"))
+                basename = os.path.basename(expected_json)
+                failed_path = os.path.join(current_dir, "test-failed-allele-ins." + basename)
+                copy(tf1.name + ".pp.json", failed_path)
+                os.chmod(failed_path, 0o777)
+                print("Failed output saved in %s" % failed_path)
                 raise
             finally:
                 os.remove(tf1.name)

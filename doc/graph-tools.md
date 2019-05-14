@@ -174,7 +174,7 @@ The script supports standard sequence alleles (REF/ALT), as well a subset of sym
 *  Deletions: explicit deletions or symbolic `<DEL>` alleles segment the reference sequence into three parts. The middle part can be bypassed using an edge. The `END` INFO field can be used to indicate the length of the deletion for long deletions.
 * Forward breakends on the same chromosome, e.g. REF: `A`; ALT: `AC[chr1:10000[`, can be used to encode
   long deletions with short inserted sequence (swaps / substitutions).
-* Insertions with symbolic `<INS>` allele: the `SEQ` INFO field must be non-empty and contain the reference sequence. The `END` INFO field may contain the end of the reference sequence that is replaced with the inserted sequence. Note that our convention is to assume that the first reference base in the record is a padding base, and that this base is not present in the value of `INFO/SEQ`.
+* Insertions with symbolic `<INS>` allele: must have a field in INFO field indicating insertion sequence (no padding base, default key `SEQ`). The `END` INFO field may contain the end of the reference sequence that is replaced with the inserted sequence. Note that our convention is to assume that the first reference base in the record is a padding base, and that this base is not present in the value of `INFO/SEQ`.
 * When variants have an ID value then it must be unique and will be used to label the variant edges in the graph. A VCF file with non-unique IDs or other problematic INFO/FORMAT fields can be cleaned up using bcftools:
 ```bash
 bcftools annotate --set-id '.' -x 'INFO,FORMAT,^FORMAT/GT' \
