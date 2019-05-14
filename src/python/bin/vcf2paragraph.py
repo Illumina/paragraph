@@ -62,6 +62,8 @@ def make_argument_parser():
                         help="Read length -- this can be used to add reference padding for disambiguation.")
     common.add_argument("-T", "--target-region", dest="target_regions", default=[], action="append",
                         help="Target regions for read retrieval")
+    common.add_argument("--ins-info-key", dest="ins_info_key", default="SEQ",
+                        type=str, help="Key for symbolic <INS> in INFO field")
     common.add_argument("--alt-paths", dest="alt_paths", default=False, action="store_true",
                         help="Create all possible ALT paths in addition to reference paths.")
     common.add_argument("--alt-splitting", dest="alt_splitting", default=False, action="store_true",
@@ -82,6 +84,7 @@ def run(args):
 
     output = convert_vcf(args.input[0],
                          args.ref,
+                         args.ins_info_key,
                          args.target_regions,
                          args.read_len,
                          args.max_ref_len,

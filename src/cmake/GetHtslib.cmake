@@ -15,8 +15,8 @@ else()
         project(htslib-build NONE)
         include(ExternalProject)
         ExternalProject_Add(htslib
-        URL               \"${CMAKE_SOURCE_DIR}/external/htslib-1.8.tar.gz\"
-        URL_HASH          MD5=7f921fc4163b9147ced68c50751368be
+        URL               \"${CMAKE_SOURCE_DIR}/external/htslib-1.9.tar.gz\"
+        URL_HASH          MD5=deca473ddbf6227de3734fcf4e18f82f
         SOURCE_DIR        \"${CMAKE_BINARY_DIR}/external/htslib-src\"
         INSTALL_DIR       \"${HTSLIB_INSTALL_PATH}\"
         CONFIGURE_COMMAND \"\"

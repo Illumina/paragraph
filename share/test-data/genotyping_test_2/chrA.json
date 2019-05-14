@@ -2,40 +2,40 @@
     "edges": [
         {
             "from": "source",
-            "name": "source_ref-chrA:1350-1499",
-            "to": "ref-chrA:1350-1499"
+            "name": "source_ref-chrA:1350-1502",
+            "to": "ref-chrA:1350-1502"
         },
         {
-            "from": "ref-chrA:1350-1499",
-            "name": "ref-chrA:1350-1499_ref-chrA:1500-1506",
-            "sequences": [
-                "REF",
-                "swap1:0"
-            ],
-            "to": "ref-chrA:1500-1506"
-        },
-        {
-            "from": "ref-chrA:1350-1499",
-            "name": "ref-chrA:1350-1499_chrA:1500-1506:CTAGTAA",
+            "from": "ref-chrA:1350-1502",
+            "name": "ref-chrA:1350-1502_chrA:1503-1506:AGTAA",
             "sequences": [
                 "swap1:1"
             ],
-            "to": "chrA:1500-1506:CTAGTAA"
+            "to": "chrA:1503-1506:AGTAA"
         },
         {
-            "from": "ref-chrA:1500-1506",
-            "name": "ref-chrA:1500-1506_ref-chrA:1507-1509",
+            "from": "ref-chrA:1350-1502",
+            "name": "ref-chrA:1350-1502_ref-chrA:1503-1506",
             "sequences": [
                 "REF",
                 "swap1:0"
+            ],
+            "to": "ref-chrA:1503-1506"
+        },
+        {
+            "from": "chrA:1503-1506:AGTAA",
+            "name": "chrA:1503-1506:AGTAA_ref-chrA:1507-1509",
+            "sequences": [
+                "swap1:1"
             ],
             "to": "ref-chrA:1507-1509"
         },
         {
-            "from": "chrA:1500-1506:CTAGTAA",
-            "name": "chrA:1500-1506:CTAGTAA_ref-chrA:1507-1509",
+            "from": "ref-chrA:1503-1506",
+            "name": "ref-chrA:1503-1506_ref-chrA:1507-1509",
             "sequences": [
-                "swap1:1"
+                "REF",
+                "swap1:0"
             ],
             "to": "ref-chrA:1507-1509"
         },
@@ -55,26 +55,26 @@
             "to": "sink"
         }
     ],
-    "model_name": "Graph from ../genotyping_test_2/chrA.vcf",
+    "model_name": "Graph from /Users/schen6/Documents/paragraph-tools/share/test-data/genotyping_test_2/chrA.vcf",
     "nodes": [
         {
             "name": "source",
             "sequence": "NNNNNNNNNN"
         },
         {
-            "name": "ref-chrA:1350-1499",
-            "reference": "chrA:1350-1499",
-            "reference_sequence": "GAGCGTCAAAGGCCCGTCCTATAGACCTGAAGAGTGTTGAGAGTTCTATGGAAAAATTTATAGAGTACTTCCCAGTGTTTTAACTGTAACTGACTTCCATGATCATTTCAGTAATGCAGCCCACATGCATGTTCAAGACTAACACACCGT"
+            "name": "ref-chrA:1350-1502",
+            "reference": "chrA:1350-1502",
+            "reference_sequence": "GAGCGTCAAAGGCCCGTCCTATAGACCTGAAGAGTGTTGAGAGTTCTATGGAAAAATTTATAGAGTACTTCCCAGTGTTTTAACTGTAACTGACTTCCATGATCATTTCAGTAATGCAGCCCACATGCATGTTCAAGACTAACACACCGTGCT"
         },
         {
-            "name": "ref-chrA:1500-1506",
-            "reference": "chrA:1500-1506",
-            "reference_sequence": "GCTGCCC"
+            "name": "chrA:1503-1506:AGTAA",
+            "position": "chrA:1503-1506",
+            "sequence": "AGTAA"
         },
         {
-            "name": "chrA:1500-1506:CTAGTAA",
-            "position": "chrA:1500-1506",
-            "sequence": "CTAGTAA"
+            "name": "ref-chrA:1503-1506",
+            "reference": "chrA:1503-1506",
+            "reference_sequence": "GCCC"
         },
         {
             "name": "ref-chrA:1507-1509",
@@ -94,8 +94,8 @@
     "paths": [
         {
             "nodes": [
-                "ref-chrA:1350-1499",
-                "ref-chrA:1500-1506",
+                "ref-chrA:1350-1502",
+                "ref-chrA:1503-1506",
                 "ref-chrA:1507-1509",
                 "ref-chrA:1510-1659"
             ],

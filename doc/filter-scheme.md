@@ -16,6 +16,8 @@ Total number of reads on this breakpoint (from all alleles) fail the coverage te
 
 ## Variant level filters
 
+All breakpoint level filters can be included in variant level filters as well.
+
 * **PASS**
 
 Variant PASS all filters

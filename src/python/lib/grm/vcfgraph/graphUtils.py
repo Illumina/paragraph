@@ -44,10 +44,10 @@ def add_source_sink(graph: GraphContainer,
         if node["name"] in [source_name, sink_name]:
             continue
         if not any(graph.inEdges(node)):
-            logging.info(f"Linking {node['name']} from source")
+            logging.info("Linking %s from source", node['name'])
             graph.add_edge(graph.nodes[source_name], node)
         if not any(graph.outEdges(node)):
-            logging.info(f"Linking {node['name']} to sink")
+            logging.info("Linking %s to sink", node['name'])
             graph.add_edge(node, graph.nodes[sink_name])
 
 
@@ -62,7 +62,7 @@ def split_ref_nodes(graph: GraphContainer, max_len=300, padding_len=150):
     for node in list(graph.refNodes()):
         if node["end"] - node["start"] + 1 <= max_len:
             continue
-        logging.info(f"Splitting long REF node: {node['name']}")
+        logging.info("Splitting long REF node: %s", node['name'])
         firstEnd = node["start"] + padding_len - 1
         n1 = graph.add_refNode(node["chrom"], node["start"], firstEnd, node["sequences"])
         sndStart = node["end"] - padding_len + 1
@@ -86,10 +86,12 @@ def split_alt_nodes(graph: GraphContainer, max_len=300, padding_len=150):
     for node in list(graph.altNodes()):
         if len(node["sequence"]) <= max_len:
             continue
-        logging.info(f"Splitting long ALT node: {node['name']}")
+        logging.info("Splitting long ALT node: %s", node['name'])
 
-        n1 = graph.add_altNode(node["chrom"], node["start"], node["end"], node["sequence"][:padding_len], node["sequences"])
-        n2 = graph.add_altNode(node["chrom"], node["start"], node["end"], node["sequence"][-padding_len:], node["sequences"])
+        n1 = graph.add_altNode(node["chrom"], node["start"], node["end"],
+                               node["sequence"][:padding_len], node["sequences"])
+        n2 = graph.add_altNode(node["chrom"], node["start"], node["end"],
+                               node["sequence"][-padding_len:], node["sequences"])
 
         for e in list(graph.inEdges(node)):
             graph.add_edge(graph.nodes[e["from"]], n1, e["sequences"])
@@ -107,7 +109,7 @@ def remove_empty_nodes(graph: GraphContainer):
         if (("reference" in node and node["start"] <= node["end"]) or
                 node.get("sequence", "") != ""):
             continue
-        logging.info(f"Removing empty node {node['name']}")
+        logging.info("Removing empty node %s", node['name'])
         inSeqs = [s for e in graph.inEdges(node) for s in e["sequences"]]
         outSeqs = [s for e in graph.outEdges(node) for s in e["sequences"]]
         for e1 in list(graph.inEdges(node)):
@@ -146,7 +148,7 @@ def combine_nodes(graph: GraphContainer):
                 continue  # nodes must be of same type
             node = graph.add_altNode(
                 n1["chrom"], n1["start"], n2["end"], n1["sequence"] + n2["sequence"], haplos)
-        logging.info(f"Combinding {n1['name']} and {n2['name']}")
+        logging.info("Combinding %s and %s", n1['name'], n2['name'])
         for e in list(graph.inEdges(n1)):
             graph.add_edge(graph.nodes[e["from"]], node, e["sequences"])
         for e in list(graph.outEdges(n2)):

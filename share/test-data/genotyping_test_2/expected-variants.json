@@ -1,46 +1,46 @@
 [
     {
-        "ID": "swaps.vcf@5a0b775f60ed1cd0b938ae09b753ad0207c5ba9f83679f894f17d3d1fd352b6f:1",
+        "ID": "swaps.vcf@42527ba8a8840f1c955f8e6879b567988bbf858febd25ba5b4555895dbbcfef7:1",
         "chrom": "chrA",
         "end": 1659,
         "graph": {
             "edges": [
                 {
                     "from": "source",
-                    "name": "source_ref-chrA:1350-1499",
-                    "to": "ref-chrA:1350-1499"
+                    "name": "source_ref-chrA:1350-1502",
+                    "to": "ref-chrA:1350-1502"
                 },
                 {
-                    "from": "ref-chrA:1350-1499",
-                    "name": "ref-chrA:1350-1499_ref-chrA:1500-1506",
-                    "sequences": [
-                        "REF",
-                        "swap1:0"
-                    ],
-                    "to": "ref-chrA:1500-1506"
-                },
-                {
-                    "from": "ref-chrA:1350-1499",
-                    "name": "ref-chrA:1350-1499_chrA:1500-1506:CTAGTAA",
+                    "from": "ref-chrA:1350-1502",
+                    "name": "ref-chrA:1350-1502_chrA:1503-1506:AGTAA",
                     "sequences": [
                         "swap1:1"
                     ],
-                    "to": "chrA:1500-1506:CTAGTAA"
+                    "to": "chrA:1503-1506:AGTAA"
                 },
                 {
-                    "from": "ref-chrA:1500-1506",
-                    "name": "ref-chrA:1500-1506_ref-chrA:1507-1509",
+                    "from": "ref-chrA:1350-1502",
+                    "name": "ref-chrA:1350-1502_ref-chrA:1503-1506",
                     "sequences": [
                         "REF",
                         "swap1:0"
+                    ],
+                    "to": "ref-chrA:1503-1506"
+                },
+                {
+                    "from": "chrA:1503-1506:AGTAA",
+                    "name": "chrA:1503-1506:AGTAA_ref-chrA:1507-1509",
+                    "sequences": [
+                        "swap1:1"
                     ],
                     "to": "ref-chrA:1507-1509"
                 },
                 {
-                    "from": "chrA:1500-1506:CTAGTAA",
-                    "name": "chrA:1500-1506:CTAGTAA_ref-chrA:1507-1509",
+                    "from": "ref-chrA:1503-1506",
+                    "name": "ref-chrA:1503-1506_ref-chrA:1507-1509",
                     "sequences": [
-                        "swap1:1"
+                        "REF",
+                        "swap1:0"
                     ],
                     "to": "ref-chrA:1507-1509"
                 },
@@ -66,17 +66,17 @@
                     "sequence": "NNNNNNNNNN"
                 },
                 {
-                    "name": "ref-chrA:1350-1499",
-                    "reference": "chrA:1350-1499"
+                    "name": "ref-chrA:1350-1502",
+                    "reference": "chrA:1350-1502"
                 },
                 {
-                    "name": "ref-chrA:1500-1506",
-                    "reference": "chrA:1500-1506"
+                    "name": "chrA:1503-1506:AGTAA",
+                    "position": "chrA:1503-1506",
+                    "sequence": "AGTAA"
                 },
                 {
-                    "name": "chrA:1500-1506:CTAGTAA",
-                    "position": "chrA:1500-1506",
-                    "sequence": "CTAGTAA"
+                    "name": "ref-chrA:1503-1506",
+                    "reference": "chrA:1503-1506"
                 },
                 {
                     "name": "ref-chrA:1507-1509",
@@ -94,8 +94,8 @@
             "paths": [
                 {
                     "nodes": [
-                        "ref-chrA:1350-1499",
-                        "ref-chrA:1500-1506",
+                        "ref-chrA:1350-1502",
+                        "ref-chrA:1503-1506",
                         "ref-chrA:1507-1509",
                         "ref-chrA:1510-1659"
                     ],
@@ -104,8 +104,8 @@
                 },
                 {
                     "nodes": [
-                        "ref-chrA:1350-1499",
-                        "chrA:1500-1506:CTAGTAA",
+                        "ref-chrA:1350-1502",
+                        "chrA:1503-1506:AGTAA",
                         "ref-chrA:1507-1509"
                     ],
                     "path_id": "ALT|1",
@@ -125,19 +125,27 @@
         "start": 1350
     },
     {
-        "ID": "swaps.vcf@5a0b775f60ed1cd0b938ae09b753ad0207c5ba9f83679f894f17d3d1fd352b6f:2",
+        "ID": "swaps.vcf@42527ba8a8840f1c955f8e6879b567988bbf858febd25ba5b4555895dbbcfef7:2",
         "chrom": "chrB",
         "end": 1659,
         "graph": {
             "edges": [
                 {
                     "from": "source",
-                    "name": "source_ref-chrB:1350-1499",
-                    "to": "ref-chrB:1350-1499"
+                    "name": "source_ref-chrB:1349-1499",
+                    "to": "ref-chrB:1349-1499"
                 },
                 {
-                    "from": "ref-chrB:1350-1499",
-                    "name": "ref-chrB:1350-1499_ref-chrB:1500-1509",
+                    "from": "ref-chrB:1349-1499",
+                    "name": "ref-chrB:1349-1499_chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT",
+                    "sequences": [
+                        "swap2:1"
+                    ],
+                    "to": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT"
+                },
+                {
+                    "from": "ref-chrB:1349-1499",
+                    "name": "ref-chrB:1349-1499_ref-chrB:1500-1509",
                     "sequences": [
                         "REF",
                         "swap2:0"
@@ -145,12 +153,12 @@
                     "to": "ref-chrB:1500-1509"
                 },
                 {
-                    "from": "ref-chrB:1350-1499",
-                    "name": "ref-chrB:1350-1499_chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT",
+                    "from": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT",
+                    "name": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT_ref-chrB:1510-1659",
                     "sequences": [
                         "swap2:1"
                     ],
-                    "to": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT"
+                    "to": "ref-chrB:1510-1659"
                 },
                 {
                     "from": "ref-chrB:1500-1509",
@@ -158,14 +166,6 @@
                     "sequences": [
                         "REF",
                         "swap2:0"
-                    ],
-                    "to": "ref-chrB:1510-1659"
-                },
-                {
-                    "from": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT",
-                    "name": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT_ref-chrB:1510-1659",
-                    "sequences": [
-                        "swap2:1"
                     ],
                     "to": "ref-chrB:1510-1659"
                 },
@@ -181,17 +181,17 @@
                     "sequence": "NNNNNNNNNN"
                 },
                 {
-                    "name": "ref-chrB:1350-1499",
-                    "reference": "chrB:1350-1499"
-                },
-                {
-                    "name": "ref-chrB:1500-1509",
-                    "reference": "chrB:1500-1509"
+                    "name": "ref-chrB:1349-1499",
+                    "reference": "chrB:1349-1499"
                 },
                 {
                     "name": "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT",
                     "position": "chrB:1500-1509",
                     "sequence": "TCAGGTTGTCTTATGCTTGGCATCGTTCTT"
+                },
+                {
+                    "name": "ref-chrB:1500-1509",
+                    "reference": "chrB:1500-1509"
                 },
                 {
                     "name": "ref-chrB:1510-1659",
@@ -205,7 +205,7 @@
             "paths": [
                 {
                     "nodes": [
-                        "ref-chrB:1350-1499",
+                        "ref-chrB:1349-1499",
                         "ref-chrB:1500-1509",
                         "ref-chrB:1510-1659"
                     ],
@@ -214,7 +214,7 @@
                 },
                 {
                     "nodes": [
-                        "ref-chrB:1350-1499",
+                        "ref-chrB:1349-1499",
                         "chrB:1500-1509:TCAGGTTGTCTTATGCTTGGCATCGTTCTT",
                         "ref-chrB:1510-1659"
                     ],
@@ -229,13 +229,13 @@
                 "swap2:1"
             ],
             "target_regions": [
-                "chrB:1350-1659"
+                "chrB:1349-1659"
             ]
         },
-        "start": 1350
+        "start": 1349
     },
     {
-        "ID": "swaps.vcf@5a0b775f60ed1cd0b938ae09b753ad0207c5ba9f83679f894f17d3d1fd352b6f:3",
+        "ID": "swaps.vcf@42527ba8a8840f1c955f8e6879b567988bbf858febd25ba5b4555895dbbcfef7:3",
         "chrom": "chrC",
         "end": 1849,
         "graph": {

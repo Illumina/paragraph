@@ -116,6 +116,24 @@ TEST(CombinedGenotype, GenotypeConflictNoConsensus)
     EXPECT_EQ("0/1", combined_genotype.toString());
     EXPECT_EQ("CONFLICT", combined_genotype.filterString());
     EXPECT_EQ(8, combined_genotype.gq);
+
+    // additional test for chrX conflict genotypes
+    auto haploid_param = std::unique_ptr<GenotypingParameters>(new GenotypingParameters(alleles, 1));
+    BreakpointGenotyper haploid_genotyper(haploid_param);
+    const BreakpointGenotyperParameter b_param2(read_depth, read_length, depth_sd, false);
+    Genotype gtX1;
+    gtX1.gt = { 0 };
+    gtX1.num_reads = 10;
+    gtX1.allele_fractions = { 1, 0 };
+    Genotype gtX2;
+    gtX2.gt = { 1 };
+    gtX2.num_reads = 2;
+    gtX2.allele_fractions = { 0, 1 };
+    GenotypeSet gsX;
+    gsX.add(alleles, gtX1);
+    gsX.add(alleles, gtX2);
+    const Genotype combined_haploid_genotype = combinedGenotype(gsX, &b_param2, &haploid_genotyper);
+    EXPECT_EQ("0", combined_haploid_genotype.toString());
 }
 
 TEST(CombinedGenotype, GenotypeMissing)

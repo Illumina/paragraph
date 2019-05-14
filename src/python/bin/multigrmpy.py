@@ -60,15 +60,7 @@ def load_graph_description(args):
         logging.info("Input is a vcf. Converting to JSON with graph description...")
         try:
             converted_json_path = os.path.join(args.output, "variants.json.gz")
-            header, records, event_list = convert_vcf_to_json(
-                args.input, args.reference, read_length=args.read_length,
-                max_ref_node_length=args.max_ref_node_length,
-                graph_type=args.graph_type,
-                split_type=args.split_type,
-                retrieve_ref_sequence=args.retrieve_reference_sequence,
-                threads=args.threads,
-                alt_splitting=args.alt_splitting,
-                alt_paths=True)
+            header, records, event_list = convert_vcf_to_json(args, alt_paths=True)
 
             vcf_with_event_ids_path = os.path.join(args.output, "variants.vcf.gz")
             logging.info("Saving: %s.", vcf_with_event_ids_path)
@@ -225,6 +217,8 @@ def make_argument_parser():
 
     vcf2json_options.add_argument("--graph-type", choices=["alleles", "haplotypes"], default="alleles", dest="graph_type",
                                   help="Type of complex graph to generate. Same as --graph-type in vcf2paragraph.")
+    vcf2json_options.add_argument("--ins-info-key", type=str, default="SEQ", dest="ins_info_key",
+                                  help="Key in INFO field to indicate sequence of symbolic <INS>")
 
     return parser
 
@@ -285,7 +279,7 @@ def run(args):
             commandline += " -G %s" % pipes.quote(args.genotyping_parameters)
         if args.max_reads_per_event:
             commandline += " -M %s" % pipes.quote(str(args.max_reads_per_event))
-        if args.threads > 1:
+        if args.threads >= 1:
             commandline += " -t %s" % pipes.quote(str(args.threads))
         if args.graph_sequence_matching:
             commandline += " --graph-sequence-matching %s" % pipes.quote(str(args.graph_sequence_matching))
@@ -299,7 +293,7 @@ def run(args):
             alignment_directory = os.path.join(args.output, "alignments")
             os.makedirs(alignment_directory, exist_ok=True)
             if not os.path.isdir(alignment_directory):
-                raise Exception(f"Cannot create alignment output directory: {alignment_directory}")
+                raise Exception("Cannot create alignment output directory: {}".format(alignment_directory))
             commandline += " --alignment-output-folder !%s" % pipes.quote(alignment_directory)
         if args.infer_read_haplotypes:
             commandline += " --infer-read-haplotypes"

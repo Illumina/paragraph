@@ -10,7 +10,7 @@
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	ALT
 chr1	14139928	.	T	<DEL>	0	kmer_fail	END=14139947	GT	0/1
 chr1	14139929	.	G	A	50	kmer_fail	.	GT	0/1
-chr1	14139949	.	GT	AT,G	0	kmer_fail	.	GT	1/2
+chr1	14139948	.	TGT	TAT,TG	0	kmer_fail	.	GT	1/2
 chr1	14139953	.	G	A	50	kmer_fail	.	GT	0/1
 chr1	14139964	.	T	<DEL>	50	kmer_fail	END=14139976	GT	0/1
 chr1	14139975	.	T	<DEL>	50	kmer_fail	END=14139976	GT	0/1

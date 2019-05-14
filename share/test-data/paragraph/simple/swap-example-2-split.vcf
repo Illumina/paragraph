@@ -10,5 +10,5 @@
 ##ALT=<ID=INV,Description="Inversion">
 ##contig=<ID=chr5,length=180915260>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	REF	ALT
-chr5	70244112	var1	CG	AT	.	PASS	.	GT	0	1
-chr5	70244116	var2	T	G	.	PASS	.	GT	0	1
+chr5	70244113	var1	C	T	.	PASS	.	GT	0	1
+chr5	70244117	var2	T	G	.	PASS	.	GT	0	1

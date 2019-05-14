@@ -144,7 +144,7 @@ Genotype reportConsensusGenotypes(GenotypeSet const& genotypes, bool pass_only)
             continue;
         }
 
-        if (!bp.filters.empty())
+        if (pass_only && !bp.filters.empty())
         {
             result.filters.insert(bp.filters.begin(), bp.filters.end());
             continue;

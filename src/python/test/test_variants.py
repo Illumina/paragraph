@@ -31,7 +31,7 @@ class AddVariantsToplevelTests(unittest.TestCase):
 
     def test_examples(self):
         for x in self.test_graphs:
-            print(f"Testing output for {x}")
+            print("Testing output for {}".format(x))
             tf1 = tempfile.NamedTemporaryFile(suffix=".json")
             tf1.close()
             try:
@@ -77,7 +77,6 @@ class AddVariantsUnitTests(unittest.TestCase):
         self.assertTrue(graph.has_edge(alt, right))
         self.assertFalse(graph.has_edge(left, right))
         self.assertFalse(graph.has_edge(ref, alt))
-
 
     def test_alt_snv(self):
         graph = graphContainer.GraphContainer()
