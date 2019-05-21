@@ -1,4 +1,4 @@
-FROM ubuntu:17.04
+FROM ubuntu:18.04
 
 RUN apt-get -qq update && apt-get install -yq \
   autoconf \
@@ -27,5 +27,4 @@ WORKDIR /opt/paragraph-build
 RUN cmake /opt/paragraph-source -DCMAKE_INSTALL_PREFIX=/opt/paragraph && make && make install
 RUN rm -rf /opt/paragraph-source
 
-ENTRYPOINT ["/usr/bin/python3"]
-CMD ["/opt/paragraph/bin/runGraphTyping.py", "-h"]
+ENTRYPOINT ["/opt/paragraph/bin/multigrmpy.py"]
