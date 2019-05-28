@@ -107,6 +107,8 @@ First, checkout the repository like so:
   # optional:
   # export BOOST_ROOT=<path-to-boost-installation>
   cmake ../paragraph-tools
+  # if this doesn't work, run this instead:
+  # cmake ../paragraph-tools -DCMAKE_CXX_COMPILER=`which g++` -DCMAKE_C_COMPILER=`which gcc` -DBOOST_ROOT=$BOOST_ROOT
 
   # Make, use -j <n> to use n parallel jobs to build, e.g. make -j4
   make
