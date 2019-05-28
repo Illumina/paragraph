@@ -2,6 +2,7 @@
 
 | Date Y-m-d | Ticket  | Description                                                          |
 |------------|---------|----------------------------------------------------------------------|
+| 2019-05-27 | GT-802  | Update license to Apache and fix docker entry                        |
 
 #Version 2.2
 

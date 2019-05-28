@@ -1,32 +1,21 @@
 #!/usr/bin/env python3
-# coding=utf-8
 
+# coding=utf-8
 #
-# Copyright (c) 2017 Illumina, Inc.
+# Copyright (c) 2016-2019 Illumina, Inc.
 # All rights reserved.
 #
-# This file is distributed under the simplified BSD license.
-# The full text can be found here (and in the LICENSE file in the root folder of
-# this distribution):
+# Licensed under the Apache License, Version 2.0 (the "License");
+# You may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# https://github.com/Illumina/licenses/blob/master/Simplified-BSD-License.txt
+# http://www.apache.org/licenses/LICENSE-2.0
 #
-# January 2018
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied
+# See the License for the specific language governing permissions and limitations
 #
-# Run paragraph tools on multiple sites on multiple samples
-#   This script is suitable for a small list of sites and samples.
-#   To run ParaGRAPH on large-scale sites and samples, please refer to the Snakemake template at doc/multi-samples.md
-# Output will be one JSON for all samples with genotyping information
-#
-# Usage:
-#
-# For usage instructions run with option --help
-#
-# Author:
-#
-# Sai Chen <schen6@illumina.com>
-#
-
 import argparse
 import gzip
 import json
