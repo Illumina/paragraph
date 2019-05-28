@@ -30,23 +30,19 @@ Accurate genotyping of known variants is a critical for analysis of whole-genome
 
 Paragraph aims to facilitate these tasks by providing:
 - an accurate genotyper for Structural Variations in short-read data
-- a suite of graph-based tools to align and genotype complex events
+- a suite of graph-based tools to align and genotype complex events.
 
 Please reference Paragraph using:
 
-- Chen, et al (2019) [Paragraph: A graph-based structural variant genotyper for short-read sequence data](https://www.biorxiv.org/content/10.1101/635011v1). *bioRxiv*.
+- Chen, et al (2019) [Paragraph: A graph-based structural variant genotyper for short-read sequence data](https://www.biorxiv.org/content/10.1101/635011v1). *bioRxiv*. doi: https://doi.org/10.1101/635011
 
-Variant calls described in the paper is available at [data/download-instructions.txt](data/download-instructions.txt)
+Genotyping calls in this paper can be found at [paper-data/download-instructions.txt](paper-data/download-instructions.txt)
 
 ## <a name='SystemRequirements'></a>System Requirements
 
 ### <a name='Hardware'></a>Hardware
 
 A standard workstation with at least 8GB of RAM should be sufficient for compilation and testing of the program.
-
-It typically takes up to a few seconds to genotype a single event in one sample (single-threaded).
-We provide wrapper scripts to parallelize this process.
-It took us 30 minutes to genotype ~20,000 SVs using 20 CPU cores (with I/O).
 
 ### <a name='Operatingsystems'></a>Operating systems
 
@@ -64,11 +60,7 @@ should be usable.
 
 ### <a name='ThirdPartyLibraries'></a>Third-party libraries
 
-The following Python modules are required:
-
-- Pysam
-- Intervaltree
-- Jsonschema
+Please check [requirements.txt](requirements) for required python modules.
 
 [Boost libraries](http://www.boost.org) version >= 1.5 is required.
 - We prefer to statically link Boost libraries to Paragraph executables:
@@ -86,7 +78,6 @@ The following Python modules are required:
 
   ```bash
   export BOOST_ROOT=$HOME/boost_1_65_0_install
-  # Now run cmake + build as shown below.
   ```
 
 We have included copies of other dependent libraries in external/. They are:
@@ -136,23 +127,23 @@ We also provide a [Dockerfile](Dockerfile). To build a Docker image, run the fol
   ```
   ```
   REPOSITORY                             TAG                 IMAGE ID            CREATED             VIRTUAL SIZE
-  <none>                                 <none>              259aa8c0c920        10 minutes ago      2.18 GB
+  <none>                                 <none>              54c7d4015330        16 seconds ago      1.76 GB
   ```
  
   Check the below section for how to run Paragraph, and execute this before running:
 
   ```bash
-  sudo docker run -v `pwd`:/data 259aa8c0c920
+  sudo docker run -v `pwd`:/data 54c7d4015330
   ```
 
-  The current directory can be accessed as `/data` inside the Docker container, see also 
-  [https://docs.docker.com/engine/reference/commandline/run/](https://docs.docker.com/engine/reference/commandline/run/).
-
-  To override the default entrypoint run the following command to get an interactive shell in which the paragraph tools
-  can be run:
+  The current directory can be accessed as `/data` inside the Docker container.
+  
+  The default entry point is `multigrmpy.py`.
+  
+  To override the default entrypoint and get an interactive shell, run:
 
   ```bash
-  sudo docker run --entrypoint /bin/bash -it 259aa8c0c920
+  sudo docker run --entrypoint /bin/bash -it 54c7d4015330
   ```
 
 ## <a name='RunParagraphFromVCF'></a>Run Paragraph from VCF
@@ -189,7 +180,10 @@ If successful, the last 3 lines of genotypes.vcf.gz will the same as in [expecte
 
 ## <a name='InputRequirements'></a>Input requirements
 ### VCF format
-Paragraph will independently genotype each entry of the input VCF. You can use either indel-style representation (full REF and ALT allele sequence in 4th and 5th columns) or symbolic alleles, as long as they meet the format requirement of VCF 4.0+.
+paraGRAPH will independently genotype each entry of the input VCF. You can use either indel-style representation (full REF and ALT allele sequence in 4th and 5th columns) or symbolic alleles, as long as they meet the format requirement of VCF 4.0+.
+
+It typically takes up to a few seconds to genotype a single event in one sample (single-threaded).
+It took us 30 minutes to genotype ~20,000 SVs using 20 CPU cores (with I/O).
 
 Currently we support 4 symbolic alleles:
 - `<DEL>` for deletion
@@ -198,9 +192,9 @@ Currently we support 4 symbolic alleles:
     - Must have a key in INFO field for insertion sequence (without padding base). The default key is SEQ.
     - For blockwise swap, we strongly recommend using indel-style representation, other than symbolic alleles.
 - `<DUP>` for duplication
-    - Must have END key in INFO field. Paragraph assumes the sequence between POS and END being duplicated for one more time in the alternative allele.
+    - Must have END key in INFO field. paraGRAPH assumes the sequence between POS and END being duplicated for one more time in the alternative allele.
 - `<INV>` for inversion
-    - Must have END key in INFO field. Paragraph assumes the sequence between POS and END being reverse-complemented in the alternative allele.
+    - Must have END key in INFO field. paraGRAPH assumes the sequence between POS and END being reverse-complemented in the alternative allele.
 
 ### Sample Manifest
 Must be tab-deliemited.
@@ -222,7 +216,7 @@ Allow "male" or "M", "female" or "F", and "unknown" (quotes shouldn't be include
 If not specified, the sample will be treated as unknown.
 
 ## <a name='RunParagraphOnComplexVariants'></a>Run Paragraph on complex variants
-For more complicated events (e.g. genotype a deletion together with its nearby SNP), you can provide a custimized JSON to Paragraph:
+For more complicated events (e.g. genotype a deletion together with its nearby SNP), you can provide a custimized JSON to paraGRAPH:
 
 Please follow the pattern in [example JSON](share/test-data/paragraph/pg-het-ins/pg-het-ins.json) and make sure all required keys are provided. Here is a visualization of this [sample graph](share/test-data/paragraph/pg-het-ins/pg-het-ins.png).
 
@@ -280,7 +274,3 @@ If you have multiple events listed in the input JSON, `multigrmpy.py` can help y
 
 The [LICENSE](LICENSE) file contains information about libraries and other tools we use, 
 and license information for these.
-
-Paragraph itself is distributed under the simplified BSD license. The full license text 
-can be found at:
-https://github.com/Illumina/licenses/blob/master/Simplified-BSD-License.txt
