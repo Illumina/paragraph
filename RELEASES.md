@@ -1,20 +1,22 @@
 # Paragraph Release Notes / Change Log
 
+# Version 2.2b
+
 | Date Y-m-d | Ticket  | Description                                                          |
 |------------|---------|----------------------------------------------------------------------|
+| 2019-06-14 | GT-804  | Simplify README and add static build                    |
+
+# Version 2.2a
+
 | 2019-05-27 | GT-802  | Update license to Apache and fix docker entry                        |
 
-#Version 2.2
+# Version 2.2
 
-| Date Y-m-d | Ticket  | Description                                                          |
-|------------|---------|----------------------------------------------------------------------|
 | 2019-05-11 | GT-743  | Update interface and error handling                                  |
 | 2018-12-11 | GT-696  | Fix newlines in validation scripts (public repo already fixed)       |
 
 # Version 2.1
 
-| Date Y-m-d | Ticket  | Description                                                          |
-|------------|---------|----------------------------------------------------------------------|
 | 2018-12-06 | GT-675  | Fix filters and alignment stats. Change depth test threshold on lower end |
 | 2018-11-08 | GT-660  | Optimize GQ for variant genotypes                                    |
 | 2018-11-02 | GT-656  | Improvement for simple SV genotyping                                 |
@@ -24,8 +26,6 @@
 
 # Version 2.0
 
-| Date Y-m-d | Ticket  | Description                                                          |
-|------------|---------|----------------------------------------------------------------------|
 | 2018-06-27 | GT-490  | Paragraph 2.0 release; disable Poisson depth test by default         |
 | 2018-06-27 | GT-495  | Improved output of phasing information and paths                     |
 | 2018-06-26 | GT-402  | support genotyping on male chrX                                      |
@@ -59,8 +59,6 @@
 
 # Version 1.2
 
-| Date Y-m-d | Ticket  | Description                                                          |
-|------------|---------|----------------------------------------------------------------------|
 | 2018-04-05 | GT-429  | option to turn off exact and graph aligners in grmpy                 |
 | 2018-04-05 | GT-428  | upgrade htslib to version 1.8                                        |
 | 2018-04-04 | GT-427  | GT-427 multigrmpy to generate graph ID if vc2toparagraph does not provide it|
@@ -81,8 +79,6 @@
 
 # Version 1.1
 
-| Date Y-m-d | Ticket  | Description                                                          |
-|------------|---------|----------------------------------------------------------------------|
 | 2018-02-21 | GT-374  | support for read-level validation                                    |
 | 2018-02-19 | GT-379  | configure tool for installation                                      |
 | 2018-02-15 | GT-373  | Speedup bam processing by keeping the file open between the graphs   |

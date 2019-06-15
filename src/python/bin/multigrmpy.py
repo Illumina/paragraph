@@ -326,11 +326,11 @@ def run(args):
                 line = line.rstrip()
                 if line.startswith('#'):
                     line = line[1:]
-                f = line.split('\t')
+                fields = re.split('\t|,', line)
                 if id_index == -1:
-                    id_index = f.index("id")
+                    id_index = fields.index("id")
                     continue
-                sample_names.append(f[id_index])
+                sample_names.append(fields[id_index])
         if args.input.endswith("vcf") or args.input.endswith("vcf.gz"):
             grmpyOutput = vcfupdate.read_grmpy(result_json_path)
             result_vcf_path = os.path.join(args.output, "genotypes.vcf.gz")
