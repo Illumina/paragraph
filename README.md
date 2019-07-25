@@ -4,8 +4,10 @@
 * [Introduction](#Introduction)
 * [Installation](#Installation)
 * [Run Paragraph from VCF](#RunParagraphFromVCF)
-    * [Example](#Example)
+    * [Test example](#TestExample)
     * [Input requirements](#InputRequirements)
+    * [Run time](#RunTime)
+    * [Population-scale genotyping](#PopulationScaleGenotyping)
 * [Run Paragraph on complex variants](#RunParagraphOnComplexVariants)
 * [Further Information](#FurtherInformation)
 	* [Documentation](#Documentation)
@@ -37,7 +39,7 @@ Genotyping calls in this paper can be found at [paper-data/download-instructions
 Please check [doc/Installation.md](doc/Installation.md) for system requirements and installation instructions.
 
 ## <a name='RunParagraphFromVCF'></a>Run Paragraph from VCF
-### <a name='Example'></a>Example
+### <a name='TestExample'></a>Test example
 After installation, run `multigrmpy.py` script from the build/bin directory on an example dataset as follows:
 
 ```bash
@@ -72,9 +74,6 @@ If successful, the last 3 lines of genotypes.vcf.gz will the same as in [expecte
 ### VCF format
 paraGRAPH will independently genotype each entry of the input VCF. You can use either indel-style representation (full REF and ALT allele sequence in 4th and 5th columns) or symbolic alleles, as long as they meet the format requirement of VCF 4.0+.
 
-It typically takes up to a few seconds to genotype a single event in one sample (single-threaded).
-It took us 30 minutes to genotype ~20,000 SVs using 20 CPU cores (with I/O).
-
 Currently we support 4 symbolic alleles:
 - `<DEL>` for deletion
     - Must have END key in INFO field.
@@ -90,20 +89,32 @@ Currently we support 4 symbolic alleles:
 Must be tab-deliemited.
 
 Required columns:
-- ID: Each sample must have a unique ID. The output VCF will include genotypes for all samples in the manifest
+- id: Each sample must have a unique ID. The output VCF will include genotypes for all samples in the manifest
 - path: Path to the BAM/CRAM file.
-- depth: Average depth across the genome. Can be calculated with bin/idxdepth or samtools.
+- depth: Average depth across the genome. Can be calculated with bin/idxdepth (faster than samtools).
 - read length: Average read length (bp) across the genome.
 
 Optional columns:
 
 - depth sd: Specify standard deviation for genome depth. Used for the normal test of breakpoint read depth. Default is sqrt(5*depth).
-
 - depth variance: Square of depth sd.
+- sex: Affects chrX and chrY genotyping. Allow "male" or "M", "female" or "F", and "unknown" (quotes shouldn't be included in the manifest). If not specified, the sample will be treated as unknown.
 
-- sex: Affects chrX and chrY genotyping. 
-Allow "male" or "M", "female" or "F", and "unknown" (quotes shouldn't be included in the manifest). 
-If not specified, the sample will be treated as unknown.
+## <a name='RunTime'></a>Run time
+
+- On a 30x HiSeqX sample, Paragraph typically takes 1-2 seconds to genotype a simple SV in confident regions.
+
+- If the SV is in a low-complexity region with abnormal read pileups, the running time could vary.
+
+- For efficiency, it is recommended to manually set the "-M" option (maximum allowed read count for a variant) to skip these high-depth regions. We recommend "-M" as 20 times of your mean sample depth.
+
+## <a name='PopulationScaleGenotyping'></a>Population-scale genotyping
+
+To efficiently genotype SVs across a population, we recommend doing single-sample mode as follows:
+- Create a manifest for each single sample
+- Run `multigrmpy.py` for each manifest. Be sure to set "-M" option for each sample according to its depth.
+- Multithreading (option "-t") is highly recommended for population-scale genotyping
+- Merge all `genotypes.vcf.gz` to create a big VCF of all samples. You can use either `bcftools merge` or your custom script.
 
 ## <a name='RunParagraphOnComplexVariants'></a>Run Paragraph on complex variants
 For more complicated events (e.g. genotype a deletion together with its nearby SNP), you can provide a custimized JSON to paraGRAPH:

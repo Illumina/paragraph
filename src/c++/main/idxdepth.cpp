@@ -62,6 +62,7 @@ int main(int argc, char const* argv[])
             ("output,o", po::value<string>(), "Output file name. Will output to stdout if omitted.")
             ("output-bins,O", po::value<string>(), "Output binned coverage in tsv format.")
             ("reference,r", po::value<string>(), "FASTA with reference genome")
+            ("altcontig",po::value<bool>()->default_value(false), "Include ALT contigs in estimation")
             ("include-regex,I", po::value<string>()->default_value(""), "Regex to identify contigs to include")
             ("autosome-regex", po::value<string>()->default_value("(chr)?[1-9][0-9]?"),
              "Regex to identify autosome chromosome names (default: '(chr)?[1-9][0-9]?'")
@@ -131,7 +132,7 @@ int main(int argc, char const* argv[])
             logger->info("Output path for binned coverage: {}", output_path_bins);
         }
 
-        Parameters parameters(bam_path, bam_index_path, reference_path);
+        Parameters parameters(bam_path, bam_index_path, reference_path, vm["altcontig"].as<bool>());
         parameters.set_include_regex(vm["include-regex"].as<string>());
         parameters.set_autosome_regex(vm["autosome-regex"].as<string>());
         parameters.set_sex_chromosome_regex(vm["sex-chromosome-regex"].as<string>());

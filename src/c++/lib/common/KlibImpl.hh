@@ -39,6 +39,7 @@ extern "C" {
 #include "ksw.h"
 }
 
+#include <boost/core/noncopyable.hpp>
 #include <cstdlib>
 #include <cstring>
 #include <memory>

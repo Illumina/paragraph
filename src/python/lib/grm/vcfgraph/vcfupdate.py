@@ -157,8 +157,11 @@ def update_vcf_from_grmpy(inVcfFilename, grmpyOutput, outVcfFilename, sample_nam
         # start at the same position but come in different records. This could be fixed
         # by collapsing these into single VCF records as alleles before running
         # through paragraph.
-        record = header.new_record(contig=raw_record.chrom, start=raw_record.start, stop=raw_record.stop,
-                                   alleles=raw_record.alleles, id=raw_record.id, qual=raw_record.qual, filter=raw_record.filter, info=raw_record.info)
+        try:
+            record = header.new_record(contig=raw_record.chrom, start=raw_record.start, stop=raw_record.stop,
+                                       alleles=raw_record.alleles, id=raw_record.id, qual=raw_record.qual, filter=raw_record.filter, info=raw_record.info)
+        except:
+            raise Exception("Format error in vcf line: " + str(raw_record))
 
         varIdCounts = defaultdict(int)
         varId = VCFGraph.generate_variant_id(record, varIdCounts)

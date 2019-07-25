@@ -76,6 +76,12 @@ Json::Value estimateDepths(Parameters const& parameters)
     for (int i = 0; i < header->n_targets; ++i)
     {
         const std::string contig = std::string(header->target_name[i]);
+
+        if (!parameters.include_alt_contig() && contig.length() > 5)
+        {
+            continue;
+        }
+
         if (parameters.include_regex().empty() || std::regex_match(contig, include_regex))
         {
             bam_chromosomes.insert(contig);
