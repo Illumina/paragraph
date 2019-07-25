@@ -27,10 +27,11 @@ namespace idxdepth
 class Parameters
 {
 public:
-    explicit Parameters(std::string bam_path, std::string bam_index_path, std::string reference_path)
+    explicit Parameters(std::string bam_path, std::string bam_index_path, std::string reference_path, bool altcontig)
         : bam_path_(std::move(bam_path))
         , bam_index_path_(std::move(bam_index_path))
         , reference_path_(std::move(reference_path))
+        , alt_contig_(altcontig)
         , threads_(1)
     {
     }
@@ -38,6 +39,7 @@ public:
     const std::string& bam_path() const { return bam_path_; }
     const std::string& bam_index_path() const { return bam_index_path_; }
     const std::string& reference_path() const { return reference_path_; }
+    bool include_alt_contig() const { return alt_contig_; }
 
     const std::string& include_regex() const { return include_regex_; }
     void set_include_regex(std::string const& ar) { include_regex_ = ar; }
@@ -53,6 +55,7 @@ private:
     std::string bam_path_;
     std::string bam_index_path_;
     std::string reference_path_;
+    bool alt_contig_;
     std::string include_regex_;
     std::string autosome_regex_;
     std::string sex_chromosome_regex_;
