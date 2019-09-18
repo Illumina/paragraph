@@ -237,7 +237,7 @@ def run(args):
     # manifest sanity check
     with open(args.manifest) as manifest_file:
         headers = {"id": False, "path": False, "idxdepth": False, "depth": False,
-                   "read length": False, "sex": False, "depth variance": False}
+                   "read length": False, "sex": False, "depth variance": False, "depth sd": False}
         for line in manifest_file:
             if line.startswith("#"):
                 line = line[1:]
