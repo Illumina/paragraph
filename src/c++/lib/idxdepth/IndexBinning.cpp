@@ -56,7 +56,7 @@ void getIndexBins(std::string const& bam_path, std::vector<IndexBin>& output)
     if (hts_file_ptr->format.format == bam)
     {
         logger->debug("\t[Input {} is a BAM file]", bam_path);
-        error("BAM index reading not available yet.");
+        error("BAM index reading not available yet. binnedcov.txt won't be generated.");
     }
     else if (hts_file_ptr->format.format == cram)
     {

@@ -210,6 +210,7 @@ def update_vcf_from_grmpy(inVcfFilename, grmpyOutput, outVcfFilename, sample_nam
         for ii, aId in enumerate(alleleIds):
             alleleMap[aId] = ii
 
+        num_bpdepth_sample = 0
         for sample in sample_names:
             if vcf_samples:
                 if sample in vcf_samples:
@@ -222,7 +223,7 @@ def update_vcf_from_grmpy(inVcfFilename, grmpyOutput, outVcfFilename, sample_nam
                     record.samples[sample]["OLD_GT"] = [None]
             record.samples[sample]["GT"] = [None]
             record.samples[sample]["DP"] = None
-            record.samples[sample]["FT"] = "."
+            record.samples[sample]["FT"] = None
             record.samples[sample]["AD"] = [None] * (1 + len(record.alts))
             record.samples[sample]["ADF"] = [None] * (1 + len(record.alts))
             record.samples[sample]["ADR"] = [None] * (1 + len(record.alts))
@@ -233,6 +234,10 @@ def update_vcf_from_grmpy(inVcfFilename, grmpyOutput, outVcfFilename, sample_nam
                     logging.warning("VCF key error for sample " + str(sample) + " at " +
                                     '_'.join(map(str, [record.chrom, record.pos, record.stop])))
                     continue
+                if "BP_DEPTH" in record.samples[sample]["FT"] or "BP_NO_GT" in record.samples[sample]["FT"]:
+                    num_bpdepth_sample += 1
+        if num_bpdepth_sample * 2 > len(grmpyRecord["samples"]):
+            record.filter.add("BP_DEPTH")
 
         bcf_out.write(record)
 

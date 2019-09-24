@@ -22,17 +22,16 @@
 
 ## <a name='Introduction'></a>Introduction
 
-Accurate genotyping of known variants is a critical for analysis of whole-genome sequencing data.
-
-Paragraph aims to facilitate these tasks by providing:
-- an accurate genotyper for Structural Variations in short-read data
-- a suite of graph-based tools to align and genotype complex events.
+Accurate genotyping of known variants is a critical for the analysis of whole-genome sequencing data. Paragraph aims to facilitate this by providing an accurate genotyper for Structural Variations with short-read data.
 
 Please reference Paragraph using:
 
-- Chen, et al (2019) [Paragraph: A graph-based structural variant genotyper for short-read sequence data](https://www.biorxiv.org/content/10.1101/635011v1). *bioRxiv*. doi: https://doi.org/10.1101/635011
+- Chen, et al (2019) [Paragraph: A graph-based structural variant genotyper for short-read sequence data](https://www.biorxiv.org/content/10.1101/635011v2). *bioRxiv*. doi: https://doi.org/10.1101/635011
 
-Genotyping calls in this paper can be found at [paper-data/download-instructions.txt](paper-data/download-instructions.txt)
+(Second version uploaded at September 24, 2019)
+
+Genotyping data in this paper can be found at [paper-data/download-instructions.txt](paper-data/download-instructions.txt)
+
 
 ## <a name='Installation'></a>Installation
 

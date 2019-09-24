@@ -2,74 +2,60 @@
     "edges": [
         {
             "from": "source",
-            "name": "source_ref-chr22:26-30",
-            "to": "ref-chr22:26-30"
+            "name": "source_ref-chr20:149008-149013",
+            "to": "ref-chr20:149008-149013"
         },
         {
-            "from": "ref-chr22:26-30",
-            "name": "ref-chr22:26-30_ref-chr22:31-31",
+            "from": "ref-chr20:149008-149013",
+            "name": "ref-chr20:149008-149013_chr20:149014-149013:CCATATTTGGGAGGCAATTTTACCTGTTCTCAAGGCCGCATCTCTACCCCATCTCATGCGAATCCTGAC",
             "sequences": [
-                "20482:0",
+                "HG002_pbsv.INS.49079:1"
+            ],
+            "to": "chr20:149014-149013:CCATATTTGGGAGGCAATTTTACCTGTTCTCAAGGCCGCATCTCTACCCCATCTCATGCGAATCCTGAC"
+        },
+        {
+            "from": "ref-chr20:149008-149013",
+            "name": "ref-chr20:149008-149013_ref-chr20:149014-149018",
+            "sequences": [
+                "HG002_pbsv.INS.49079:0",
                 "REF"
             ],
-            "to": "ref-chr22:31-31"
+            "to": "ref-chr20:149014-149018"
         },
         {
-            "from": "ref-chr22:31-31",
-            "name": "ref-chr22:31-31_chr22:32-31:AGGGCAAACATTCAGGACACAGCAGAGTATTGTTGTAATCCTATGTGAGC",
+            "from": "chr20:149014-149013:CCATATTTGGGAGGCAATTTTACCTGTTCTCAAGGCCGCATCTCTACCCCATCTCATGCGAATCCTGAC",
+            "name": "chr20:149014-149013:CCATATTTGGGAGGCAATTTTACCTGTTCTCAAGGCCGCATCTCTACCCCATCTCATGCGAATCCTGAC_ref-chr20:149014-149018",
             "sequences": [
-                "20482:1"
+                "HG002_pbsv.INS.49079:1"
             ],
-            "to": "chr22:32-31:AGGGCAAACATTCAGGACACAGCAGAGTATTGTTGTAATCCTATGTGAGC"
+            "to": "ref-chr20:149014-149018"
         },
         {
-            "from": "ref-chr22:31-31",
-            "name": "ref-chr22:31-31_ref-chr22:32-36",
-            "sequences": [
-                "20482:0",
-                "REF"
-            ],
-            "to": "ref-chr22:32-36"
-        },
-        {
-            "from": "chr22:32-31:AGGGCAAACATTCAGGACACAGCAGAGTATTGTTGTAATCCTATGTGAGC",
-            "name": "chr22:32-31:AGGGCAAACATTCAGGACACAGCAGAGTATTGTTGTAATCCTATGTGAGC_ref-chr22:32-36",
-            "sequences": [
-                "20482:1"
-            ],
-            "to": "ref-chr22:32-36"
-        },
-        {
-            "from": "ref-chr22:32-36",
-            "name": "ref-chr22:32-36_sink",
+            "from": "ref-chr20:149014-149018",
+            "name": "ref-chr20:149014-149018_sink",
             "to": "sink"
         }
     ],
-    "model_name": "Graph from insertions/insertion-test-1.vcf",
+    "model_name": "Graph from ../paragraph-tools/share/test-data/paragraph/insertions/insertion-test-1.vcf",
     "nodes": [
         {
             "name": "source",
             "sequence": "NNNNNNNNNN"
         },
         {
-            "name": "ref-chr22:26-30",
-            "reference": "chr22:26-30",
-            "reference_sequence": "AGACC"
+            "name": "ref-chr20:149008-149013",
+            "reference": "chr20:149008-149013",
+            "reference_sequence": "GAACAA"
         },
         {
-            "name": "ref-chr22:31-31",
-            "reference": "chr22:31-31",
-            "reference_sequence": "A"
+            "name": "chr20:149014-149013:CCATATTTGGGAGGCAATTTTACCTGTTCTCAAGGCCGCATCTCTACCCCATCTCATGCGAATCCTGAC",
+            "position": "chr20:149014-149013",
+            "sequence": "CCATATTTGGGAGGCAATTTTACCTGTTCTCAAGGCCGCATCTCTACCCCATCTCATGCGAATCCTGAC"
         },
         {
-            "name": "chr22:32-31:AGGGCAAACATTCAGGACACAGCAGAGTATTGTTGTAATCCTATGTGAGC",
-            "position": "chr22:32-31",
-            "sequence": "AGGGCAAACATTCAGGACACAGCAGAGTATTGTTGTAATCCTATGTGAGC"
-        },
-        {
-            "name": "ref-chr22:32-36",
-            "reference": "chr22:32-36",
-            "reference_sequence": "G"
+            "name": "ref-chr20:149014-149018",
+            "reference": "chr20:149014-149018",
+            "reference_sequence": "CCATA"
         },
         {
             "name": "sink",
@@ -79,31 +65,29 @@
     "paths": [
         {
             "nodes": [
-                "ref-chr22:26-30",
-                "ref-chr22:31-31",
-                "ref-chr22:32-36"
+                "ref-chr20:149008-149013",
+                "ref-chr20:149014-149018"
             ],
             "path_id": "REF|1",
             "sequence": "REF"
         },
         {
             "nodes": [
-                "ref-chr22:26-30",
-                "ref-chr22:31-31",
-                "chr22:32-31:AGGGCAAACATTCAGGACACAGCAGAGTATTGTTGTAATCCTATGTGAGC",
-                "ref-chr22:32-36"
+                "ref-chr20:149008-149013",
+                "chr20:149014-149013:CCATATTTGGGAGGCAATTTTACCTGTTCTCAAGGCCGCATCTCTACCCCATCTCATGCGAATCCTGAC",
+                "ref-chr20:149014-149018"
             ],
             "path_id": "ALT|1",
             "sequence": "ALT"
         }
     ],
     "sequencenames": [
-        "20482:0",
-        "20482:1",
         "ALT",
+        "HG002_pbsv.INS.49079:0",
+        "HG002_pbsv.INS.49079:1",
         "REF"
     ],
     "target_regions": [
-        "chr22:26-36"
+        "chr20:149008-149018"
     ]
 }

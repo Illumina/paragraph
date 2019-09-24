@@ -1,15 +1,25 @@
-Please use the following S3 link to download the output VCF from Paragraph manuscript:
+Please use the following S3 link to download data.
 
-Genotypes of HG002 Long-read ground truth (LRGT) SVs on the Illumina HiSeq X 34.5x bam (VCF format):
-https://s3-us-west-1.amazonaws.com/paragraph-paper-data/hg002_sniffles_ccs.paragraph.vcf.gz
+The VCF for long read ground truth (with PBSV genotypes):
+https://paragraph-paper-data.s3-us-west-1.amazonaws.com/sample3-sw.sorted.pass.vcf.gz
 
+Note that chrX and chrY were excluded in our analysis
 
-HG002 Long-read ground truth (LRGT) SVs on 100 individuals from Polaris (JSON format):
-Site only:
-https://s3-us-west-1.amazonaws.com/paragraph-paper-data/sniffles_ccs_polaris.filtered.autosome.del_ins.json.gz
+The VCF for all SVs (LRGT + Clustered SVs):
+https://paragraph-paper-data.s3-us-west-1.amazonaws.com/sample3-sw.sorted.vcf.gz
 
-Genotypes included:
-https://s3-us-west-1.amazonaws.com/paragraph-paper-data/sniffles_ccs_polaris.json.gz
+In the filter field, we have "PASS" for LRGT SVs and "NEARBY" for clustered SVs. Note that chrX and chrY were excluded in all analysis in our manuscript.
+
+Paragraph genotypes of LRGT and clustered SVs for:
+NA24385/HG002:
+https://paragraph-paper-data.s3-us-west-1.amazonaws.com/HG002.paragraph.vcf.gz
+NA12878:
+https://paragraph-paper-data.s3-us-west-1.amazonaws.com/NA12878.paragraph.vcf.gz
+NA24361/HG005:
+https://paragraph-paper-data.s3-us-west-1.amazonaws.com/HG005.paragraph.vcf.gz
+
+Paragraph genotyping summary of LRGT and clustered SVs in the 100 unrelated individuals in the Polaris population:
+https://paragraph-paper-data.s3-us-west-1.amazonaws.com/polaris.summary.csv
 
 Sample name map (S3 ID to regular ID):
 https://s3-us-west-1.amazonaws.com/paragraph-paper-data/sample_map.txt
