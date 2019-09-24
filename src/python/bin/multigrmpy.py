@@ -180,7 +180,7 @@ def make_argument_parser():
     verbosity_options.add_argument("--debug", dest="debug", default=False, action="store_true",
                                    help="Log debug level events.")
 
-    stat_options = parser.add_mutually_exclusive_group(required=False)
+    stat_options = parser.add_argument_group('gt-parameter-group')
 
     stat_options.add_argument("-G", "--genotyping-parameters", dest="genotyping_parameters", default="",
                               type=str, help="JSON string or file with genotyping model parameters.")
@@ -188,7 +188,7 @@ def make_argument_parser():
     stat_options.add_argument("-M", "--max-reads-per-event", dest="max_reads_per_event", default=0,
                               type=int, help="Maximum number of reads to process for a single event.")
 
-    vcf2json_options = parser.add_mutually_exclusive_group(required=False)
+    vcf2json_options = parser.add_argument_group('vcf2json-option-group')
 
     vcf2json_options.add_argument("--vcf-split", default="lines", dest="split_type", choices=["lines", "full", "by_id", "superloci"],
                                   help="Mode for splitting the input VCF: lines (default) -- one graph per record ;"
