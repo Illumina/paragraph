@@ -28,10 +28,11 @@ Please reference Paragraph using:
 
 - Chen, et al (2019) [Paragraph: A graph-based structural variant genotyper for short-read sequence data](https://www.biorxiv.org/content/10.1101/635011v2). *bioRxiv*. doi: https://doi.org/10.1101/635011
 
-(Second version uploaded at September 24, 2019)
-
 Genotyping data in this paper can be found at [paper-data/download-instructions.txt](paper-data/download-instructions.txt)
 
+For details of population genotyping, please also refer to:
+
+- https://www.illumina.com/science/genomics-research/accurate-genotyping-of-structural-variant.html
 
 ## <a name='Installation'></a>Installation
 
@@ -141,6 +142,8 @@ bin/grmpy -m <input manifest> \
 If you have multiple events listed in the input JSON, `multigrmpy.py` can help you to run multiple `grmpy` jobs together.
 
 ## <a name='FurtherInformation'></a>Further Information
+
+Please check github wiki for common usage questions and errors.
 
 ### <a name='Documentation'></a>Documentation
 
