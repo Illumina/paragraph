@@ -57,6 +57,7 @@ def load_graph_description(args):
                 for record in [record for record_block in records for record in record_block]:
                     vcf_with_event_ids_file.write(record)
 
+            pysam.tabix_index(vcf_with_event_ids_path, preset="vcf", force=True)
             logging.info("Saving: %s.", converted_json_path)
             with gzip.open(converted_json_path, "wt") as converted_json_file:
                 json.dump(event_list, converted_json_file, sort_keys=True, indent=4, separators=(',', ': '))
